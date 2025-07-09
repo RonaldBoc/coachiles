@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { CoachProfile } from '@/types/coach'
+import { useSubscriptionStore } from './subscription'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -47,51 +48,7 @@ export const useUserStore = defineStore('user', {
       createdAt: new Date('2024-01-10'),
       suspensionReason: 'En attente de validation du certificat en nutrition sportive',
     } as CoachProfile | null,
-    
-    // Subscription state
-    subscription: {
-      hasSubscription: false,
-      plan: 'Premium',
-      status: 'cancelled',
-      price: 49,
-      currency: 'EUR',
-      billingCycle: 'monthly',
-      nextBillingDate: new Date('2025-02-15'),
-      autoRenew: true,
-      features: [
-        'Accès illimité aux offres Premium',
-        'Priorité dans les recherches clients',
-        'Support client prioritaire',
-        'Outils de gestion avancés',
-        'Statistiques détaillées'
-      ],
-      paymentMethod: {
-        brand: 'Visa',
-        last4: '4242',
-        expiryMonth: 12,
-        expiryYear: 2027
-      },
-      billingHistory: [
-        {
-          id: '1',
-          date: new Date('2025-01-15'),
-          amount: 49,
-          currency: 'EUR',
-          status: 'paid',
-          description: 'Abonnement Premium - Janvier 2025'
-        },
-        {
-          id: '2',
-          date: new Date('2024-12-15'),
-          amount: 49,
-          currency: 'EUR',
-          status: 'paid',
-          description: 'Abonnement Premium - Décembre 2024'
-        }
-      ]
-    },
-  }),
-  actions: {
+  }),  actions: {
     login(data: CoachProfile) {
       this.isLoggedIn = true
       this.coach = data
@@ -101,25 +58,25 @@ export const useUserStore = defineStore('user', {
       this.coach = null
     },
     
-    // Subscription actions
+    // Subscription actions - delegate to subscription store
     toggleSubscription() {
-      this.subscription.hasSubscription = !this.subscription.hasSubscription
-      this.subscription.status = this.subscription.hasSubscription ? 'active' : 'cancelled'
+      const subscriptionStore = useSubscriptionStore()
+      subscriptionStore.toggleSubscription()
     },
     
     activateSubscription() {
-      this.subscription.hasSubscription = true
-      this.subscription.status = 'active'
+      const subscriptionStore = useSubscriptionStore()
+      subscriptionStore.subscribeToPlan('pro') // Default to pro plan
     },
     
     cancelSubscription() {
-      this.subscription.hasSubscription = false
-      this.subscription.status = 'cancelled'
+      const subscriptionStore = useSubscriptionStore()
+      subscriptionStore.cancelSubscription()
     },
     
     upgradeSubscription() {
-      // In a real app, this would handle plan changes
-      console.log('Upgrading subscription...')
+      const subscriptionStore = useSubscriptionStore()
+      subscriptionStore.upgradeToPlan('premium')
     },
   },
 })

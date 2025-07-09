@@ -25,11 +25,13 @@ import {
 } from '@heroicons/vue/24/outline'
 import { CameraIcon } from '@heroicons/vue/24/solid'
 import { useUserStore } from '@/stores/user'
+import { useSubscriptionStore } from '@/stores/subscription'
 import { COACH_SERVICES } from '@/constants/services'
 import { getServiceRequirement } from '@/constants/serviceRequirements'
 import type { CoachProfile, DiplomaDocument } from '@/types/coach'
 
 const userStore = useUserStore()
+const subscriptionStore = useSubscriptionStore()
 
 // Form data
 const profile = ref<CoachProfile>({
@@ -99,7 +101,7 @@ const pendingDiplomas = computed(() => {
 })
 
 const hasActiveSubscription = computed(() => {
-  return userStore.subscription.hasSubscription && userStore.subscription.status === 'active'
+  return subscriptionStore.hasActiveSubscription
 })
 
 // Methods
@@ -231,13 +233,13 @@ const updatePaymentMethod = () => {
 
 const cancelSubscription = () => {
   console.log('Cancelling subscription')
-  userStore.cancelSubscription()
+  subscriptionStore.cancelSubscription()
   // In real app, show cancellation confirmation
 }
 
 const upgradeSubscription = () => {
   console.log('Opening upgrade flow')
-  userStore.upgradeSubscription()
+  subscriptionStore.upgradeToPlan('premium')
   // In real app, show upgrade options
 }
 
@@ -794,42 +796,54 @@ onMounted(() => {
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 class="text-lg font-semibold text-gray-900 mb-6">Mon abonnement</h2>
 
-              <!-- Active Subscription -->
-              <template v-if="hasActiveSubscription">
-                <!-- Current Plan -->
-                <div class="border border-blue-200 bg-blue-50 rounded-lg p-6 mb-6">
+              <!-- Current Plan -->
+              <div class="border border-blue-200 bg-blue-50 rounded-lg p-6 mb-6">
                 <div class="flex items-center justify-between mb-4">
                   <div>
-                    <h3 class="text-xl font-semibold text-blue-900">Plan {{ userStore.subscription.plan }}</h3>
+                    <h3 class="text-xl font-semibold text-blue-900">
+                      Plan {{ subscriptionStore.currentPlan?.name || 'Gratuit' }}
+                    </h3>
                     <p class="text-blue-700">
-                      {{ userStore.subscription.price }}{{ userStore.subscription.currency === 'EUR' ? '€' : '$' }}/{{ userStore.subscription.billingCycle === 'monthly' ? 'mois' : 'an' }}
+                      {{ subscriptionStore.currentPlan?.price || 0 }}{{ subscriptionStore.currentPlan?.currency === 'EUR' ? '€' : '$' }}/{{ subscriptionStore.currentPlan?.billingCycle === 'monthly' ? 'mois' : 'an' }}
                     </p>
                   </div>
-                  <span 
+                  <span
                     class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
                     :class="{
-                      'bg-green-100 text-green-800': userStore.subscription.status === 'active',
-                      'bg-yellow-100 text-yellow-800': userStore.subscription.status === 'pending',
-                      'bg-red-100 text-red-800': userStore.subscription.status === 'cancelled'
+                      'bg-green-100 text-green-800': subscriptionStore.userSubscription.status === 'active',
+                      'bg-yellow-100 text-yellow-800': subscriptionStore.userSubscription.status === 'pending',
+                      'bg-red-100 text-red-800': subscriptionStore.userSubscription.status === 'cancelled' || subscriptionStore.userSubscription.status === 'expired',
                     }"
                   >
-                    {{ userStore.subscription.status === 'active' ? 'Actif' : userStore.subscription.status === 'pending' ? 'En attente' : 'Annulé' }}
+                    {{
+                      subscriptionStore.userSubscription.status === 'active'
+                        ? 'Actif'
+                        : subscriptionStore.userSubscription.status === 'pending'
+                          ? 'En attente'
+                          : subscriptionStore.userSubscription.status === 'expired'
+                            ? 'Expiré'
+                            : 'Inactif'
+                    }}
                   </span>
                 </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+
+                <div v-if="hasActiveSubscription" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                   <div class="flex items-center space-x-2">
                     <CalendarDaysIcon class="h-5 w-5 text-blue-600" />
                     <div>
                       <p class="text-sm font-medium text-blue-900">Prochaine facturation</p>
-                      <p class="text-sm text-blue-700">{{ userStore.subscription.nextBillingDate.toLocaleDateString('fr-FR') }}</p>
+                      <p class="text-sm text-blue-700">
+                        {{ subscriptionStore.userSubscription.nextBillingDate?.toLocaleDateString('fr-FR') || 'Non définie' }}
+                      </p>
                     </div>
                   </div>
                   <div class="flex items-center space-x-2">
                     <BanknotesIcon class="h-5 w-5 text-blue-600" />
                     <div>
                       <p class="text-sm font-medium text-blue-900">Renouvellement automatique</p>
-                      <p class="text-sm text-blue-700">{{ userStore.subscription.autoRenew ? 'Activé' : 'Désactivé' }}</p>
+                      <p class="text-sm text-blue-700">
+                        {{ subscriptionStore.userSubscription.autoRenew ? 'Activé' : 'Désactivé' }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -838,8 +852,8 @@ onMounted(() => {
                 <div>
                   <h4 class="text-sm font-medium text-blue-900 mb-2">Fonctionnalités incluses</h4>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div 
-                      v-for="feature in userStore.subscription.features" 
+                    <div
+                      v-for="feature in subscriptionStore.currentPlan?.features || []"
                       :key="feature"
                       class="flex items-center space-x-2"
                     >
@@ -850,79 +864,187 @@ onMounted(() => {
                 </div>
               </div>
 
-              <!-- Payment Method -->
-              <div class="border border-gray-200 rounded-lg p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
-                  <h3 class="text-lg font-medium text-gray-900">Méthode de paiement</h3>
-                  <button 
-                    @click="updatePaymentMethod"
-                    class="text-blue-600 hover:text-blue-800 transition-colors text-sm"
+              <!-- Available Plans (if not subscribed or want to upgrade) -->
+              <div v-if="!hasActiveSubscription || subscriptionStore.isAdmin" class="mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Plans disponibles</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div
+                    v-for="plan in subscriptionStore.activePlans"
+                    :key="plan.id"
+                    class="border rounded-lg p-4 relative"
+                    :class="{
+                      'border-blue-500 bg-blue-50': plan.isPopular,
+                      'border-gray-200': !plan.isPopular,
+                      'ring-2 ring-green-500': subscriptionStore.userSubscription.planId === plan.id
+                    }"
                   >
-                    Modifier
-                  </button>
-                </div>
-                
-                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                  <CreditCardIcon class="h-8 w-8 text-gray-600" />
-                  <div class="flex-1">
-                    <p class="font-medium text-gray-900">
-                      {{ userStore.subscription.paymentMethod.brand }} •••• {{ userStore.subscription.paymentMethod.last4 }}
+                    <div v-if="plan.isPopular" class="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">Populaire</span>
+                    </div>
+                    <div v-if="subscriptionStore.userSubscription.planId === plan.id" class="absolute -top-3 right-4">
+                      <span class="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">Actuel</span>
+                    </div>
+                    
+                    <h4 class="font-semibold text-lg">{{ plan.name }}</h4>
+                    <p class="text-gray-600 text-sm mb-2">{{ plan.description }}</p>
+                    <p class="text-2xl font-bold text-gray-900 mb-4">
+                      {{ plan.price }}{{ plan.currency === 'EUR' ? '€' : '$' }}
+                      <span class="text-sm font-normal text-gray-500">/{{ plan.billingCycle === 'monthly' ? 'mois' : 'an' }}</span>
                     </p>
-                    <p class="text-sm text-gray-600">
-                      Expire {{ userStore.subscription.paymentMethod.expiryMonth.toString().padStart(2, '0') }}/{{ userStore.subscription.paymentMethod.expiryYear }}
-                    </p>
-                  </div>
-                  <div class="text-right">
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Valide
-                    </span>
+                    
+                    <ul class="space-y-2 mb-4">
+                      <li v-for="feature in plan.features.slice(0, 3)" :key="feature" class="flex items-center text-sm">
+                        <CheckCircleIcon class="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
+                        {{ feature }}
+                      </li>
+                      <li v-if="plan.features.length > 3" class="text-sm text-gray-500">
+                        +{{ plan.features.length - 3 }} autres fonctionnalités
+                      </li>
+                    </ul>
+                    
+                    <button
+                      v-if="subscriptionStore.userSubscription.planId !== plan.id"
+                      @click="subscriptionStore.subscribeToPlan(plan.id)"
+                      class="w-full py-2 px-4 rounded-lg font-medium transition-colors"
+                      :class="plan.isPopular 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                        : 'bg-gray-100 text-gray-900 hover:bg-gray-200'"
+                    >
+                      {{ plan.price === 0 ? 'Sélectionner' : 'Souscrire' }}
+                    </button>
+                    
+                    <div v-else class="w-full py-2 px-4 rounded-lg bg-green-100 text-green-800 text-center font-medium">
+                      Plan actuel
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Billing History -->
+              <!-- Payment Methods (Always visible) -->
+              <div class="border border-gray-200 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-lg font-medium text-gray-900">Méthodes de paiement</h3>
+                  <button
+                    @click="updatePaymentMethod"
+                    class="text-blue-600 hover:text-blue-800 transition-colors text-sm"
+                  >
+                    Ajouter une méthode
+                  </button>
+                </div>
+
+                <div class="space-y-3">
+                  <div
+                    v-for="paymentMethod in subscriptionStore.paymentMethods"
+                    :key="paymentMethod.id"
+                    class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
+                  >
+                    <CreditCardIcon class="h-8 w-8 text-gray-600" />
+                    <div class="flex-1">
+                      <p class="font-medium text-gray-900">
+                        {{ paymentMethod.brand }} •••• {{ paymentMethod.last4 }}
+                      </p>
+                      <p class="text-sm text-gray-600">
+                        Expire {{ paymentMethod.expiryMonth.toString().padStart(2, '0') }}/{{ paymentMethod.expiryYear }}
+                      </p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <span v-if="paymentMethod.isDefault" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Par défaut
+                      </span>
+                      <button
+                        v-if="!paymentMethod.isDefault"
+                        @click="subscriptionStore.setDefaultPaymentMethod(paymentMethod.id)"
+                        class="text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        Définir par défaut
+                      </button>
+                      <button
+                        @click="subscriptionStore.removePaymentMethod(paymentMethod.id)"
+                        class="text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div v-if="subscriptionStore.paymentMethods.length === 0" class="text-center py-8 text-gray-500">
+                    <CreditCardIcon class="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p>Aucune méthode de paiement enregistrée</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Billing History (Always visible) -->
               <div class="border border-gray-200 rounded-lg p-6 mb-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Historique de facturation</h3>
                 <div class="space-y-3">
-                  <div 
-                    v-for="bill in userStore.subscription.billingHistory" 
+                  <div
+                    v-for="bill in subscriptionStore.recentBilling"
                     :key="bill.id"
                     class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                   >
                     <div>
                       <p class="font-medium text-gray-900">{{ bill.description }}</p>
-                      <p class="text-sm text-gray-600">{{ bill.date.toLocaleDateString('fr-FR') }}</p>
+                      <p class="text-sm text-gray-600">
+                        {{ bill.date.toLocaleDateString('fr-FR') }}
+                      </p>
                     </div>
                     <div class="text-right">
-                      <p class="font-medium text-gray-900">{{ bill.amount }}{{ bill.currency === 'EUR' ? '€' : '$' }}</p>
-                      <button class="text-blue-600 hover:text-blue-800 text-sm">Télécharger</button>
+                      <p class="font-medium text-gray-900">
+                        {{ bill.amount }}{{ bill.currency === 'EUR' ? '€' : '$' }}
+                      </p>
+                      <div class="flex items-center space-x-2">
+                        <span
+                          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                          :class="{
+                            'bg-green-100 text-green-800': bill.status === 'paid',
+                            'bg-yellow-100 text-yellow-800': bill.status === 'pending',
+                            'bg-red-100 text-red-800': bill.status === 'failed',
+                            'bg-gray-100 text-gray-800': bill.status === 'refunded'
+                          }"
+                        >
+                          {{ bill.status === 'paid' ? 'Payé' : bill.status === 'pending' ? 'En attente' : bill.status === 'failed' ? 'Échec' : 'Remboursé' }}
+                        </span>
+                        <button v-if="bill.invoiceUrl" class="text-blue-600 hover:text-blue-800 text-sm">
+                          Télécharger
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div class="text-center pt-3">
+                  
+                  <div v-if="subscriptionStore.billingHistory.length === 0" class="text-center py-8 text-gray-500">
+                    <DocumentIcon class="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p>Aucun historique de facturation</p>
+                  </div>
+                  
+                  <div v-if="subscriptionStore.billingHistory.length > 5" class="text-center pt-3">
                     <button class="text-blue-600 hover:text-blue-800 text-sm">
-                      Voir tout l'historique
+                      Voir tout l'historique ({{ subscriptionStore.billingHistory.length }} factures)
                     </button>
                   </div>
                 </div>
               </div>
 
               <!-- Subscription Actions -->
-              <div class="border border-gray-200 rounded-lg p-6">
+              <div v-if="hasActiveSubscription" class="border border-gray-200 rounded-lg p-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Actions</h3>
                 <div class="space-y-3">
                   <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                    <button 
+                    <button
+                      v-if="subscriptionStore.userSubscription.planId !== 'premium'"
                       @click="upgradeSubscription"
                       class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       Passer au plan Premium
                     </button>
-                    <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                    <button
+                      class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
                       Modifier la fréquence de facturation
                     </button>
                   </div>
                   <div class="pt-3 border-t border-gray-200">
-                    <button 
+                    <button
                       @click="cancelSubscription"
                       class="text-red-600 hover:text-red-800 transition-colors text-sm"
                     >
@@ -931,30 +1053,37 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
-              </template>
 
-              <!-- No Active Subscription -->
-              <template v-else>
-                <div class="text-center py-12">
-                  <CreditCardIcon class="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun abonnement actif</h3>
-                  <p class="text-gray-600 mb-6">
-                    Souscrivez à un abonnement pour accéder à toutes les fonctionnalités Premium
-                  </p>
-                  <div class="space-y-3">
-                    <button 
-                      @click="userStore.activateSubscription"
-                      class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              <!-- Admin Panel -->
+              <div v-if="subscriptionStore.isAdmin" class="border border-orange-200 bg-orange-50 rounded-lg p-6 mt-6">
+                <h3 class="text-lg font-medium text-orange-900 mb-4">🔧 Administration des abonnements</h3>
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-orange-800">Mode administrateur</span>
+                    <button
+                      @click="subscriptionStore.setAdminMode(false)"
+                      class="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700 transition-colors"
                     >
-                      Souscrire à un abonnement
+                      Désactiver
                     </button>
-                    <div class="text-sm text-gray-500">
-                      <p>Plan Premium: {{ userStore.subscription.price }}{{ userStore.subscription.currency === 'EUR' ? '€' : '$' }}/{{ userStore.subscription.billingCycle === 'monthly' ? 'mois' : 'an' }}</p>
-                      <p>• {{ userStore.subscription.features.join(' • ') }}</p>
-                    </div>
+                  </div>
+                  <div class="text-sm text-orange-700">
+                    <p>• Modifier les prix et fonctionnalités des plans</p>
+                    <p>• Créer de nouveaux plans d'abonnement</p>
+                    <p>• Voir tous les plans (actifs et inactifs)</p>
                   </div>
                 </div>
-              </template>
+              </div>
+              
+              <!-- Admin Toggle for Demo -->
+              <div v-else class="text-center mt-6">
+                <button
+                  @click="subscriptionStore.setAdminMode(true)"
+                  class="text-gray-500 hover:text-gray-700 text-sm"
+                >
+                  🔧 Mode administrateur (demo)
+                </button>
+              </div>
             </div>
           </TabPanel>
         </TabPanels>

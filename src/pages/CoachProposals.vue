@@ -13,10 +13,10 @@ import type { Proposal } from '@/types/Proposal'
 import { FITNESS_LEVELS } from '@/constants/niveau'
 import { COACHING_MODES } from '@/constants/preference'
 import { PROPOSAL_STATUS_OPTIONS } from '@/constants/status'
-import { useUserStore } from '@/stores/user'
+import { useSubscriptionStore } from '@/stores/subscription'
 
 // Store
-const userStore = useUserStore()
+const subscriptionStore = useSubscriptionStore()
 
 // Mock data - same as before
 const proposals = ref<Proposal[]>([
@@ -74,7 +74,7 @@ const loading = ref(false)
 
 // Helper functions
 const toggleSubscription = () => {
-  userStore.toggleSubscription()
+  subscriptionStore.toggleSubscription()
 }
 
 const formatDateTime = (date: Date) => {
@@ -148,11 +148,13 @@ const getStatusLabel = (status: string) => {
 }
 
 const canAcceptReject = computed(() => (proposal: Proposal) => {
-  return userStore.subscription.hasSubscription && proposal.status === 'pending' && !proposal.is_paid_for
+  return (
+    subscriptionStore.hasActiveSubscription && proposal.status === 'pending' && !proposal.is_paid_for
+  )
 })
 
 const shouldShowPaymentButtons = computed(() => (proposal: Proposal) => {
-  return !userStore.subscription.hasSubscription && !proposal.is_paid_for
+  return !subscriptionStore.hasActiveSubscription && !proposal.is_paid_for
 })
 
 // Action handlers
@@ -199,15 +201,22 @@ const columns = [
           @click="toggleSubscription"
           :class="[
             'px-4 py-2 rounded-md font-medium transition-colors',
-            userStore.subscription.hasSubscription
+            subscriptionStore.hasActiveSubscription
               ? 'bg-red-600 text-white hover:bg-red-700'
               : 'bg-green-600 text-white hover:bg-green-700',
           ]"
         >
-          {{ userStore.subscription.hasSubscription ? '❌ Désactiver abonnement' : '✅ Activer abonnement' }}
+          {{
+            subscriptionStore.hasActiveSubscription
+              ? '❌ Désactiver abonnement'
+              : '✅ Activer abonnement'
+          }}
         </button>
         <span class="text-sm text-gray-600">
-          Statut: {{ userStore.subscription.hasSubscription ? 'Abonné' : 'Non abonné' }}
+          Statut: {{ subscriptionStore.hasActiveSubscription ? 'Abonné' : 'Non abonné' }}
+          <span v-if="subscriptionStore.currentPlan" class="ml-2 text-blue-600">
+            ({{ subscriptionStore.currentPlan.name }})
+          </span>
         </span>
       </div>
     </div>
