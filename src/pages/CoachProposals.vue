@@ -19,12 +19,105 @@ import { useSubscriptionStore } from '@/stores/subscription'
 const subscriptionStore = useSubscriptionStore()
 
 // Mock data - same as before
+// Helper function to get client name parts
+const getClientNameParts = (clientId: string | number) => {
+  // Mock client names - in real app this would come from API
+  const mockNames = {
+    123: 'Marie',
+    456: 'Alexandre',
+    789: 'Sophie',
+  }
+  const name = mockNames[clientId as keyof typeof mockNames] || 'Client'
+
+  // Generate consistent fake characters based on clientId for privacy
+  const fakeChars = 'abcdefghijklmnopqrstuvwxyz'
+  const seed = typeof clientId === 'number' ? clientId : parseInt(clientId.toString()) || 0
+
+  // Use seed to generate consistent fake name
+  let randomGen = seed
+  const randomLength = (randomGen % 4) + 4 // 4-7 characters based on ID
+  let fakeRestOfName = ''
+
+  for (let i = 0; i < randomLength; i++) {
+    randomGen = (randomGen * 16807) % 2147483647 // Simple LCG for consistent randomness
+    fakeRestOfName += fakeChars.charAt(randomGen % fakeChars.length)
+  }
+
+  return {
+    firstLetter: name.charAt(0),
+    fakeRestOfName: fakeRestOfName, // Consistent fake characters for privacy
+    fullName: name,
+  }
+}
+
+// Helper function to check if proposal is new (less than 3 hours old)
+const isNewProposal = (createdAt: Date) => {
+  const now = new Date()
+  const diffHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
+  return diffHours < 3
+}
+
+// Helper function to format creation date (day/month only)
+const formatCreationDate = (date: Date) => {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+  }).format(date)
+}
+
+// Helper function to get time ago
+const getTimeAgo = (date: Date) => {
+  const now = new Date()
+  const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+
+  if (diffMinutes < 60) {
+    return `Il y a ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) {
+    return `Il y a ${diffHours} heure${diffHours > 1 ? 's' : ''}`
+  }
+
+  const diffDays = Math.floor(diffHours / 24)
+  return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`
+}
+
+// Helper function to get time until expiration
+const getTimeUntilExpiration = (expiresAt: Date) => {
+  const now = new Date()
+  const diffTime = expiresAt.getTime() - now.getTime()
+  const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+  const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60))
+
+  if (diffTime <= 0) {
+    return 'Expiré'
+  }
+
+  if (diffHours > 24) {
+    const days = Math.floor(diffHours / 24)
+    return `Expire dans ${days}j`
+  }
+
+  if (diffHours > 0) {
+    return `Expire dans ${diffHours}h${diffMinutes > 0 ? ` ${diffMinutes}m` : ''}`
+  }
+
+  return `Expire dans ${diffMinutes}m`
+}
+
+// Helper function to get main objectives (max 2)
+const getMainObjectives = (services: string[]) => {
+  return services.slice(0, 2)
+}
+
+// Mock data with additional client info
 const proposals = ref<Proposal[]>([
   {
     id: 1,
     client_id: 123,
-    created_at: new Date('2025-07-08T10:30:00'),
-    desired_start: new Date('2025-07-15'),
+    created_at: new Date('2025-07-09T08:30:00'), // 2 hours ago - should show "NEW"
+    desired_start: 'immediatement',
     location: 'Paris',
     services: ['Perte de poids', 'Remise en forme', 'Cardio training', 'Sommeil'],
     level: 'debutant',
@@ -35,6 +128,9 @@ const proposals = ref<Proposal[]>([
     status: 'pending',
     expires_at: new Date('2025-07-15T23:59:59'),
     is_paid_for: false,
+    // Additional mock data
+    client_gender: 'femme',
+    client_age_group: '25-35 ans',
   },
   {
     id: 2,
@@ -51,6 +147,9 @@ const proposals = ref<Proposal[]>([
     status: 'accepted',
     expires_at: new Date('2025-07-20T23:59:59'),
     is_paid_for: true,
+    // Additional mock data
+    client_gender: 'homme',
+    client_age_group: '35-45 ans',
   },
   {
     id: 3,
@@ -67,6 +166,9 @@ const proposals = ref<Proposal[]>([
     status: 'pending',
     expires_at: new Date('2025-07-25T23:59:59'),
     is_paid_for: false,
+    // Additional mock data
+    client_gender: 'femme',
+    client_age_group: '45-55 ans',
   },
 ])
 
@@ -75,16 +177,6 @@ const loading = ref(false)
 // Helper functions
 const toggleSubscription = () => {
   subscriptionStore.toggleSubscription()
-}
-
-const formatDateTime = (date: Date) => {
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
 }
 
 const getStatusColor = (status: string) => {
@@ -100,26 +192,6 @@ const getStatusColor = (status: string) => {
     default:
       return 'text-gray-700 bg-gray-50 border-gray-200'
   }
-}
-
-const getLevelColor = (level: string) => {
-  switch (level) {
-    case 'debutant':
-      return 'text-blue-700 bg-blue-50 border-blue-200'
-    case 'intermediaire':
-      return 'text-purple-700 bg-purple-50 border-purple-200'
-    case 'avance':
-      return 'text-red-700 bg-red-50 border-red-200'
-    default:
-      return 'text-gray-700 bg-gray-50 border-gray-200'
-  }
-}
-
-const getPreferenceColor = (preference: string) => {
-  // Could customize colors based on preference type in the future
-  return preference
-    ? 'text-purple-700 bg-purple-50 border-purple-200'
-    : 'text-gray-700 bg-gray-50 border-gray-200'
 }
 
 const getLevelLabel = (level: string) => {
@@ -181,65 +253,42 @@ const handleReject = (proposal: Proposal) => {
 }
 
 // Helper function for desired start date
-const formatDesiredStart = (date: Date) => {
-  const now = new Date()
-  const diffTime = date.getTime() - now.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffDays <= 0) {
+const formatDesiredStart = (date: Date | string) => {
+  if (typeof date === 'string' && date.toLowerCase() === 'immediatement') {
     return 'Immédiatement'
-  } else {
+  }
+
+  if (date instanceof Date) {
     return new Intl.DateTimeFormat('fr-FR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     }).format(date)
   }
-}
 
-const getTimeRemaining = (date: Date) => {
-  const now = new Date()
-  const diffTime = date.getTime() - now.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffDays <= 0) {
-    return 'Démarrage immédiat souhaité'
-  } else if (diffDays === 1) {
-    return 'Dans 1 jour'
-  } else if (diffDays < 7) {
-    return `Dans ${diffDays} jours`
-  } else if (diffDays < 14) {
-    return 'Dans 1 semaine'
-  } else if (diffDays < 21) {
-    return 'Dans 2 semaines'
-  } else if (diffDays < 28) {
-    return 'Dans 3 semaines'
-  } else if (diffDays < 60) {
-    const weeks = Math.ceil(diffDays / 7)
-    return `Dans ${weeks} semaines`
-  } else {
-    const months = Math.ceil(diffDays / 30)
-    return `Dans ${months} mois`
-  }
+  return 'Non spécifiée'
 }
 
 // Define table columns for desktop
 const columns = [
-  { key: 'created_at', label: 'Créé', class: 'w-[12%]' },
-  { key: 'services', label: 'Services Recherchés', class: 'w-[30%]' },
-  { key: 'desired_start', label: 'Début souhaité', class: 'w-[13%]' },
-  { key: 'level', label: 'Niveau', class: 'w-[10%]' },
-  { key: 'group_preference', label: 'Préférence', class: 'w-[12%]' },
-  { key: 'status', label: 'Statut', class: 'w-[13%]' },
-  { key: 'actions', label: 'Actions', class: 'w-[10%]' },
+  { key: 'client_name', label: 'Client', class: 'w-[10%]' },
+  { key: 'created_at', label: 'Créé', class: 'w-[7%]' },
+  { key: 'gender_age', label: 'Genre & Âge', class: 'w-[11%]' },
+  { key: 'level', label: 'Niveau', class: 'w-[8%]' },
+  { key: 'objectives', label: 'Objectifs', class: 'w-[25%]' },
+  { key: 'desired_start', label: 'Début', class: 'w-[8%]' },
+  { key: 'format', label: 'Format', class: 'w-[7%]' },
+  { key: 'location', label: 'Lieu', class: 'w-[9%]' },
+  { key: 'expires_at', label: 'Expiration', class: 'w-[9%]' },
+  { key: 'actions', label: 'Actions', class: 'w-[6%]' },
 ]
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <!-- Header -->
     <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">Propositions en attente</h1>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Demandes de coaching</h1>
 
       <!-- Debug section - remove in production -->
       <div class="inline-flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
@@ -276,14 +325,14 @@ const columns = [
     <!-- Desktop Table -->
     <div v-else class="hidden lg:block">
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="w-full divide-y divide-gray-200">
           <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
             <tr>
               <th
                 v-for="column in columns"
                 :key="column.key"
                 :class="[
-                  'px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider',
+                  'px-3 py-2 text-left text-2xs font-semibold text-gray-500 uppercase tracking-wider',
                   column.class,
                 ]"
               >
@@ -297,90 +346,126 @@ const columns = [
               :key="proposal.id"
               class="hover:bg-blue-50 transition-colors duration-150"
             >
-              <!-- Created Date -->
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatDateTime(proposal.created_at) }}
-              </td>
-
-              <!-- Services -->
-              <td class="px-6 py-4">
-                <div class="flex flex-wrap gap-1.5">
+              <!-- Client Name -->
+              <td class="px-3 py-2 whitespace-nowrap">
+                <div class="text-2xs font-medium text-gray-900">
+                  <template v-if="subscriptionStore.hasActiveSubscription">
+                    {{ getClientNameParts(proposal.client_id).fullName }}
+                  </template>
+                  <template v-else>
+                    <span>{{ getClientNameParts(proposal.client_id).firstLetter }}</span
+                    ><span class="blur-sm select-none">{{
+                      getClientNameParts(proposal.client_id).fakeRestOfName
+                    }}</span>
+                  </template>
+                  <!-- NEW badge for new proposals -->
                   <span
-                    v-for="(service, index) in proposal.services.slice(0, 2)"
-                    :key="index"
-                    class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200"
+                    v-if="isNewProposal(proposal.created_at)"
+                    class="ml-1 inline-flex items-center px-1 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-800"
                   >
-                    {{ service }}
-                  </span>
-                  <span
-                    v-if="proposal.services.length > 2"
-                    class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-200 text-gray-600 border border-gray-300"
-                  >
-                    +{{ proposal.services.length - 2 }}
+                    NEW
                   </span>
                 </div>
               </td>
 
-              <!-- Desired Start Date -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <!-- Created Date -->
+              <td class="px-3 py-2 whitespace-nowrap">
                 <div class="relative group">
-                  <span class="text-sm text-gray-900 cursor-help">
-                    {{ formatDesiredStart(proposal.desired_start) }}
-                  </span>
-                  <!-- Tooltip -->
-                  <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-10">
-                    <div class="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
-                      {{ getTimeRemaining(proposal.desired_start) }}
+                  <div class="text-2xs text-gray-900 cursor-help">
+                    {{ formatCreationDate(proposal.created_at) }}
+                  </div>
+                  <!-- Time ago tooltip -->
+                  <div class="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10">
+                    <div
+                      class="bg-gray-900 text-white text-[10px] rounded-lg py-1 px-1.5 whitespace-nowrap"
+                    >
+                      {{ getTimeAgo(proposal.created_at) }}
                       <!-- Arrow -->
-                      <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                      <div
+                        class="absolute top-full left-3 w-0 h-0 border-l-2 border-r-2 border-t-2 border-l-transparent border-r-transparent border-t-gray-900"
+                      ></div>
                     </div>
                   </div>
                 </div>
               </td>
 
+              <!-- Gender & Age -->
+              <td class="px-3 py-2 whitespace-nowrap text-2xs text-gray-900">
+                {{
+                  proposal.client_gender === 'homme'
+                    ? 'Homme'
+                    : proposal.client_gender === 'femme'
+                      ? 'Femme'
+                      : 'Non spécifié'
+                }}
+                <div class="text-[10px] text-gray-500">
+                  {{ proposal.client_age_group || 'Non spécifié' }}
+                </div>
+              </td>
+
               <!-- Level -->
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  :class="[
-                    'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border',
-                    getLevelColor(proposal.level),
-                  ]"
-                >
+              <td class="px-3 py-2 whitespace-nowrap">
+                <span class="text-2xs text-gray-900">
                   {{ getLevelLabel(proposal.level) }}
                 </span>
               </td>
 
-              <!-- Preference -->
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  :class="[
-                    'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border',
-                    getPreferenceColor(proposal.group_preference),
-                  ]"
-                >
+              <!-- Main Objectives -->
+              <td class="px-3 py-2">
+                <div class="flex flex-wrap gap-0.5">
+                  <span
+                    v-for="(objective, index) in getMainObjectives(proposal.services)"
+                    :key="index"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-800 border border-blue-200"
+                  >
+                    {{ objective }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- Starting Date -->
+              <td class="px-3 py-2 whitespace-nowrap">
+                <span class="text-2xs text-gray-900">
+                  {{ formatDesiredStart(proposal.desired_start) }}
+                </span>
+              </td>
+
+              <!-- Format -->
+              <td class="px-3 py-2 whitespace-nowrap">
+                <span class="text-2xs text-gray-900">
                   {{ getGroupPreferenceLabel(proposal.group_preference) }}
                 </span>
               </td>
 
-              <!-- Status -->
-              <td class="px-6 py-4 whitespace-nowrap">
+              <!-- Location -->
+              <td class="px-3 py-2 whitespace-nowrap">
+                <span class="text-2xs text-gray-600"> 📍 {{ proposal.location }} </span>
+              </td>
+
+              <!-- Expiration -->
+              <td class="px-3 py-2 whitespace-nowrap">
                 <span
                   :class="[
-                    'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border',
-                    getStatusColor(proposal.status),
+                    'text-2xs font-medium',
+                    getTimeUntilExpiration(proposal.expires_at) === 'Expiré'
+                      ? 'text-red-600'
+                      : getTimeUntilExpiration(proposal.expires_at).includes('h') ||
+                          getTimeUntilExpiration(proposal.expires_at).includes('m')
+                        ? 'text-amber-600'
+                        : 'text-gray-600',
                   ]"
                 >
-                  {{ getStatusLabel(proposal.status) }}
+                  {{ getTimeUntilExpiration(proposal.expires_at) }}
                 </span>
               </td>
 
               <!-- Actions -->
-              <td class="px-6 py-4 whitespace-nowrap text-center">
+              <td class="px-3 py-2 whitespace-nowrap text-center">
                 <Menu as="div" class="relative inline-block text-left">
                   <MenuButton
-                    class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+                    class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
                   >
-                    <EllipsisVerticalIcon class="w-5 h-5 text-gray-600" />
+                    <EllipsisVerticalIcon class="w-4 h-4 text-gray-600" />
                   </MenuButton>
 
                   <transition
@@ -392,7 +477,7 @@ const columns = [
                     leave-to-class="transform scale-95 opacity-0"
                   >
                     <MenuItems
-                      class="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                      class="absolute right-0 z-50 mt-2 w-40 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                     >
                       <div class="py-1">
                         <!-- View -->
@@ -400,11 +485,11 @@ const columns = [
                           <button
                             @click="handleView(proposal)"
                             :class="[
-                              'group flex items-center w-full px-4 py-2 text-sm transition-colors',
+                              'group flex items-center w-full px-3 py-1.5 text-2xs transition-colors',
                               active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                             ]"
                           >
-                            <EyeIcon class="mr-3 h-4 w-4" />
+                            <EyeIcon class="mr-2 h-3 w-3" />
                             Voir
                           </button>
                         </MenuItem>
@@ -415,11 +500,11 @@ const columns = [
                             <button
                               @click="handleAccept(proposal)"
                               :class="[
-                                'group flex items-center w-full px-4 py-2 text-sm transition-colors',
+                                'group flex items-center w-full px-3 py-1.5 text-2xs transition-colors',
                                 active ? 'bg-green-50 text-green-900' : 'text-green-700',
                               ]"
                             >
-                              <CheckIcon class="mr-3 h-4 w-4" />
+                              <CheckIcon class="mr-2 h-3 w-3" />
                               Accepter
                             </button>
                           </MenuItem>
@@ -427,11 +512,11 @@ const columns = [
                             <button
                               @click="handleReject(proposal)"
                               :class="[
-                                'group flex items-center w-full px-4 py-2 text-sm transition-colors',
+                                'group flex items-center w-full px-3 py-1.5 text-2xs transition-colors',
                                 active ? 'bg-red-50 text-red-900' : 'text-red-700',
                               ]"
                             >
-                              <XMarkIcon class="mr-3 h-4 w-4" />
+                              <XMarkIcon class="mr-2 h-3 w-3" />
                               Refuser
                             </button>
                           </MenuItem>
@@ -444,11 +529,11 @@ const columns = [
                             <button
                               @click="handleSubscribe()"
                               :class="[
-                                'group flex items-center w-full px-4 py-2 text-sm transition-colors',
+                                'group flex items-center w-full px-3 py-1.5 text-2xs transition-colors',
                                 active ? 'bg-blue-50 text-blue-900' : 'text-blue-700',
                               ]"
                             >
-                              <CreditCardIcon class="mr-3 h-4 w-4" />
+                              <CreditCardIcon class="mr-2 h-3 w-3" />
                               S'abonner
                             </button>
                           </MenuItem>
@@ -456,11 +541,11 @@ const columns = [
                             <button
                               @click="handleBuyLead(proposal.id)"
                               :class="[
-                                'group flex items-center w-full px-4 py-2 text-sm transition-colors',
+                                'group flex items-center w-full px-3 py-1.5 text-2xs transition-colors',
                                 active ? 'bg-amber-50 text-amber-900' : 'text-amber-700',
                               ]"
                             >
-                              <ShoppingCartIcon class="mr-3 h-4 w-4" />
+                              <ShoppingCartIcon class="mr-2 h-3 w-3" />
                               Acheter ce lead
                             </button>
                           </MenuItem>
@@ -481,181 +566,226 @@ const columns = [
       <div
         v-for="proposal in proposals"
         :key="proposal.id"
-        class="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 animate-fade-in"
+        class="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
       >
-        <div class="p-5">
-          <!-- Card Header -->
-          <div class="flex justify-between items-start mb-4">
-            <div>
-              <p class="text-sm text-gray-500 mb-1">Créé le</p>
-              <p class="text-sm font-medium text-gray-900">
-                {{ formatDateTime(proposal.created_at) }}
-              </p>
-            </div>
-            <Menu as="div" class="relative">
-              <MenuButton
-                class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
-              >
-                <EllipsisVerticalIcon class="w-5 h-5 text-gray-600" />
-              </MenuButton>
-
-              <transition
-                enter-active-class="transition duration-100 ease-out"
-                enter-from-class="transform scale-95 opacity-0"
-                enter-to-class="transform scale-100 opacity-1"
-                leave-active-class="transition duration-75 ease-in"
-                leave-from-class="transform scale-100 opacity-100"
-                leave-to-class="transform scale-95 opacity-0"
-              >
-                <MenuItems
-                  class="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+        <!-- Card Header -->
+        <div
+          class="flex justify-between items-center px-4 py-3 bg-gray-50 border-b border-gray-100"
+        >
+          <div class="flex-1">
+            <h3 class="text-base font-semibold text-gray-900 mb-1">
+              <template v-if="subscriptionStore.hasActiveSubscription">
+                {{ getClientNameParts(proposal.client_id).fullName }}
+              </template>
+              <template v-else>
+                <span>{{ getClientNameParts(proposal.client_id).firstLetter }}</span
+                ><span class="blur-sm select-none">{{
+                  getClientNameParts(proposal.client_id).fakeRestOfName
+                }}</span>
+              </template>
+            </h3>
+            <div class="flex items-center gap-3">
+              <!-- Creation Date (clickable for time ago tooltip) -->
+              <div class="relative group">
+                <button
+                  class="text-2xs text-gray-500 font-medium hover:text-gray-700 transition-colors"
+                  type="button"
                 >
-                  <div class="py-1">
-                    <!-- Same menu items as desktop -->
-                    <MenuItem v-slot="{ active }">
-                      <button
-                        @click="handleView(proposal)"
-                        :class="[
-                          'group flex items-center w-full px-4 py-2 text-sm transition-colors',
-                          active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                        ]"
-                      >
-                        <EyeIcon class="mr-3 h-4 w-4" />
-                        Voir
-                      </button>
-                    </MenuItem>
-
-                    <template v-if="canAcceptReject(proposal)">
-                      <MenuItem v-slot="{ active }">
-                        <button
-                          @click="handleAccept(proposal)"
-                          :class="[
-                            'group flex items-center w-full px-4 py-2 text-sm transition-colors',
-                            active ? 'bg-green-50 text-green-900' : 'text-green-700',
-                          ]"
-                        >
-                          <CheckIcon class="mr-3 h-4 w-4" />
-                          Accepter
-                        </button>
-                      </MenuItem>
-                      <MenuItem v-slot="{ active }">
-                        <button
-                          @click="handleReject(proposal)"
-                          :class="[
-                            'group flex items-center w-full px-4 py-2 text-sm transition-colors',
-                            active ? 'bg-red-50 text-red-900' : 'text-red-700',
-                          ]"
-                        >
-                          <XMarkIcon class="mr-3 h-4 w-4" />
-                          Refuser
-                        </button>
-                      </MenuItem>
-                    </template>
-
-                    <template v-if="shouldShowPaymentButtons(proposal)">
-                      <hr class="my-1 border-gray-200" />
-                      <MenuItem v-slot="{ active }">
-                        <button
-                          @click="handleSubscribe()"
-                          :class="[
-                            'group flex items-center w-full px-4 py-2 text-sm transition-colors',
-                            active ? 'bg-blue-50 text-blue-900' : 'text-blue-700',
-                          ]"
-                        >
-                          <CreditCardIcon class="mr-3 h-4 w-4" />
-                          S'abonner
-                        </button>
-                      </MenuItem>
-                      <MenuItem v-slot="{ active }">
-                        <button
-                          @click="handleBuyLead(proposal.id)"
-                          :class="[
-                            'group flex items-center w-full px-4 py-2 text-sm transition-colors',
-                            active ? 'bg-amber-50 text-amber-900' : 'text-amber-700',
-                          ]"
-                        >
-                          <ShoppingCartIcon class="mr-3 h-4 w-4" />
-                          Acheter ce lead
-                        </button>
-                      </MenuItem>
-                    </template>
+                  {{ formatCreationDate(proposal.created_at) }}
+                </button>
+                <!-- Time ago tooltip -->
+                <div class="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10">
+                  <div
+                    class="bg-gray-900 text-white text-2xs rounded-lg py-1.5 px-2 whitespace-nowrap"
+                  >
+                    {{ getTimeAgo(proposal.created_at) }}
+                    <!-- Arrow -->
+                    <div
+                      class="absolute top-full left-3 w-0 h-0 border-l-2 border-r-2 border-t-2 border-l-transparent border-r-transparent border-t-gray-900"
+                    ></div>
                   </div>
-                </MenuItems>
-              </transition>
-            </Menu>
-          </div>
-
-          <!-- Services -->
-          <div class="mb-4">
-            <p class="text-sm font-medium text-gray-700 mb-2">Services</p>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="(service, index) in proposal.services"
-                :key="index"
-                class="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-800 border border-gray-200"
-              >
-                {{ service }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Desired Start Date -->
-          <div class="mb-4">
-            <p class="text-sm font-medium text-gray-700 mb-1">Date de début souhaitée</p>
-            <div class="relative inline-block group">
-              <span class="text-sm text-gray-900 cursor-help">
-                {{ formatDesiredStart(proposal.desired_start) }}
-              </span>
-              <!-- Mobile Tooltip - show on tap/touch -->
-              <div class="absolute bottom-full left-0 mb-2 hidden group-hover:block group-active:block z-10">
-                <div class="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
-                  {{ getTimeRemaining(proposal.desired_start) }}
-                  <!-- Arrow -->
-                  <div class="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <!-- Badges Row -->
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p class="text-sm font-medium text-gray-700 mb-1">Niveau</p>
+              <!-- Status Badge -->
               <span
-                :class="[
-                  'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border',
-                  getLevelColor(proposal.level),
-                ]"
+                v-if="isNewProposal(proposal.created_at)"
+                class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold bg-green-100 text-green-800"
               >
-                {{ getLevelLabel(proposal.level) }}
+                NEW
               </span>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-gray-700 mb-1">Préférence</p>
               <span
+                v-else
                 :class="[
-                  'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border',
-                  getPreferenceColor(proposal.group_preference),
-                ]"
-              >
-                {{ getGroupPreferenceLabel(proposal.group_preference) }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Status -->
-          <div class="flex justify-between items-center">
-            <div>
-              <p class="text-sm font-medium text-gray-700 mb-1">Statut</p>
-              <span
-                :class="[
-                  'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border',
+                  'inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium',
                   getStatusColor(proposal.status),
                 ]"
               >
                 {{ getStatusLabel(proposal.status) }}
               </span>
             </div>
+          </div>
+
+          <!-- Actions Menu -->
+          <Menu as="div" class="relative ml-3">
+            <MenuButton
+              class="inline-flex items-center justify-center w-8 h-8 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+            >
+              <EllipsisVerticalIcon class="w-4 h-4 text-gray-600" />
+            </MenuButton>
+
+            <transition
+              enter-active-class="transition duration-100 ease-out"
+              enter-from-class="transform scale-95 opacity-0"
+              enter-to-class="transform scale-100 opacity-1"
+              leave-active-class="transition duration-75 ease-in"
+              leave-from-class="transform scale-100 opacity-100"
+              leave-to-class="transform scale-95 opacity-0"
+            >
+              <MenuItems
+                class="absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+              >
+                <div class="py-1">
+                  <MenuItem v-slot="{ active }">
+                    <button
+                      @click="handleView(proposal)"
+                      :class="[
+                        'group flex items-center w-full px-3 py-2 text-sm transition-colors',
+                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                      ]"
+                    >
+                      <EyeIcon class="mr-2 h-4 w-4" />
+                      Voir
+                    </button>
+                  </MenuItem>
+
+                  <template v-if="canAcceptReject(proposal)">
+                    <MenuItem v-slot="{ active }">
+                      <button
+                        @click="handleAccept(proposal)"
+                        :class="[
+                          'group flex items-center w-full px-3 py-2 text-sm transition-colors',
+                          active ? 'bg-green-50 text-green-900' : 'text-green-700',
+                        ]"
+                      >
+                        <CheckIcon class="mr-2 h-4 w-4" />
+                        Accepter
+                      </button>
+                    </MenuItem>
+                    <MenuItem v-slot="{ active }">
+                      <button
+                        @click="handleReject(proposal)"
+                        :class="[
+                          'group flex items-center w-full px-3 py-2 text-sm transition-colors',
+                          active ? 'bg-red-50 text-red-900' : 'text-red-700',
+                        ]"
+                      >
+                        <XMarkIcon class="mr-2 h-4 w-4" />
+                        Refuser
+                      </button>
+                    </MenuItem>
+                  </template>
+
+                  <template v-if="shouldShowPaymentButtons(proposal)">
+                    <hr class="my-1 border-gray-200" />
+                    <MenuItem v-slot="{ active }">
+                      <button
+                        @click="handleSubscribe()"
+                        :class="[
+                          'group flex items-center w-full px-3 py-2 text-sm transition-colors',
+                          active ? 'bg-blue-50 text-blue-900' : 'text-blue-700',
+                        ]"
+                      >
+                        <CreditCardIcon class="mr-2 h-4 w-4" />
+                        S'abonner
+                      </button>
+                    </MenuItem>
+                    <MenuItem v-slot="{ active }">
+                      <button
+                        @click="handleBuyLead(proposal.id)"
+                        :class="[
+                          'group flex items-center w-full px-3 py-2 text-sm transition-colors',
+                          active ? 'bg-amber-50 text-amber-900' : 'text-amber-700',
+                        ]"
+                      >
+                        <ShoppingCartIcon class="mr-2 h-4 w-4" />
+                        Acheter ce lead
+                      </button>
+                    </MenuItem>
+                  </template>
+                </div>
+              </MenuItems>
+            </transition>
+          </Menu>
+        </div>
+
+        <!-- Card Body -->
+        <div class="px-4 py-3">
+          <ul class="space-y-2 text-sm">
+            <!-- Gender & Age -->
+            <li class="flex justify-between">
+              <span class="text-gray-600">Genre & Âge:</span>
+              <span class="font-medium text-gray-900">
+                {{
+                  proposal.client_gender === 'homme'
+                    ? 'Homme'
+                    : proposal.client_gender === 'femme'
+                      ? 'Femme'
+                      : 'Non spécifié'
+                }}
+                {{ proposal.client_age_group ? ` | ${proposal.client_age_group}` : '' }}
+              </span>
+            </li>
+
+            <!-- Level -->
+            <li class="flex justify-between">
+              <span class="text-gray-600">Niveau:</span>
+              <span class="font-medium text-gray-900">{{ getLevelLabel(proposal.level) }}</span>
+            </li>
+
+            <!-- Main Objectives -->
+            <li class="flex justify-between">
+              <span class="text-gray-600">Objectifs:</span>
+              <span class="font-medium text-gray-900 text-right">
+                {{ getMainObjectives(proposal.services).join(', ') }}
+              </span>
+            </li>
+
+            <!-- Starting Date -->
+            <li class="flex justify-between">
+              <span class="text-gray-600">Début:</span>
+              <span class="font-medium text-gray-900">{{
+                formatDesiredStart(proposal.desired_start)
+              }}</span>
+            </li>
+
+            <!-- Coaching Preference -->
+            <li class="flex justify-between">
+              <span class="text-gray-600">Format:</span>
+              <span class="font-medium text-gray-900">{{
+                getGroupPreferenceLabel(proposal.group_preference)
+              }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Card Footer -->
+        <div class="px-4 py-2 bg-gray-50 border-t border-gray-100">
+          <div class="flex justify-between items-center">
+            <span class="text-2xs text-gray-500">📍 {{ proposal.location }}</span>
+            <span
+              :class="[
+                'text-2xs font-medium',
+                getTimeUntilExpiration(proposal.expires_at) === 'Expiré'
+                  ? 'text-red-600'
+                  : getTimeUntilExpiration(proposal.expires_at).includes('h') ||
+                      getTimeUntilExpiration(proposal.expires_at).includes('m')
+                    ? 'text-amber-600'
+                    : 'text-gray-600',
+              ]"
+            >
+              {{ getTimeUntilExpiration(proposal.expires_at) }}
+            </span>
           </div>
         </div>
       </div>

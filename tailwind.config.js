@@ -21,6 +21,9 @@ export default {
           950: '#172554',
         },
       },
+      fontSize: {
+        '2xs': '0.70rem',
+      },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-in': 'slideIn 0.3s ease-out',
