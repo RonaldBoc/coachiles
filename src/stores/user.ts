@@ -48,7 +48,8 @@ export const useUserStore = defineStore('user', {
       createdAt: new Date('2024-01-10'),
       suspensionReason: 'En attente de validation du certificat en nutrition sportive',
     } as CoachProfile | null,
-  }),  actions: {
+  }),
+  actions: {
     login(data: CoachProfile) {
       this.isLoggedIn = true
       this.coach = data
@@ -57,23 +58,23 @@ export const useUserStore = defineStore('user', {
       this.isLoggedIn = false
       this.coach = null
     },
-    
+
     // Subscription actions - delegate to subscription store
     toggleSubscription() {
       const subscriptionStore = useSubscriptionStore()
       subscriptionStore.toggleSubscription()
     },
-    
+
     activateSubscription() {
       const subscriptionStore = useSubscriptionStore()
       subscriptionStore.subscribeToPlan('pro') // Default to pro plan
     },
-    
+
     cancelSubscription() {
       const subscriptionStore = useSubscriptionStore()
       subscriptionStore.cancelSubscription()
     },
-    
+
     upgradeSubscription() {
       const subscriptionStore = useSubscriptionStore()
       subscriptionStore.upgradeToPlan('premium')

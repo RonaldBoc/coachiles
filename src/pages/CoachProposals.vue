@@ -149,7 +149,9 @@ const getStatusLabel = (status: string) => {
 
 const canAcceptReject = computed(() => (proposal: Proposal) => {
   return (
-    subscriptionStore.hasActiveSubscription && proposal.status === 'pending' && !proposal.is_paid_for
+    subscriptionStore.hasActiveSubscription &&
+    proposal.status === 'pending' &&
+    !proposal.is_paid_for
   )
 })
 

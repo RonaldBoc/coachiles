@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
-import type { 
-  SubscriptionPlan, 
-  UserSubscription, 
-  PaymentMethod, 
-  BillingHistoryItem
+import type {
+  SubscriptionPlan,
+  UserSubscription,
+  PaymentMethod,
+  BillingHistoryItem,
 } from '@/types/subscription'
 
 export const useSubscriptionStore = defineStore('subscription', {
@@ -17,17 +17,13 @@ export const useSubscriptionStore = defineStore('subscription', {
         price: 0,
         currency: 'EUR' as const,
         billingCycle: 'monthly' as const,
-        features: [
-          '5 propositions par mois',
-          'Support par email',
-          'Profil de base'
-        ],
+        features: ['5 propositions par mois', 'Support par email', 'Profil de base'],
         maxProposals: 5,
         priority: 'low' as const,
         supportLevel: 'basic' as const,
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-01'),
-        isActive: true
+        isActive: true,
       },
       {
         id: 'pro',
@@ -41,7 +37,7 @@ export const useSubscriptionStore = defineStore('subscription', {
           'Gestion des leads avancée',
           'Support prioritaire',
           'Statistiques détaillées',
-          'Calendrier intégré'
+          'Calendrier intégré',
         ],
         isPopular: true,
         maxProposals: 50,
@@ -49,7 +45,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         supportLevel: 'priority' as const,
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2025-01-01'),
-        isActive: true
+        isActive: true,
       },
       {
         id: 'premium',
@@ -65,14 +61,14 @@ export const useSubscriptionStore = defineStore('subscription', {
           'Outils de gestion avancés',
           'Statistiques avancées',
           'API access',
-          'Branding personnalisé'
+          'Branding personnalisé',
         ],
         maxProposals: -1, // -1 means unlimited
         priority: 'high' as const,
         supportLevel: 'premium' as const,
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2025-01-01'),
-        isActive: true
+        isActive: true,
       },
       {
         id: 'enterprise',
@@ -87,22 +83,22 @@ export const useSubscriptionStore = defineStore('subscription', {
           'Support dédié',
           'Intégrations personnalisées',
           'Formation incluse',
-          'SLA garanti'
+          'SLA garanti',
         ],
         maxProposals: -1,
         priority: 'high' as const,
         supportLevel: 'premium' as const,
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2025-01-01'),
-        isActive: true
-      }
+        isActive: true,
+      },
     ] as SubscriptionPlan[],
 
     // User's current subscription
     userSubscription: {
       hasSubscription: false,
       status: 'cancelled',
-      autoRenew: true
+      autoRenew: true,
     } as UserSubscription,
 
     // Payment methods (always available)
@@ -115,7 +111,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         expiryMonth: 12,
         expiryYear: 2027,
         isDefault: true,
-        createdAt: new Date('2024-06-01')
+        createdAt: new Date('2024-06-01'),
       },
       {
         id: 'pm_2',
@@ -125,8 +121,8 @@ export const useSubscriptionStore = defineStore('subscription', {
         expiryMonth: 8,
         expiryYear: 2026,
         isDefault: false,
-        createdAt: new Date('2024-08-15')
-      }
+        createdAt: new Date('2024-08-15'),
+      },
     ] as PaymentMethod[],
 
     // Billing history (always available)
@@ -142,7 +138,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         description: 'Abonnement Pro - Janvier 2025',
         date: new Date('2025-01-15'),
         paymentMethodId: 'pm_1',
-        invoiceUrl: '#'
+        invoiceUrl: '#',
       },
       {
         id: 'inv_2',
@@ -155,7 +151,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         description: 'Abonnement Pro - Décembre 2024',
         date: new Date('2024-12-15'),
         paymentMethodId: 'pm_1',
-        invoiceUrl: '#'
+        invoiceUrl: '#',
       },
       {
         id: 'inv_3',
@@ -167,26 +163,26 @@ export const useSubscriptionStore = defineStore('subscription', {
         status: 'paid',
         description: 'Plan Gratuit - Novembre 2024',
         date: new Date('2024-11-01'),
-        invoiceUrl: '#'
-      }
+        invoiceUrl: '#',
+      },
     ] as BillingHistoryItem[],
 
     // Admin settings
-    isAdmin: false // This would be determined by user role in real app
+    isAdmin: false, // This would be determined by user role in real app
   }),
 
   getters: {
     // Get current plan details
     currentPlan: (state) => {
-      if (!state.userSubscription.planId) return state.plans.find(p => p.id === 'free')
-      return state.plans.find(p => p.id === state.userSubscription.planId)
+      if (!state.userSubscription.planId) return state.plans.find((p) => p.id === 'free')
+      return state.plans.find((p) => p.id === state.userSubscription.planId)
     },
 
     // Get active plans only
-    activePlans: (state) => state.plans.filter(p => p.isActive),
+    activePlans: (state) => state.plans.filter((p) => p.isActive),
 
     // Get popular plan
-    popularPlan: (state) => state.plans.find(p => p.isPopular),
+    popularPlan: (state) => state.plans.find((p) => p.isPopular),
 
     // Check if user has active subscription
     hasActiveSubscription: (state) => {
@@ -194,13 +190,13 @@ export const useSubscriptionStore = defineStore('subscription', {
     },
 
     // Get default payment method
-    defaultPaymentMethod: (state) => state.paymentMethods.find(pm => pm.isDefault),
+    defaultPaymentMethod: (state) => state.paymentMethods.find((pm) => pm.isDefault),
 
     // Get recent billing history
     recentBilling: (state) => state.billingHistory.slice(0, 5),
 
     // Get plan by ID
-    getPlanById: (state) => (id: string) => state.plans.find(p => p.id === id)
+    getPlanById: (state) => (id: string) => state.plans.find((p) => p.id === id),
   },
 
   actions: {
@@ -208,7 +204,7 @@ export const useSubscriptionStore = defineStore('subscription', {
     toggleSubscription() {
       this.userSubscription.hasSubscription = !this.userSubscription.hasSubscription
       this.userSubscription.status = this.userSubscription.hasSubscription ? 'active' : 'cancelled'
-      
+
       if (this.userSubscription.hasSubscription && !this.userSubscription.planId) {
         // Default to pro plan when activating
         this.subscribeToPlan('pro')
@@ -216,7 +212,7 @@ export const useSubscriptionStore = defineStore('subscription', {
     },
 
     subscribeToPlan(planId: string) {
-      const plan = this.plans.find(p => p.id === planId)
+      const plan = this.plans.find((p) => p.id === planId)
       if (!plan) return false
 
       this.userSubscription = {
@@ -226,7 +222,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         status: 'active',
         startDate: new Date(),
         nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-        autoRenew: true
+        autoRenew: true,
       }
 
       // Add billing record if not free plan
@@ -248,7 +244,7 @@ export const useSubscriptionStore = defineStore('subscription', {
     },
 
     upgradeToPlan(planId: string) {
-      const plan = this.plans.find(p => p.id === planId)
+      const plan = this.plans.find((p) => p.id === planId)
       if (!plan) return false
 
       this.userSubscription.planId = planId
@@ -268,12 +264,12 @@ export const useSubscriptionStore = defineStore('subscription', {
       const newPaymentMethod: PaymentMethod = {
         ...paymentMethod,
         id: `pm_${Date.now()}`,
-        createdAt: new Date()
+        createdAt: new Date(),
       }
 
       // If this is set as default, make others non-default
       if (newPaymentMethod.isDefault) {
-        this.paymentMethods.forEach(pm => pm.isDefault = false)
+        this.paymentMethods.forEach((pm) => (pm.isDefault = false))
       }
 
       this.paymentMethods.push(newPaymentMethod)
@@ -281,19 +277,19 @@ export const useSubscriptionStore = defineStore('subscription', {
     },
 
     removePaymentMethod(paymentMethodId: string) {
-      const index = this.paymentMethods.findIndex(pm => pm.id === paymentMethodId)
+      const index = this.paymentMethods.findIndex((pm) => pm.id === paymentMethodId)
       if (index > -1) {
         this.paymentMethods.splice(index, 1)
-        
+
         // If removed method was default, make first remaining method default
-        if (!this.paymentMethods.find(pm => pm.isDefault) && this.paymentMethods.length > 0) {
+        if (!this.paymentMethods.find((pm) => pm.isDefault) && this.paymentMethods.length > 0) {
           this.paymentMethods[0].isDefault = true
         }
       }
     },
 
     setDefaultPaymentMethod(paymentMethodId: string) {
-      this.paymentMethods.forEach(pm => {
+      this.paymentMethods.forEach((pm) => {
         pm.isDefault = pm.id === paymentMethodId
       })
     },
@@ -310,7 +306,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         status: 'paid',
         description: `Abonnement ${planName} - ${new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`,
         date: new Date(),
-        paymentMethodId: this.defaultPaymentMethod?.id
+        paymentMethodId: this.defaultPaymentMethod?.id,
       }
 
       this.billingHistory.unshift(newRecord)
@@ -327,13 +323,13 @@ export const useSubscriptionStore = defineStore('subscription', {
         return false
       }
 
-      const planIndex = this.plans.findIndex(p => p.id === planId)
+      const planIndex = this.plans.findIndex((p) => p.id === planId)
       if (planIndex === -1) return false
 
       this.plans[planIndex] = {
         ...this.plans[planIndex],
         ...updates,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       }
 
       return true
@@ -349,7 +345,7 @@ export const useSubscriptionStore = defineStore('subscription', {
         ...plan,
         id: `plan_${Date.now()}`,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       }
 
       this.plans.push(newPlan)
@@ -362,13 +358,13 @@ export const useSubscriptionStore = defineStore('subscription', {
         return false
       }
 
-      const plan = this.plans.find(p => p.id === planId)
+      const plan = this.plans.find((p) => p.id === planId)
       if (plan) {
         plan.isActive = false
         plan.updatedAt = new Date()
         return true
       }
       return false
-    }
-  }
+    },
+  },
 })

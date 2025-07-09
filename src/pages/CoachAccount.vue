@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Tab, TabGroup, TabList, TabPanel, TabPanels, Switch } from '@headlessui/vue'
+import { Tab, TabGroup, TabList, TabPanel, TabPanels, Switch, Combobox, ComboboxInput, ComboboxButton, ComboboxOptions, ComboboxOption } from '@headlessui/vue'
 import {
   UserCircleIcon,
   BriefcaseIcon,
@@ -22,8 +22,11 @@ import {
   CreditCardIcon,
   CalendarDaysIcon,
   BanknotesIcon,
+  MagnifyingGlassIcon,
+  ChevronUpDownIcon,
 } from '@heroicons/vue/24/outline'
 import { CameraIcon } from '@heroicons/vue/24/solid'
+import Fuse from 'fuse.js'
 import { useUserStore } from '@/stores/user'
 import { useSubscriptionStore } from '@/stores/subscription'
 import { COACH_SERVICES } from '@/constants/services'
@@ -60,6 +63,10 @@ const newDiploma = ref('')
 const selectedServices = ref<string[]>([])
 const showServiceWarning = ref(false)
 const servicesRequiringDiplomas = ref<string[]>([])
+
+// Service search
+const searchQuery = ref('')
+const selectedSearchService = ref<{ name: string; category: string } | null>(null)
 
 // Account settings
 const emailNotifications = ref(true)
@@ -102,6 +109,37 @@ const pendingDiplomas = computed(() => {
 
 const hasActiveSubscription = computed(() => {
   return subscriptionStore.hasActiveSubscription
+})
+
+// Service search functionality
+const allServices = computed(() => {
+  const services: { name: string; category: string }[] = []
+  COACH_SERVICES.forEach((category) => {
+    category.items.forEach((item) => {
+      services.push({ name: item, category: category.category })
+    })
+  })
+  return services
+})
+
+const fuse = computed(() => {
+  return new Fuse(allServices.value, {
+    keys: ['name', 'category'],
+    threshold: 0.3, // Adjust for fuzzy matching sensitivity
+    includeScore: true,
+  })
+})
+
+const searchResults = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return []
+  }
+  
+  const results = fuse.value.search(searchQuery.value)
+  return results
+    .slice(0, 10) // Limit to 10 results
+    .map(result => result.item)
+    .filter(service => !selectedServices.value.includes(service.name))
 })
 
 // Methods
@@ -179,6 +217,15 @@ const toggleService = (service: string) => {
   }
 
   checkServicesRequirements()
+}
+
+const selectServiceFromSearch = (service: { name: string; category: string }) => {
+  if (!selectedServices.value.includes(service.name)) {
+    toggleService(service.name)
+  }
+  // Clear search
+  searchQuery.value = ''
+  selectedSearchService.value = null
 }
 
 const handlePhotoUpload = (event: Event) => {
@@ -474,6 +521,63 @@ onMounted(() => {
                   }}
                   sélectionné{{ selectedServicesCount > 1 ? 's' : '' }}
                 </span>
+              </div>
+
+              <!-- Service Search Bar (only in edit mode) -->
+              <div v-if="isEditing" class="mb-6">
+                <div class="relative">
+                  <Combobox v-model="selectedSearchService" @update:modelValue="selectServiceFromSearch">
+                    <div class="relative">
+                      <ComboboxInput
+                        v-model="searchQuery"
+                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        placeholder="Rechercher un service... (ex: musculation, yoga, nutrition)"
+                        @change="searchQuery = $event.target.value"
+                      />
+                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
+                      </div>
+                      <ComboboxButton class="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <ChevronUpDownIcon class="h-5 w-5 text-gray-400" />
+                      </ComboboxButton>
+                    </div>
+
+                    <ComboboxOptions
+                      v-if="searchResults.length > 0"
+                      class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+                    >
+                      <ComboboxOption
+                        v-for="service in searchResults"
+                        :key="`${service.category}-${service.name}`"
+                        :value="service"
+                        class="group relative cursor-default select-none py-2 pl-3 pr-9 hover:bg-blue-50"
+                      >
+                        <div class="flex items-center">
+                          <div class="flex-1">
+                            <span class="block truncate font-medium text-gray-900">
+                              {{ service.name }}
+                            </span>
+                            <span class="block text-sm text-gray-500">
+                              {{ service.category }}
+                            </span>
+                          </div>
+                          <div
+                            v-if="getServiceRequirement(service.name)?.requiresDiploma"
+                            class="flex items-center space-x-1"
+                          >
+                            <AcademicCapIcon class="h-4 w-4 text-orange-500" />
+                            <span class="text-xs text-orange-600">Diplôme requis</span>
+                          </div>
+                        </div>
+                      </ComboboxOption>
+                    </ComboboxOptions>
+                  </Combobox>
+                </div>
+                
+                <!-- Search hint -->
+                <p class="mt-2 text-sm text-gray-500">
+                  Tapez pour rechercher parmi tous les services disponibles. Sélectionnez un service dans la liste pour l'ajouter.
+                </p>
               </div>
 
               <div class="space-y-6">
@@ -804,15 +908,22 @@ onMounted(() => {
                       Plan {{ subscriptionStore.currentPlan?.name || 'Gratuit' }}
                     </h3>
                     <p class="text-blue-700">
-                      {{ subscriptionStore.currentPlan?.price || 0 }}{{ subscriptionStore.currentPlan?.currency === 'EUR' ? '€' : '$' }}/{{ subscriptionStore.currentPlan?.billingCycle === 'monthly' ? 'mois' : 'an' }}
+                      {{ subscriptionStore.currentPlan?.price || 0
+                      }}{{ subscriptionStore.currentPlan?.currency === 'EUR' ? '€' : '$' }}/{{
+                        subscriptionStore.currentPlan?.billingCycle === 'monthly' ? 'mois' : 'an'
+                      }}
                     </p>
                   </div>
                   <span
                     class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
                     :class="{
-                      'bg-green-100 text-green-800': subscriptionStore.userSubscription.status === 'active',
-                      'bg-yellow-100 text-yellow-800': subscriptionStore.userSubscription.status === 'pending',
-                      'bg-red-100 text-red-800': subscriptionStore.userSubscription.status === 'cancelled' || subscriptionStore.userSubscription.status === 'expired',
+                      'bg-green-100 text-green-800':
+                        subscriptionStore.userSubscription.status === 'active',
+                      'bg-yellow-100 text-yellow-800':
+                        subscriptionStore.userSubscription.status === 'pending',
+                      'bg-red-100 text-red-800':
+                        subscriptionStore.userSubscription.status === 'cancelled' ||
+                        subscriptionStore.userSubscription.status === 'expired',
                     }"
                   >
                     {{
@@ -827,13 +938,20 @@ onMounted(() => {
                   </span>
                 </div>
 
-                <div v-if="hasActiveSubscription" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                <div
+                  v-if="hasActiveSubscription"
+                  class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4"
+                >
                   <div class="flex items-center space-x-2">
                     <CalendarDaysIcon class="h-5 w-5 text-blue-600" />
                     <div>
                       <p class="text-sm font-medium text-blue-900">Prochaine facturation</p>
                       <p class="text-sm text-blue-700">
-                        {{ subscriptionStore.userSubscription.nextBillingDate?.toLocaleDateString('fr-FR') || 'Non définie' }}
+                        {{
+                          subscriptionStore.userSubscription.nextBillingDate?.toLocaleDateString(
+                            'fr-FR',
+                          ) || 'Non définie'
+                        }}
                       </p>
                     </div>
                   </div>
@@ -875,25 +993,44 @@ onMounted(() => {
                     :class="{
                       'border-blue-500 bg-blue-50': plan.isPopular,
                       'border-gray-200': !plan.isPopular,
-                      'ring-2 ring-green-500': subscriptionStore.userSubscription.planId === plan.id
+                      'ring-2 ring-green-500':
+                        subscriptionStore.userSubscription.planId === plan.id,
                     }"
                   >
-                    <div v-if="plan.isPopular" class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">Populaire</span>
+                    <div
+                      v-if="plan.isPopular"
+                      class="absolute -top-3 left-1/2 transform -translate-x-1/2"
+                    >
+                      <span
+                        class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium"
+                        >Populaire</span
+                      >
                     </div>
-                    <div v-if="subscriptionStore.userSubscription.planId === plan.id" class="absolute -top-3 right-4">
-                      <span class="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium">Actuel</span>
+                    <div
+                      v-if="subscriptionStore.userSubscription.planId === plan.id"
+                      class="absolute -top-3 right-4"
+                    >
+                      <span
+                        class="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-medium"
+                        >Actuel</span
+                      >
                     </div>
-                    
+
                     <h4 class="font-semibold text-lg">{{ plan.name }}</h4>
                     <p class="text-gray-600 text-sm mb-2">{{ plan.description }}</p>
                     <p class="text-2xl font-bold text-gray-900 mb-4">
                       {{ plan.price }}{{ plan.currency === 'EUR' ? '€' : '$' }}
-                      <span class="text-sm font-normal text-gray-500">/{{ plan.billingCycle === 'monthly' ? 'mois' : 'an' }}</span>
+                      <span class="text-sm font-normal text-gray-500"
+                        >/{{ plan.billingCycle === 'monthly' ? 'mois' : 'an' }}</span
+                      >
                     </p>
-                    
+
                     <ul class="space-y-2 mb-4">
-                      <li v-for="feature in plan.features.slice(0, 3)" :key="feature" class="flex items-center text-sm">
+                      <li
+                        v-for="feature in plan.features.slice(0, 3)"
+                        :key="feature"
+                        class="flex items-center text-sm"
+                      >
                         <CheckCircleIcon class="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                         {{ feature }}
                       </li>
@@ -901,19 +1038,24 @@ onMounted(() => {
                         +{{ plan.features.length - 3 }} autres fonctionnalités
                       </li>
                     </ul>
-                    
+
                     <button
                       v-if="subscriptionStore.userSubscription.planId !== plan.id"
                       @click="subscriptionStore.subscribeToPlan(plan.id)"
                       class="w-full py-2 px-4 rounded-lg font-medium transition-colors"
-                      :class="plan.isPopular 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                        : 'bg-gray-100 text-gray-900 hover:bg-gray-200'"
+                      :class="
+                        plan.isPopular
+                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                      "
                     >
                       {{ plan.price === 0 ? 'Sélectionner' : 'Souscrire' }}
                     </button>
-                    
-                    <div v-else class="w-full py-2 px-4 rounded-lg bg-green-100 text-green-800 text-center font-medium">
+
+                    <div
+                      v-else
+                      class="w-full py-2 px-4 rounded-lg bg-green-100 text-green-800 text-center font-medium"
+                    >
                       Plan actuel
                     </div>
                   </div>
@@ -944,11 +1086,16 @@ onMounted(() => {
                         {{ paymentMethod.brand }} •••• {{ paymentMethod.last4 }}
                       </p>
                       <p class="text-sm text-gray-600">
-                        Expire {{ paymentMethod.expiryMonth.toString().padStart(2, '0') }}/{{ paymentMethod.expiryYear }}
+                        Expire {{ paymentMethod.expiryMonth.toString().padStart(2, '0') }}/{{
+                          paymentMethod.expiryYear
+                        }}
                       </p>
                     </div>
                     <div class="flex items-center space-x-2">
-                      <span v-if="paymentMethod.isDefault" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span
+                        v-if="paymentMethod.isDefault"
+                        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                      >
                         Par défaut
                       </span>
                       <button
@@ -966,8 +1113,11 @@ onMounted(() => {
                       </button>
                     </div>
                   </div>
-                  
-                  <div v-if="subscriptionStore.paymentMethods.length === 0" class="text-center py-8 text-gray-500">
+
+                  <div
+                    v-if="subscriptionStore.paymentMethods.length === 0"
+                    class="text-center py-8 text-gray-500"
+                  >
                     <CreditCardIcon class="h-12 w-12 mx-auto mb-3 text-gray-300" />
                     <p>Aucune méthode de paiement enregistrée</p>
                   </div>
@@ -1000,26 +1150,43 @@ onMounted(() => {
                             'bg-green-100 text-green-800': bill.status === 'paid',
                             'bg-yellow-100 text-yellow-800': bill.status === 'pending',
                             'bg-red-100 text-red-800': bill.status === 'failed',
-                            'bg-gray-100 text-gray-800': bill.status === 'refunded'
+                            'bg-gray-100 text-gray-800': bill.status === 'refunded',
                           }"
                         >
-                          {{ bill.status === 'paid' ? 'Payé' : bill.status === 'pending' ? 'En attente' : bill.status === 'failed' ? 'Échec' : 'Remboursé' }}
+                          {{
+                            bill.status === 'paid'
+                              ? 'Payé'
+                              : bill.status === 'pending'
+                                ? 'En attente'
+                                : bill.status === 'failed'
+                                  ? 'Échec'
+                                  : 'Remboursé'
+                          }}
                         </span>
-                        <button v-if="bill.invoiceUrl" class="text-blue-600 hover:text-blue-800 text-sm">
+                        <button
+                          v-if="bill.invoiceUrl"
+                          class="text-blue-600 hover:text-blue-800 text-sm"
+                        >
                           Télécharger
                         </button>
                       </div>
                     </div>
                   </div>
-                  
-                  <div v-if="subscriptionStore.billingHistory.length === 0" class="text-center py-8 text-gray-500">
+
+                  <div
+                    v-if="subscriptionStore.billingHistory.length === 0"
+                    class="text-center py-8 text-gray-500"
+                  >
                     <DocumentIcon class="h-12 w-12 mx-auto mb-3 text-gray-300" />
                     <p>Aucun historique de facturation</p>
                   </div>
-                  
+
                   <div v-if="subscriptionStore.billingHistory.length > 5" class="text-center pt-3">
                     <button class="text-blue-600 hover:text-blue-800 text-sm">
-                      Voir tout l'historique ({{ subscriptionStore.billingHistory.length }} factures)
+                      Voir tout l'historique ({{
+                        subscriptionStore.billingHistory.length
+                      }}
+                      factures)
                     </button>
                   </div>
                 </div>
@@ -1055,8 +1222,13 @@ onMounted(() => {
               </div>
 
               <!-- Admin Panel -->
-              <div v-if="subscriptionStore.isAdmin" class="border border-orange-200 bg-orange-50 rounded-lg p-6 mt-6">
-                <h3 class="text-lg font-medium text-orange-900 mb-4">🔧 Administration des abonnements</h3>
+              <div
+                v-if="subscriptionStore.isAdmin"
+                class="border border-orange-200 bg-orange-50 rounded-lg p-6 mt-6"
+              >
+                <h3 class="text-lg font-medium text-orange-900 mb-4">
+                  🔧 Administration des abonnements
+                </h3>
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-medium text-orange-800">Mode administrateur</span>
@@ -1074,7 +1246,7 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
-              
+
               <!-- Admin Toggle for Demo -->
               <div v-else class="text-center mt-6">
                 <button
