@@ -233,7 +233,7 @@ const toggleService = (service: string) => {
 const selectServiceFromSearch = (service: { name: string; category: string }) => {
   // Toggle service selection - add if not selected, remove if already selected
   toggleService(service.name)
-  
+
   // Clear search
   searchQuery.value = ''
   selectedSearchService.value = null
@@ -569,17 +569,19 @@ onMounted(() => {
                         class="group relative cursor-default select-none py-2 pl-3 pr-9"
                         :class="{
                           'hover:bg-blue-50': !selectedServices.includes(service.name),
-                          'bg-blue-50 border-l-4 border-blue-500': selectedServices.includes(service.name)
+                          'bg-blue-50 border-l-4 border-blue-500': selectedServices.includes(
+                            service.name,
+                          ),
                         }"
                       >
                         <div class="flex items-center justify-between">
                           <div class="flex-1">
                             <div class="flex items-center space-x-2">
-                              <span 
+                              <span
                                 class="block truncate font-medium"
                                 :class="{
                                   'text-gray-900': !selectedServices.includes(service.name),
-                                  'text-blue-900': selectedServices.includes(service.name)
+                                  'text-blue-900': selectedServices.includes(service.name),
                                 }"
                               >
                                 {{ service.name }}
@@ -608,7 +610,8 @@ onMounted(() => {
 
                 <!-- Search hint -->
                 <p class="mt-2 text-sm text-gray-500">
-                  Tapez pour rechercher parmi tous les services disponibles. Services sélectionnés affichés avec une ✓. Cliquez pour ajouter ou retirer.
+                  Tapez pour rechercher parmi tous les services disponibles. Services sélectionnés
+                  affichés avec une ✓. Cliquez pour ajouter ou retirer.
                 </p>
               </div>
 

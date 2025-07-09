@@ -180,12 +180,56 @@ const handleReject = (proposal: Proposal) => {
   console.log('Rejecting proposal:', proposal.id)
 }
 
+// Helper function for desired start date
+const formatDesiredStart = (date: Date) => {
+  const now = new Date()
+  const diffTime = date.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  if (diffDays <= 0) {
+    return 'Immédiatement'
+  } else {
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(date)
+  }
+}
+
+const getTimeRemaining = (date: Date) => {
+  const now = new Date()
+  const diffTime = date.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  if (diffDays <= 0) {
+    return 'Démarrage immédiat souhaité'
+  } else if (diffDays === 1) {
+    return 'Dans 1 jour'
+  } else if (diffDays < 7) {
+    return `Dans ${diffDays} jours`
+  } else if (diffDays < 14) {
+    return 'Dans 1 semaine'
+  } else if (diffDays < 21) {
+    return 'Dans 2 semaines'
+  } else if (diffDays < 28) {
+    return 'Dans 3 semaines'
+  } else if (diffDays < 60) {
+    const weeks = Math.ceil(diffDays / 7)
+    return `Dans ${weeks} semaines`
+  } else {
+    const months = Math.ceil(diffDays / 30)
+    return `Dans ${months} mois`
+  }
+}
+
 // Define table columns for desktop
 const columns = [
-  { key: 'created_at', label: 'Créé', class: 'w-[15%]' },
-  { key: 'services', label: 'Services Recherchés', class: 'w-[35%]' },
-  { key: 'level', label: 'Niveau', class: 'w-[12%]' },
-  { key: 'group_preference', label: 'Préférence', class: 'w-[15%]' },
+  { key: 'created_at', label: 'Créé', class: 'w-[12%]' },
+  { key: 'services', label: 'Services Recherchés', class: 'w-[30%]' },
+  { key: 'desired_start', label: 'Début souhaité', class: 'w-[13%]' },
+  { key: 'level', label: 'Niveau', class: 'w-[10%]' },
+  { key: 'group_preference', label: 'Préférence', class: 'w-[12%]' },
   { key: 'status', label: 'Statut', class: 'w-[13%]' },
   { key: 'actions', label: 'Actions', class: 'w-[10%]' },
 ]
@@ -274,6 +318,23 @@ const columns = [
                   >
                     +{{ proposal.services.length - 2 }}
                   </span>
+                </div>
+              </td>
+
+              <!-- Desired Start Date -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="relative group">
+                  <span class="text-sm text-gray-900 cursor-help">
+                    {{ formatDesiredStart(proposal.desired_start) }}
+                  </span>
+                  <!-- Tooltip -->
+                  <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+                    <div class="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
+                      {{ getTimeRemaining(proposal.desired_start) }}
+                      <!-- Arrow -->
+                      <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
                 </div>
               </td>
 
@@ -535,6 +596,24 @@ const columns = [
               >
                 {{ service }}
               </span>
+            </div>
+          </div>
+
+          <!-- Desired Start Date -->
+          <div class="mb-4">
+            <p class="text-sm font-medium text-gray-700 mb-1">Date de début souhaitée</p>
+            <div class="relative inline-block group">
+              <span class="text-sm text-gray-900 cursor-help">
+                {{ formatDesiredStart(proposal.desired_start) }}
+              </span>
+              <!-- Mobile Tooltip - show on tap/touch -->
+              <div class="absolute bottom-full left-0 mb-2 hidden group-hover:block group-active:block z-10">
+                <div class="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
+                  {{ getTimeRemaining(proposal.desired_start) }}
+                  <!-- Arrow -->
+                  <div class="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                </div>
+              </div>
             </div>
           </div>
 
