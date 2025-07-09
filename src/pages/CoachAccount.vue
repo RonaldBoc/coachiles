@@ -1,6 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Tab, TabGroup, TabList, TabPanel, TabPanels, Switch, Combobox, ComboboxInput, ComboboxButton, ComboboxOptions, ComboboxOption } from '@headlessui/vue'
+import {
+  Tab,
+  TabGroup,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Switch,
+  Combobox,
+  ComboboxInput,
+  ComboboxButton,
+  ComboboxOptions,
+  ComboboxOption,
+} from '@headlessui/vue'
 import {
   UserCircleIcon,
   BriefcaseIcon,
@@ -134,12 +146,11 @@ const searchResults = computed(() => {
   if (!searchQuery.value.trim()) {
     return []
   }
-  
+
   const results = fuse.value.search(searchQuery.value)
   return results
     .slice(0, 10) // Limit to 10 results
-    .map(result => result.item)
-    .filter(service => !selectedServices.value.includes(service.name))
+    .map((result) => result.item)
 })
 
 // Methods
@@ -220,9 +231,9 @@ const toggleService = (service: string) => {
 }
 
 const selectServiceFromSearch = (service: { name: string; category: string }) => {
-  if (!selectedServices.value.includes(service.name)) {
-    toggleService(service.name)
-  }
+  // Toggle service selection - add if not selected, remove if already selected
+  toggleService(service.name)
+  
   // Clear search
   searchQuery.value = ''
   selectedSearchService.value = null
@@ -526,7 +537,10 @@ onMounted(() => {
               <!-- Service Search Bar (only in edit mode) -->
               <div v-if="isEditing" class="mb-6">
                 <div class="relative">
-                  <Combobox v-model="selectedSearchService" @update:modelValue="selectServiceFromSearch">
+                  <Combobox
+                    v-model="selectedSearchService"
+                    @update:modelValue="selectServiceFromSearch"
+                  >
                     <div class="relative">
                       <ComboboxInput
                         v-model="searchQuery"
@@ -534,7 +548,9 @@ onMounted(() => {
                         placeholder="Rechercher un service... (ex: musculation, yoga, nutrition)"
                         @change="searchQuery = $event.target.value"
                       />
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <div
+                        class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                      >
                         <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
                       </div>
                       <ComboboxButton class="absolute inset-y-0 right-0 flex items-center pr-2">
@@ -550,20 +566,36 @@ onMounted(() => {
                         v-for="service in searchResults"
                         :key="`${service.category}-${service.name}`"
                         :value="service"
-                        class="group relative cursor-default select-none py-2 pl-3 pr-9 hover:bg-blue-50"
+                        class="group relative cursor-default select-none py-2 pl-3 pr-9"
+                        :class="{
+                          'hover:bg-blue-50': !selectedServices.includes(service.name),
+                          'bg-blue-50 border-l-4 border-blue-500': selectedServices.includes(service.name)
+                        }"
                       >
-                        <div class="flex items-center">
+                        <div class="flex items-center justify-between">
                           <div class="flex-1">
-                            <span class="block truncate font-medium text-gray-900">
-                              {{ service.name }}
-                            </span>
+                            <div class="flex items-center space-x-2">
+                              <span 
+                                class="block truncate font-medium"
+                                :class="{
+                                  'text-gray-900': !selectedServices.includes(service.name),
+                                  'text-blue-900': selectedServices.includes(service.name)
+                                }"
+                              >
+                                {{ service.name }}
+                              </span>
+                              <CheckCircleIcon
+                                v-if="selectedServices.includes(service.name)"
+                                class="h-4 w-4 text-green-600 flex-shrink-0"
+                              />
+                            </div>
                             <span class="block text-sm text-gray-500">
                               {{ service.category }}
                             </span>
                           </div>
                           <div
                             v-if="getServiceRequirement(service.name)?.requiresDiploma"
-                            class="flex items-center space-x-1"
+                            class="flex items-center space-x-1 ml-2"
                           >
                             <AcademicCapIcon class="h-4 w-4 text-orange-500" />
                             <span class="text-xs text-orange-600">Diplôme requis</span>
@@ -573,10 +605,10 @@ onMounted(() => {
                     </ComboboxOptions>
                   </Combobox>
                 </div>
-                
+
                 <!-- Search hint -->
                 <p class="mt-2 text-sm text-gray-500">
-                  Tapez pour rechercher parmi tous les services disponibles. Sélectionnez un service dans la liste pour l'ajouter.
+                  Tapez pour rechercher parmi tous les services disponibles. Services sélectionnés affichés avec une ✓. Cliquez pour ajouter ou retirer.
                 </p>
               </div>
 
@@ -1183,9 +1215,7 @@ onMounted(() => {
 
                   <div v-if="subscriptionStore.billingHistory.length > 5" class="text-center pt-3">
                     <button class="text-blue-600 hover:text-blue-800 text-sm">
-                      Voir tout l'historique ({{
-                        subscriptionStore.billingHistory.length
-                      }}
+                      Voir tout l'historique ({{ subscriptionStore.billingHistory.length }}
                       factures)
                     </button>
                   </div>
