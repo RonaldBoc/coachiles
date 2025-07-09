@@ -19,6 +19,9 @@ import {
   PhoneIcon,
   ShieldCheckIcon,
   ExclamationCircleIcon,
+  CreditCardIcon,
+  CalendarDaysIcon,
+  BanknotesIcon,
 } from '@heroicons/vue/24/outline'
 import { CameraIcon } from '@heroicons/vue/24/solid'
 import { useUserStore } from '@/stores/user'
@@ -60,12 +63,39 @@ const servicesRequiringDiplomas = ref<string[]>([])
 const emailNotifications = ref(true)
 const smsNotifications = ref(false)
 
+// Subscription data (would come from API in real app)
+const subscription = ref({
+  plan: 'Pro',
+  status: 'active',
+  price: 29.99,
+  currency: 'EUR',
+  billingCycle: 'monthly',
+  nextBillingDate: new Date('2025-02-08'),
+  startDate: new Date('2024-12-08'),
+  autoRenew: true,
+  paymentMethod: {
+    type: 'card',
+    last4: '4242',
+    brand: 'Visa',
+    expiryMonth: 12,
+    expiryYear: 2027
+  },
+  features: [
+    'Accès illimité aux propositions',
+    'Gestion des leads avancée',
+    'Support prioritaire',
+    'Statistiques détaillées',
+    'Calendrier intégré'
+  ]
+})
+
 // Tabs
 const tabs = [
   { id: 'profile', name: 'Profil', icon: UserCircleIcon },
   { id: 'services', name: 'Services', icon: BriefcaseIcon },
   { id: 'credentials', name: 'Diplômes', icon: AcademicCapIcon },
   { id: 'settings', name: 'Paramètres', icon: CogIcon },
+  { id: 'subscription', name: 'Abonnement', icon: CreditCardIcon },
 ]
 
 // Computed
@@ -214,6 +244,21 @@ const sendPhoneVerification = async () => {
   } catch (error) {
     console.error('Error sending phone verification:', error)
   }
+}
+
+const updatePaymentMethod = () => {
+  console.log('Opening payment method update modal')
+  // In real app, open Stripe/payment modal
+}
+
+const cancelSubscription = () => {
+  console.log('Opening cancellation flow')
+  // In real app, show cancellation confirmation
+}
+
+const upgradeSubscription = () => {
+  console.log('Opening upgrade flow')
+  // In real app, show upgrade options
 }
 
 onMounted(() => {
@@ -757,6 +802,155 @@ onMounted(() => {
                     <br />
                     <button class="text-red-600 hover:text-red-800 transition-colors">
                       Supprimer le compte
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabPanel>
+
+          <!-- Subscription Tab -->
+          <TabPanel class="space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-6">Mon abonnement</h2>
+
+              <!-- Current Plan -->
+              <div class="border border-blue-200 bg-blue-50 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 class="text-xl font-semibold text-blue-900">Plan {{ subscription.plan }}</h3>
+                    <p class="text-blue-700">
+                      {{ subscription.price }}{{ subscription.currency === 'EUR' ? '€' : '$' }}/{{ subscription.billingCycle === 'monthly' ? 'mois' : 'an' }}
+                    </p>
+                  </div>
+                  <span 
+                    class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                    :class="{
+                      'bg-green-100 text-green-800': subscription.status === 'active',
+                      'bg-yellow-100 text-yellow-800': subscription.status === 'pending',
+                      'bg-red-100 text-red-800': subscription.status === 'cancelled'
+                    }"
+                  >
+                    {{ subscription.status === 'active' ? 'Actif' : subscription.status === 'pending' ? 'En attente' : 'Annulé' }}
+                  </span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                  <div class="flex items-center space-x-2">
+                    <CalendarDaysIcon class="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p class="text-sm font-medium text-blue-900">Prochaine facturation</p>
+                      <p class="text-sm text-blue-700">{{ subscription.nextBillingDate.toLocaleDateString('fr-FR') }}</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <BanknotesIcon class="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p class="text-sm font-medium text-blue-900">Renouvellement automatique</p>
+                      <p class="text-sm text-blue-700">{{ subscription.autoRenew ? 'Activé' : 'Désactivé' }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Features -->
+                <div>
+                  <h4 class="text-sm font-medium text-blue-900 mb-2">Fonctionnalités incluses</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div 
+                      v-for="feature in subscription.features" 
+                      :key="feature"
+                      class="flex items-center space-x-2"
+                    >
+                      <CheckCircleIcon class="h-4 w-4 text-green-600" />
+                      <span class="text-sm text-blue-800">{{ feature }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Payment Method -->
+              <div class="border border-gray-200 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-lg font-medium text-gray-900">Méthode de paiement</h3>
+                  <button 
+                    @click="updatePaymentMethod"
+                    class="text-blue-600 hover:text-blue-800 transition-colors text-sm"
+                  >
+                    Modifier
+                  </button>
+                </div>
+                
+                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                  <CreditCardIcon class="h-8 w-8 text-gray-600" />
+                  <div class="flex-1">
+                    <p class="font-medium text-gray-900">
+                      {{ subscription.paymentMethod.brand }} •••• {{ subscription.paymentMethod.last4 }}
+                    </p>
+                    <p class="text-sm text-gray-600">
+                      Expire {{ subscription.paymentMethod.expiryMonth.toString().padStart(2, '0') }}/{{ subscription.paymentMethod.expiryYear }}
+                    </p>
+                  </div>
+                  <div class="text-right">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Valide
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Billing History -->
+              <div class="border border-gray-200 rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Historique de facturation</h3>
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p class="font-medium text-gray-900">Plan Pro - Janvier 2025</p>
+                      <p class="text-sm text-gray-600">08 janvier 2025</p>
+                    </div>
+                    <div class="text-right">
+                      <p class="font-medium text-gray-900">29,99€</p>
+                      <button class="text-blue-600 hover:text-blue-800 text-sm">Télécharger</button>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p class="font-medium text-gray-900">Plan Pro - Décembre 2024</p>
+                      <p class="text-sm text-gray-600">08 décembre 2024</p>
+                    </div>
+                    <div class="text-right">
+                      <p class="font-medium text-gray-900">29,99€</p>
+                      <button class="text-blue-600 hover:text-blue-800 text-sm">Télécharger</button>
+                    </div>
+                  </div>
+                  <div class="text-center pt-3">
+                    <button class="text-blue-600 hover:text-blue-800 text-sm">
+                      Voir tout l'historique
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Subscription Actions -->
+              <div class="border border-gray-200 rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Actions</h3>
+                <div class="space-y-3">
+                  <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <button 
+                      @click="upgradeSubscription"
+                      class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Passer au plan Premium
+                    </button>
+                    <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                      Modifier la fréquence de facturation
+                    </button>
+                  </div>
+                  <div class="pt-3 border-t border-gray-200">
+                    <button 
+                      @click="cancelSubscription"
+                      class="text-red-600 hover:text-red-800 transition-colors text-sm"
+                    >
+                      Annuler l'abonnement
                     </button>
                   </div>
                 </div>
