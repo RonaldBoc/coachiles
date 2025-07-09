@@ -10,6 +10,10 @@ export const useUserStore = defineStore('user', {
       lastName: 'Dubois',
       city: 'Paris',
       country: 'France',
+      email: 'marc.dubois@example.com',
+      emailVerified: true,
+      phoneNumber: '+33 6 12 34 56 78',
+      phoneVerified: false,
       services: [
         'Remise en forme',
         'Perte de poids',
@@ -28,20 +32,20 @@ export const useUserStore = defineStore('user', {
           status: 'approved',
           submittedAt: new Date('2024-01-15'),
           reviewedAt: new Date('2024-01-20'),
-          reviewedBy: 'admin'
+          reviewedBy: 'admin',
         },
         {
           id: '2',
           name: 'Certificat en Nutrition Sportive',
           photoUrl: '',
           status: 'pending',
-          submittedAt: new Date('2024-12-01')
-        }
+          submittedAt: new Date('2024-12-01'),
+        },
       ],
       website: 'https://marc-dubois-coach.fr',
       accountStatus: 'pending',
       createdAt: new Date('2024-01-10'),
-      suspensionReason: 'En attente de validation du certificat en nutrition sportive'
+      suspensionReason: 'En attente de validation du certificat en nutrition sportive',
     } as CoachProfile | null,
   }),
   actions: {

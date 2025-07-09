@@ -15,6 +15,10 @@ export interface CoachProfile {
   lastName: string
   city: string
   country: string
+  email: string
+  emailVerified: boolean
+  phoneNumber: string
+  phoneVerified: boolean
   services: string[] // Array of services the coach offers
   photoUrl?: string
   description?: string

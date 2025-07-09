@@ -15,6 +15,10 @@ import {
   ClockIcon,
   XCircleIcon,
   DocumentIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  ShieldCheckIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/vue/24/outline'
 import { CameraIcon } from '@heroicons/vue/24/solid'
 import { useUserStore } from '@/stores/user'
@@ -31,13 +35,17 @@ const profile = ref<CoachProfile>({
   lastName: '',
   city: '',
   country: '',
+  email: '',
+  emailVerified: false,
+  phoneNumber: '',
+  phoneVerified: false,
   services: [],
   photoUrl: '',
   description: '',
   diplomas: [],
   website: '',
   accountStatus: 'pending',
-  createdAt: new Date()
+  createdAt: new Date(),
 })
 
 // Form state
@@ -51,7 +59,6 @@ const servicesRequiringDiplomas = ref<string[]>([])
 // Account settings
 const emailNotifications = ref(true)
 const smsNotifications = ref(false)
-const publicProfile = ref(true)
 
 // Tabs
 const tabs = [
@@ -73,7 +80,7 @@ const accountStatusInfo = computed(() => {
     case 'approved':
       return { color: 'green', text: 'Compte approuvé', icon: CheckCircleIcon }
     case 'pending':
-      return { color: 'yellow', text: 'En attente d\'approbation', icon: ClockIcon }
+      return { color: 'yellow', text: "En attente d'approbation", icon: ClockIcon }
     case 'suspended':
       return { color: 'red', text: 'Compte suspendu', icon: XCircleIcon }
     case 'rejected':
@@ -84,7 +91,7 @@ const accountStatusInfo = computed(() => {
 })
 
 const pendingDiplomas = computed(() => {
-  return profile.value.diplomas?.filter(d => d.status === 'pending').length || 0
+  return profile.value.diplomas?.filter((d) => d.status === 'pending').length || 0
 })
 
 // Methods
@@ -97,7 +104,7 @@ const loadProfile = () => {
 }
 
 const checkServicesRequirements = () => {
-  const requiresDiploma = selectedServices.value.filter(service => {
+  const requiresDiploma = selectedServices.value.filter((service) => {
     const requirement = getServiceRequirement(service)
     return requirement?.requiresDiploma
   })
@@ -131,7 +138,7 @@ const addDiploma = () => {
       name: newDiploma.value.trim(),
       photoUrl: '', // Will be set when photo is uploaded
       status: 'pending',
-      submittedAt: new Date()
+      submittedAt: new Date(),
     }
     profile.value.diplomas.push(newDiplomaDoc)
     newDiploma.value = ''
@@ -145,12 +152,12 @@ const removeDiploma = (index: number) => {
 const toggleService = (service: string) => {
   const index = selectedServices.value.indexOf(service)
   const requirement = getServiceRequirement(service)
-  
+
   if (index > -1) {
     selectedServices.value.splice(index, 1)
   } else {
     selectedServices.value.push(service)
-    
+
     // Show warning if service requires diploma
     if (requirement?.requiresDiploma) {
       showServiceWarning.value = true
@@ -160,7 +167,7 @@ const toggleService = (service: string) => {
       }, 5000)
     }
   }
-  
+
   checkServicesRequirements()
 }
 
@@ -186,6 +193,26 @@ const handleDiplomaPhotoUpload = (event: Event, diplomaIndex: number) => {
       }
     }
     reader.readAsDataURL(file)
+  }
+}
+
+const sendEmailVerification = async () => {
+  try {
+    // Simulate API call
+    console.log('Sending email verification to:', profile.value.email)
+    // In real app, make API call to send verification email
+  } catch (error) {
+    console.error('Error sending email verification:', error)
+  }
+}
+
+const sendPhoneVerification = async () => {
+  try {
+    // Simulate API call
+    console.log('Sending SMS verification to:', profile.value.phoneNumber)
+    // In real app, make API call to send verification SMS
+  } catch (error) {
+    console.error('Error sending phone verification:', error)
   }
 }
 
@@ -261,17 +288,23 @@ onMounted(() => {
     </div>
 
     <!-- Account Status Banner -->
-    <div v-if="profile.accountStatus !== 'approved'" class="bg-yellow-50 border-b border-yellow-200">
+    <div
+      v-if="profile.accountStatus !== 'approved'"
+      class="bg-yellow-50 border-b border-yellow-200"
+    >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center space-x-3">
-          <component :is="accountStatusInfo.icon" :class="`h-6 w-6 text-${accountStatusInfo.color}-600`" />
+          <component
+            :is="accountStatusInfo.icon"
+            :class="`h-6 w-6 text-${accountStatusInfo.color}-600`"
+          />
           <div class="flex-1">
             <h3 :class="`text-sm font-medium text-${accountStatusInfo.color}-800`">
               {{ accountStatusInfo.text }}
             </h3>
             <p class="text-sm text-yellow-700 mt-1">
               <span v-if="profile.accountStatus === 'pending'">
-                Votre compte est en cours de validation. 
+                Votre compte est en cours de validation.
                 <span v-if="pendingDiplomas > 0">
                   {{ pendingDiplomas }} diplôme(s) en attente de vérification.
                 </span>
@@ -296,7 +329,7 @@ onMounted(() => {
         <div class="flex items-center space-x-3">
           <ExclamationTriangleIcon class="h-5 w-5 text-orange-600" />
           <p class="text-sm text-orange-800">
-            <strong>Attention :</strong> Certains services sélectionnés nécessitent des diplômes. 
+            <strong>Attention :</strong> Certains services sélectionnés nécessitent des diplômes.
             Votre compte pourrait être suspendu jusqu'à validation des documents requis.
           </p>
           <button @click="showServiceWarning = false" class="text-orange-600 hover:text-orange-800">
@@ -428,9 +461,11 @@ onMounted(() => {
                       v-for="service in category.items"
                       :key="service"
                       class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                      :class="{ 
+                      :class="{
                         'bg-blue-50': selectedServices.includes(service),
-                        'bg-orange-50 border border-orange-200': getServiceRequirement(service)?.requiresDiploma && !selectedServices.includes(service)
+                        'bg-orange-50 border border-orange-200':
+                          getServiceRequirement(service)?.requiresDiploma &&
+                          !selectedServices.includes(service),
                       }"
                     >
                       <input
@@ -442,7 +477,10 @@ onMounted(() => {
                       />
                       <div class="flex-1">
                         <span class="text-sm text-gray-700">{{ service }}</span>
-                        <div v-if="getServiceRequirement(service)?.requiresDiploma" class="flex items-center space-x-1 mt-1">
+                        <div
+                          v-if="getServiceRequirement(service)?.requiresDiploma"
+                          class="flex items-center space-x-1 mt-1"
+                        >
                           <AcademicCapIcon class="h-3 w-3 text-orange-500" />
                           <span class="text-xs text-orange-600">Diplôme requis</span>
                         </div>
@@ -488,56 +526,69 @@ onMounted(() => {
                       <div class="flex items-center space-x-3 mb-2">
                         <AcademicCapIcon class="h-5 w-5 text-blue-600" />
                         <span class="font-medium text-gray-900">{{ diploma.name }}</span>
-                        <span 
+                        <span
                           class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                           :class="{
                             'bg-green-100 text-green-800': diploma.status === 'approved',
                             'bg-yellow-100 text-yellow-800': diploma.status === 'pending',
-                            'bg-red-100 text-red-800': diploma.status === 'rejected'
+                            'bg-red-100 text-red-800': diploma.status === 'rejected',
                           }"
                         >
-                          {{ diploma.status === 'approved' ? 'Approuvé' : diploma.status === 'pending' ? 'En attente' : 'Rejeté' }}
+                          {{
+                            diploma.status === 'approved'
+                              ? 'Approuvé'
+                              : diploma.status === 'pending'
+                                ? 'En attente'
+                                : 'Rejeté'
+                          }}
                         </span>
                       </div>
-                      
+
                       <div class="text-sm text-gray-500 space-y-1">
                         <p>Soumis le {{ diploma.submittedAt.toLocaleDateString('fr-FR') }}</p>
                         <p v-if="diploma.reviewedAt">
-                          {{ diploma.status === 'approved' ? 'Approuvé' : 'Rejeté' }} le {{ diploma.reviewedAt.toLocaleDateString('fr-FR') }}
+                          {{ diploma.status === 'approved' ? 'Approuvé' : 'Rejeté' }} le
+                          {{ diploma.reviewedAt.toLocaleDateString('fr-FR') }}
                         </p>
                         <p v-if="diploma.rejectionReason" class="text-red-600">
                           Raison du rejet: {{ diploma.rejectionReason }}
                         </p>
                       </div>
-                      
+
                       <!-- Diploma photo -->
                       <div class="mt-3">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                          Photo du diplôme {{ diploma.photoUrl ? '(cliquez pour changer)' : '(requis)' }}
+                          Photo du diplôme
+                          {{ diploma.photoUrl ? '(cliquez pour changer)' : '(requis)' }}
                         </label>
                         <div class="flex items-center space-x-3">
-                          <div class="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden">
-                            <img 
-                              v-if="diploma.photoUrl" 
-                              :src="diploma.photoUrl" 
+                          <div
+                            class="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden"
+                          >
+                            <img
+                              v-if="diploma.photoUrl"
+                              :src="diploma.photoUrl"
                               :alt="diploma.name"
                               class="w-full h-full object-cover"
                             />
                             <DocumentIcon v-else class="h-8 w-8 text-gray-400" />
                           </div>
-                          <label v-if="isEditing" class="cursor-pointer bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700 transition-colors">
+                          <label
+                            v-if="isEditing"
+                            class="cursor-pointer bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700 transition-colors"
+                          >
                             {{ diploma.photoUrl ? 'Changer la photo' : 'Ajouter une photo' }}
-                            <input 
-                              type="file" 
-                              accept="image/*" 
-                              class="hidden" 
+                            <input
+                              type="file"
+                              accept="image/*"
+                              class="hidden"
                               @change="handleDiplomaPhotoUpload($event, index)"
                             />
                           </label>
                         </div>
                       </div>
                     </div>
-                    
+
                     <button
                       v-if="isEditing"
                       @click="removeDiploma(index)"
@@ -565,8 +616,93 @@ onMounted(() => {
               <h2 class="text-lg font-semibold text-gray-900 mb-6">Paramètres du compte</h2>
 
               <div class="space-y-6">
-                <!-- Notifications -->
+                <!-- Contact Information -->
                 <div>
+                  <h3 class="text-base font-medium text-gray-900 mb-4">Informations de contact</h3>
+                  <div class="space-y-4">
+                    <!-- Email -->
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div class="flex items-center space-x-3">
+                        <EnvelopeIcon class="h-5 w-5 text-gray-600" />
+                        <div>
+                          <p class="font-medium text-gray-900">Adresse email</p>
+                          <p class="text-sm text-gray-600">{{ profile.email }}</p>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-3">
+                        <div class="flex items-center space-x-2">
+                          <component
+                            :is="profile.emailVerified ? ShieldCheckIcon : ExclamationCircleIcon"
+                            :class="profile.emailVerified ? 'text-green-600' : 'text-orange-600'"
+                            class="h-5 w-5"
+                          />
+                          <span
+                            :class="profile.emailVerified ? 'text-green-600' : 'text-orange-600'"
+                            class="text-sm font-medium"
+                          >
+                            {{ profile.emailVerified ? 'Vérifiée' : 'Non vérifiée' }}
+                          </span>
+                        </div>
+                        <button
+                          v-if="!profile.emailVerified"
+                          @click="sendEmailVerification"
+                          class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
+                        >
+                          Vérifier
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Phone -->
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div class="flex items-center space-x-3">
+                        <PhoneIcon class="h-5 w-5 text-gray-600" />
+                        <div>
+                          <p class="font-medium text-gray-900">Numéro de téléphone</p>
+                          <p class="text-sm text-gray-600">{{ profile.phoneNumber }}</p>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-3">
+                        <div class="flex items-center space-x-2">
+                          <component
+                            :is="profile.phoneVerified ? ShieldCheckIcon : ExclamationCircleIcon"
+                            :class="profile.phoneVerified ? 'text-green-600' : 'text-orange-600'"
+                            class="h-5 w-5"
+                          />
+                          <span
+                            :class="profile.phoneVerified ? 'text-green-600' : 'text-orange-600'"
+                            class="text-sm font-medium"
+                          >
+                            {{ profile.phoneVerified ? 'Vérifié' : 'Non vérifié' }}
+                          </span>
+                        </div>
+                        <button
+                          v-if="!profile.phoneVerified"
+                          @click="sendPhoneVerification"
+                          class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
+                        >
+                          Vérifier
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Change contact info -->
+                    <div class="pt-4 border-t border-gray-200">
+                      <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                        <button class="text-blue-600 hover:text-blue-800 transition-colors text-sm">
+                          Changer l'adresse email
+                        </button>
+                        <span class="hidden sm:inline text-gray-400">•</span>
+                        <button class="text-blue-600 hover:text-blue-800 transition-colors text-sm">
+                          Changer le numéro de téléphone
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Notifications -->
+                <div class="border-t border-gray-200 pt-6">
                   <h3 class="text-base font-medium text-gray-900 mb-4">Notifications</h3>
                   <div class="space-y-4">
                     <div class="flex items-center justify-between">
@@ -608,29 +744,6 @@ onMounted(() => {
                         />
                       </Switch>
                     </div>
-                  </div>
-                </div>
-
-                <!-- Privacy -->
-                <div class="border-t border-gray-200 pt-6">
-                  <h3 class="text-base font-medium text-gray-900 mb-4">Confidentialité</h3>
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <label class="text-sm font-medium text-gray-700">Profil public</label>
-                      <p class="text-sm text-gray-500">
-                        Permettre aux clients de voir votre profil
-                      </p>
-                    </div>
-                    <Switch
-                      v-model="publicProfile"
-                      :class="publicProfile ? 'bg-blue-600' : 'bg-gray-200'"
-                      class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                      <span
-                        :class="publicProfile ? 'translate-x-6' : 'translate-x-1'"
-                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                      />
-                    </Switch>
                   </div>
                 </div>
 
