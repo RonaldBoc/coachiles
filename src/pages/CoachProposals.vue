@@ -13,6 +13,10 @@ import type { Proposal } from '@/types/Proposal'
 import { FITNESS_LEVELS } from '@/constants/niveau'
 import { COACHING_MODES } from '@/constants/preference'
 import { PROPOSAL_STATUS_OPTIONS } from '@/constants/status'
+import { useUserStore } from '@/stores/user'
+
+// Store
+const userStore = useUserStore()
 
 // Mock data - same as before
 const proposals = ref<Proposal[]>([
@@ -66,12 +70,11 @@ const proposals = ref<Proposal[]>([
   },
 ])
 
-const coachHasSubscription = ref(false)
 const loading = ref(false)
 
 // Helper functions
 const toggleSubscription = () => {
-  coachHasSubscription.value = !coachHasSubscription.value
+  userStore.toggleSubscription()
 }
 
 const formatDateTime = (date: Date) => {
@@ -145,11 +148,11 @@ const getStatusLabel = (status: string) => {
 }
 
 const canAcceptReject = computed(() => (proposal: Proposal) => {
-  return coachHasSubscription.value && proposal.status === 'pending' && !proposal.is_paid_for
+  return userStore.subscription.hasSubscription && proposal.status === 'pending' && !proposal.is_paid_for
 })
 
 const shouldShowPaymentButtons = computed(() => (proposal: Proposal) => {
-  return !coachHasSubscription.value && !proposal.is_paid_for
+  return !userStore.subscription.hasSubscription && !proposal.is_paid_for
 })
 
 // Action handlers
@@ -196,15 +199,15 @@ const columns = [
           @click="toggleSubscription"
           :class="[
             'px-4 py-2 rounded-md font-medium transition-colors',
-            coachHasSubscription
+            userStore.subscription.hasSubscription
               ? 'bg-red-600 text-white hover:bg-red-700'
               : 'bg-green-600 text-white hover:bg-green-700',
           ]"
         >
-          {{ coachHasSubscription ? '❌ Désactiver abonnement' : '✅ Activer abonnement' }}
+          {{ userStore.subscription.hasSubscription ? '❌ Désactiver abonnement' : '✅ Activer abonnement' }}
         </button>
         <span class="text-sm text-gray-600">
-          Statut: {{ coachHasSubscription ? 'Abonné' : 'Non abonné' }}
+          Statut: {{ userStore.subscription.hasSubscription ? 'Abonné' : 'Non abonné' }}
         </span>
       </div>
     </div>

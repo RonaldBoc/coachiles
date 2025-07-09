@@ -47,6 +47,49 @@ export const useUserStore = defineStore('user', {
       createdAt: new Date('2024-01-10'),
       suspensionReason: 'En attente de validation du certificat en nutrition sportive',
     } as CoachProfile | null,
+    
+    // Subscription state
+    subscription: {
+      hasSubscription: false,
+      plan: 'Premium',
+      status: 'cancelled',
+      price: 49,
+      currency: 'EUR',
+      billingCycle: 'monthly',
+      nextBillingDate: new Date('2025-02-15'),
+      autoRenew: true,
+      features: [
+        'Accès illimité aux offres Premium',
+        'Priorité dans les recherches clients',
+        'Support client prioritaire',
+        'Outils de gestion avancés',
+        'Statistiques détaillées'
+      ],
+      paymentMethod: {
+        brand: 'Visa',
+        last4: '4242',
+        expiryMonth: 12,
+        expiryYear: 2027
+      },
+      billingHistory: [
+        {
+          id: '1',
+          date: new Date('2025-01-15'),
+          amount: 49,
+          currency: 'EUR',
+          status: 'paid',
+          description: 'Abonnement Premium - Janvier 2025'
+        },
+        {
+          id: '2',
+          date: new Date('2024-12-15'),
+          amount: 49,
+          currency: 'EUR',
+          status: 'paid',
+          description: 'Abonnement Premium - Décembre 2024'
+        }
+      ]
+    },
   }),
   actions: {
     login(data: CoachProfile) {
@@ -56,6 +99,27 @@ export const useUserStore = defineStore('user', {
     logout() {
       this.isLoggedIn = false
       this.coach = null
+    },
+    
+    // Subscription actions
+    toggleSubscription() {
+      this.subscription.hasSubscription = !this.subscription.hasSubscription
+      this.subscription.status = this.subscription.hasSubscription ? 'active' : 'cancelled'
+    },
+    
+    activateSubscription() {
+      this.subscription.hasSubscription = true
+      this.subscription.status = 'active'
+    },
+    
+    cancelSubscription() {
+      this.subscription.hasSubscription = false
+      this.subscription.status = 'cancelled'
+    },
+    
+    upgradeSubscription() {
+      // In a real app, this would handle plan changes
+      console.log('Upgrading subscription...')
     },
   },
 })

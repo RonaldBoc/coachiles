@@ -63,32 +63,6 @@ const servicesRequiringDiplomas = ref<string[]>([])
 const emailNotifications = ref(true)
 const smsNotifications = ref(false)
 
-// Subscription data (would come from API in real app)
-const subscription = ref({
-  plan: 'Pro',
-  status: 'active',
-  price: 29.99,
-  currency: 'EUR',
-  billingCycle: 'monthly',
-  nextBillingDate: new Date('2025-02-08'),
-  startDate: new Date('2024-12-08'),
-  autoRenew: true,
-  paymentMethod: {
-    type: 'card',
-    last4: '4242',
-    brand: 'Visa',
-    expiryMonth: 12,
-    expiryYear: 2027
-  },
-  features: [
-    'Accès illimité aux propositions',
-    'Gestion des leads avancée',
-    'Support prioritaire',
-    'Statistiques détaillées',
-    'Calendrier intégré'
-  ]
-})
-
 // Tabs
 const tabs = [
   { id: 'profile', name: 'Profil', icon: UserCircleIcon },
@@ -122,6 +96,10 @@ const accountStatusInfo = computed(() => {
 
 const pendingDiplomas = computed(() => {
   return profile.value.diplomas?.filter((d) => d.status === 'pending').length || 0
+})
+
+const hasActiveSubscription = computed(() => {
+  return userStore.subscription.hasSubscription && userStore.subscription.status === 'active'
 })
 
 // Methods
@@ -252,12 +230,14 @@ const updatePaymentMethod = () => {
 }
 
 const cancelSubscription = () => {
-  console.log('Opening cancellation flow')
+  console.log('Cancelling subscription')
+  userStore.cancelSubscription()
   // In real app, show cancellation confirmation
 }
 
 const upgradeSubscription = () => {
   console.log('Opening upgrade flow')
+  userStore.upgradeSubscription()
   // In real app, show upgrade options
 }
 
@@ -814,24 +794,26 @@ onMounted(() => {
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 class="text-lg font-semibold text-gray-900 mb-6">Mon abonnement</h2>
 
-              <!-- Current Plan -->
-              <div class="border border-blue-200 bg-blue-50 rounded-lg p-6 mb-6">
+              <!-- Active Subscription -->
+              <template v-if="hasActiveSubscription">
+                <!-- Current Plan -->
+                <div class="border border-blue-200 bg-blue-50 rounded-lg p-6 mb-6">
                 <div class="flex items-center justify-between mb-4">
                   <div>
-                    <h3 class="text-xl font-semibold text-blue-900">Plan {{ subscription.plan }}</h3>
+                    <h3 class="text-xl font-semibold text-blue-900">Plan {{ userStore.subscription.plan }}</h3>
                     <p class="text-blue-700">
-                      {{ subscription.price }}{{ subscription.currency === 'EUR' ? '€' : '$' }}/{{ subscription.billingCycle === 'monthly' ? 'mois' : 'an' }}
+                      {{ userStore.subscription.price }}{{ userStore.subscription.currency === 'EUR' ? '€' : '$' }}/{{ userStore.subscription.billingCycle === 'monthly' ? 'mois' : 'an' }}
                     </p>
                   </div>
                   <span 
                     class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
                     :class="{
-                      'bg-green-100 text-green-800': subscription.status === 'active',
-                      'bg-yellow-100 text-yellow-800': subscription.status === 'pending',
-                      'bg-red-100 text-red-800': subscription.status === 'cancelled'
+                      'bg-green-100 text-green-800': userStore.subscription.status === 'active',
+                      'bg-yellow-100 text-yellow-800': userStore.subscription.status === 'pending',
+                      'bg-red-100 text-red-800': userStore.subscription.status === 'cancelled'
                     }"
                   >
-                    {{ subscription.status === 'active' ? 'Actif' : subscription.status === 'pending' ? 'En attente' : 'Annulé' }}
+                    {{ userStore.subscription.status === 'active' ? 'Actif' : userStore.subscription.status === 'pending' ? 'En attente' : 'Annulé' }}
                   </span>
                 </div>
                 
@@ -840,14 +822,14 @@ onMounted(() => {
                     <CalendarDaysIcon class="h-5 w-5 text-blue-600" />
                     <div>
                       <p class="text-sm font-medium text-blue-900">Prochaine facturation</p>
-                      <p class="text-sm text-blue-700">{{ subscription.nextBillingDate.toLocaleDateString('fr-FR') }}</p>
+                      <p class="text-sm text-blue-700">{{ userStore.subscription.nextBillingDate.toLocaleDateString('fr-FR') }}</p>
                     </div>
                   </div>
                   <div class="flex items-center space-x-2">
                     <BanknotesIcon class="h-5 w-5 text-blue-600" />
                     <div>
                       <p class="text-sm font-medium text-blue-900">Renouvellement automatique</p>
-                      <p class="text-sm text-blue-700">{{ subscription.autoRenew ? 'Activé' : 'Désactivé' }}</p>
+                      <p class="text-sm text-blue-700">{{ userStore.subscription.autoRenew ? 'Activé' : 'Désactivé' }}</p>
                     </div>
                   </div>
                 </div>
@@ -857,7 +839,7 @@ onMounted(() => {
                   <h4 class="text-sm font-medium text-blue-900 mb-2">Fonctionnalités incluses</h4>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div 
-                      v-for="feature in subscription.features" 
+                      v-for="feature in userStore.subscription.features" 
                       :key="feature"
                       class="flex items-center space-x-2"
                     >
@@ -884,10 +866,10 @@ onMounted(() => {
                   <CreditCardIcon class="h-8 w-8 text-gray-600" />
                   <div class="flex-1">
                     <p class="font-medium text-gray-900">
-                      {{ subscription.paymentMethod.brand }} •••• {{ subscription.paymentMethod.last4 }}
+                      {{ userStore.subscription.paymentMethod.brand }} •••• {{ userStore.subscription.paymentMethod.last4 }}
                     </p>
                     <p class="text-sm text-gray-600">
-                      Expire {{ subscription.paymentMethod.expiryMonth.toString().padStart(2, '0') }}/{{ subscription.paymentMethod.expiryYear }}
+                      Expire {{ userStore.subscription.paymentMethod.expiryMonth.toString().padStart(2, '0') }}/{{ userStore.subscription.paymentMethod.expiryYear }}
                     </p>
                   </div>
                   <div class="text-right">
@@ -902,23 +884,17 @@ onMounted(() => {
               <div class="border border-gray-200 rounded-lg p-6 mb-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Historique de facturation</h3>
                 <div class="space-y-3">
-                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div 
+                    v-for="bill in userStore.subscription.billingHistory" 
+                    :key="bill.id"
+                    class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
                     <div>
-                      <p class="font-medium text-gray-900">Plan Pro - Janvier 2025</p>
-                      <p class="text-sm text-gray-600">08 janvier 2025</p>
+                      <p class="font-medium text-gray-900">{{ bill.description }}</p>
+                      <p class="text-sm text-gray-600">{{ bill.date.toLocaleDateString('fr-FR') }}</p>
                     </div>
                     <div class="text-right">
-                      <p class="font-medium text-gray-900">29,99€</p>
-                      <button class="text-blue-600 hover:text-blue-800 text-sm">Télécharger</button>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p class="font-medium text-gray-900">Plan Pro - Décembre 2024</p>
-                      <p class="text-sm text-gray-600">08 décembre 2024</p>
-                    </div>
-                    <div class="text-right">
-                      <p class="font-medium text-gray-900">29,99€</p>
+                      <p class="font-medium text-gray-900">{{ bill.amount }}{{ bill.currency === 'EUR' ? '€' : '$' }}</p>
                       <button class="text-blue-600 hover:text-blue-800 text-sm">Télécharger</button>
                     </div>
                   </div>
@@ -955,6 +931,30 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
+              </template>
+
+              <!-- No Active Subscription -->
+              <template v-else>
+                <div class="text-center py-12">
+                  <CreditCardIcon class="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                  <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun abonnement actif</h3>
+                  <p class="text-gray-600 mb-6">
+                    Souscrivez à un abonnement pour accéder à toutes les fonctionnalités Premium
+                  </p>
+                  <div class="space-y-3">
+                    <button 
+                      @click="userStore.activateSubscription"
+                      class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Souscrire à un abonnement
+                    </button>
+                    <div class="text-sm text-gray-500">
+                      <p>Plan Premium: {{ userStore.subscription.price }}{{ userStore.subscription.currency === 'EUR' ? '€' : '$' }}/{{ userStore.subscription.billingCycle === 'monthly' ? 'mois' : 'an' }}</p>
+                      <p>• {{ userStore.subscription.features.join(' • ') }}</p>
+                    </div>
+                  </div>
+                </div>
+              </template>
             </div>
           </TabPanel>
         </TabPanels>
