@@ -68,7 +68,7 @@
               />
               <div
                 class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center cursor-pointer"
-                @click="photoInput?.click()"
+                @click="($refs.photoInput as HTMLInputElement).click()"
               >
                 <CameraIcon
                   class="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity"
@@ -359,9 +359,6 @@ import type { Coach, Service } from '@/types/coach'
 import type { Lead } from '@/types/Lead'
 import type { SubscriptionPlan } from '@/types/subscription'
 import SubscriptionModal from '@/components/SubscriptionModal.vue'
-
-// Template refs
-const photoInput = ref<HTMLInputElement | null>(null)
 
 // Mock data for development
 const profileData = ref<Partial<Coach>>({

@@ -5,9 +5,9 @@ export interface SubscriptionPlan {
   price: number
   currency: 'EUR' | 'USD'
   billingCycle: 'monthly' | 'yearly'
+  leadsPerMonth: number
   features: string[]
   isPopular?: boolean
-  maxProposals?: number
   priority: 'low' | 'medium' | 'high'
   supportLevel: 'basic' | 'priority' | 'premium'
   createdAt: Date
@@ -19,13 +19,16 @@ export interface UserSubscription {
   id?: string
   planId?: string
   hasSubscription: boolean
-  status: 'active' | 'cancelled' | 'pending' | 'expired'
+  status: 'active' | 'cancelled' | 'pending' | 'expired' | 'trial'
   startDate?: Date
   endDate?: Date
   nextBillingDate?: Date
   autoRenew: boolean
   cancelledAt?: Date
   cancellationReason?: string
+  leadsUsed: number
+  leadsRemaining: number
+  resetDate: Date
 }
 
 export interface PaymentMethod {

@@ -1,7 +1,8 @@
 <template>
   <div class="h-screen flex overflow-hidden">
-    <!-- Sidebar that changes width but stays in place -->
+    <!-- Sidebar that changes width but stays in place - Hidden on public routes -->
     <aside
+      v-if="!isPublicRoute"
       class="bg-gray-900 text-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0"
       :class="[
         isCollapsed ? 'w-16' : 'w-64',
@@ -201,10 +202,13 @@
 
     <!-- Main Content Area -->
     <main
-      class="flex-1 bg-gray-100 overflow-auto"
-      :class="{ 'mobile-hidden': isMobile && !isCollapsed }"
+      class="flex-1 overflow-auto"
+      :class="[
+        isPublicRoute ? 'bg-transparent' : 'bg-gray-100',
+        { 'mobile-hidden': isMobile && !isCollapsed && !isPublicRoute },
+      ]"
     >
-      <div class="max-w-7xl mx-auto p-6">
+      <div :class="isPublicRoute ? '' : 'max-w-7xl mx-auto p-6'">
         <router-view />
       </div>
     </main>
@@ -212,7 +216,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+// Get current route
+const route = useRoute()
+
+// Define public routes that shouldn't show the sidebar
+const publicRoutes = ['/coaches', '/']
+const isPublicRoute = computed(() => {
+  return publicRoutes.includes(route.path) || route.path.startsWith('/coach/')
+})
 
 // Sidebar state
 const isCollapsed = ref(false)

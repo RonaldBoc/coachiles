@@ -1,3 +1,39 @@
+export interface Coach {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  photo?: string
+  bio: string
+  location: string
+  specialties: string[]
+  certifications: string[]
+  experience: number // years of experience
+  availability: string
+  rating: number
+  totalClients: number
+  subscriptionStatus: 'active' | 'inactive' | 'trial'
+  services: Service[]
+  createdAt: Date
+  updatedAt: Date
+  isActive: boolean
+}
+
+export interface Service {
+  id: string
+  name: string
+  description: string
+  category: string
+  subcategory: string
+  location: string
+  duration: number // in minutes
+  groupSize: 'individual' | 'small_group' | 'large_group'
+  ageGroups: string[]
+  levels: string[]
+  isActive: boolean
+}
+
 export interface DiplomaDocument {
   id: string
   name: string
@@ -7,27 +43,6 @@ export interface DiplomaDocument {
   reviewedAt?: Date
   reviewedBy?: string
   rejectionReason?: string
-}
-
-export interface CoachProfile {
-  id: string
-  firstName: string
-  lastName: string
-  city: string
-  country: string
-  email: string
-  emailVerified: boolean
-  phoneNumber: string
-  phoneVerified: boolean
-  services: string[] // Array of services the coach offers
-  photoUrl?: string
-  description?: string
-  diplomas?: DiplomaDocument[]
-  website?: string
-  accountStatus: 'pending' | 'approved' | 'suspended' | 'rejected'
-  createdAt: Date
-  approvedAt?: Date
-  suspensionReason?: string
 }
 
 export interface ServiceRequirement {
