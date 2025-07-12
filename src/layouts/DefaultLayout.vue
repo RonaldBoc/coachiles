@@ -225,7 +225,10 @@ const route = useRoute()
 // Define public routes that shouldn't show the sidebar
 const publicRoutes = ['/coaches', '/']
 const isPublicRoute = computed(() => {
-  return publicRoutes.includes(route.path) || route.path.startsWith('/coach/')
+  // Public routes: home, coaches listing, and individual coach profiles (/coach/:id)
+  // But NOT coach dashboard pages (/coach/account, /coach/services, etc.)
+  return publicRoutes.includes(route.path) || 
+         (route.path.startsWith('/coach/') && route.path.match(/^\/coach\/\d+$/))
 })
 
 // Sidebar state
