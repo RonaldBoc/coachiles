@@ -158,7 +158,7 @@
           <div class="relative aspect-square overflow-hidden rounded-t-2xl">
             <img
               :src="coach.photo || '/default-avatar.png'"
-              :alt="`${coach.firstName} ${coach.lastName}`"
+              :alt="`${coach.firstName}`"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <!-- Dark gradient overlay -->
@@ -171,7 +171,7 @@
               <h3
                 class="text-lg font-bold text-white drop-shadow-lg group-hover:text-orange-200 transition-colors duration-300"
               >
-                {{ coach.firstName }} {{ coach.lastName }}
+                {{ coach.firstName }}
               </h3>
               <p class="text-sm text-white/90 drop-shadow-md">{{ coach.location }}</p>
             </div>
@@ -1348,8 +1348,9 @@ const loadMoreCoaches = () => {
 
 // Methods
 const navigateToCoachProfile = (coach: Coach) => {
-  // Navigate to coach profile page
-  router.push(`/coach/${coach.id}`)
+  // Navigate to coach profile page using first name (lowercase for URL)
+  const firstName = coach.firstName.toLowerCase()
+  router.push(`/coach/${firstName}`)
 }
 
 const requestCoach = (coach: Coach) => {

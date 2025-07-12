@@ -49,12 +49,12 @@
             <div class="flex items-start space-x-4 mb-6">
               <img
                 :src="coach?.photo || '/default-avatar.png'"
-                :alt="`${coach?.firstName} ${coach?.lastName}`"
+                :alt="`${coach?.firstName}`"
                 class="w-20 h-20 rounded-full object-cover"
               />
               <div class="flex-1">
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">
-                  {{ coach?.firstName }} {{ coach?.lastName }}
+                  {{ coach?.firstName }}
                 </h1>
                 <div class="flex items-center mb-2">
                   <StarIcon class="w-5 h-5 text-yellow-400 fill-current" />
@@ -463,17 +463,17 @@
                 v-for="similarCoach in similarCoaches"
                 :key="similarCoach.id"
                 class="border border-gray-200 rounded-xl p-4 hover:border-orange-300 transition-colors cursor-pointer"
-                @click="navigateToCoach(similarCoach.id)"
+                @click="navigateToCoach(similarCoach.firstName)"
               >
                 <div class="flex items-center space-x-4 mb-4">
                   <img
                     :src="similarCoach.photo"
-                    :alt="`${similarCoach.firstName} ${similarCoach.lastName}`"
+                    :alt="`${similarCoach.firstName}`"
                     class="w-16 h-16 rounded-full object-cover"
                   />
                   <div class="flex-1">
                     <h3 class="font-semibold text-gray-900">
-                      {{ similarCoach.firstName }} {{ similarCoach.lastName }}
+                      {{ similarCoach.firstName }}
                     </h3>
                     <p class="text-sm text-gray-600">{{ similarCoach.location }}</p>
                     <div class="flex items-center mt-1">
@@ -512,11 +512,11 @@
               <div class="text-center mb-6">
                 <img
                   :src="coach?.photo || '/default-avatar.png'"
-                  :alt="`${coach?.firstName} ${coach?.lastName}`"
+                  :alt="`${coach?.firstName}`"
                   class="w-24 h-24 rounded-full object-cover mx-auto mb-4"
                 />
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">
-                  {{ coach?.firstName }} {{ coach?.lastName }}
+                  {{ coach?.firstName }}
                 </h1>
                 <div class="flex items-center justify-center mb-2">
                   <StarIcon class="w-5 h-5 text-yellow-400 fill-current" />
@@ -764,7 +764,7 @@ const submitContact = (requestData: Partial<ClientRequest>) => {
 
 const shareProfile = (platform: string) => {
   const url = window.location.href
-  const text = `Découvrez le profil de ${coach.value?.firstName} ${coach.value?.lastName}, coach ${coach.value?.specialties[0]} sur Coachiles`
+  const text = `Découvrez le profil de ${coach.value?.firstName}, coach ${coach.value?.specialties[0]} sur Coachiles`
 
   switch (platform) {
     case 'email':
@@ -782,23 +782,24 @@ const shareProfile = (platform: string) => {
   }
 }
 
-const navigateToCoach = (coachId: string) => {
-  router.push(`/coach/${coachId}`)
+const navigateToCoach = (coachFirstName: string) => {
+  router.push(`/coach/${coachFirstName.toLowerCase()}`)
 }
 
 // Lifecycle
 onMounted(() => {
-  const coachId = route.params.id as string
+  const firstName = route.params.firstName as string
 
-  // Find the coach by ID
-  coach.value = mockCoaches.find((c) => c.id === coachId) || null
+  // Find the coach by first name (case insensitive)
+  coach.value = mockCoaches.find((c) => c.firstName.toLowerCase() === firstName.toLowerCase()) || null
 
   if (coach.value) {
     // Find similar coaches (same specialties, different coach)
     similarCoaches.value = mockCoaches
       .filter(
         (c) =>
-          c.id !== coachId && c.specialties.some((spec) => coach.value?.specialties.includes(spec)),
+          c.firstName.toLowerCase() !== firstName.toLowerCase() && 
+          c.specialties.some((spec) => coach.value?.specialties.includes(spec)),
       )
       .slice(0, 4)
   }

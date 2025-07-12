@@ -9,7 +9,7 @@ import CoachProposals from '@/pages/CoachProposals.vue'
 const routes = [
   { path: '/', redirect: '/coaches' },
   { path: '/coaches', component: CoachBrowser },
-  { path: '/coach/:id', component: CoachPublicProfile, props: true },
+  { path: '/coach/:firstName', component: CoachPublicProfile, props: true },
   { path: '/coach/profile', component: CoachProfile },
   { path: '/coach/account', component: CoachAccount },
   { path: '/coach/services', component: CoachServices },

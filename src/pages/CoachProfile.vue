@@ -63,7 +63,7 @@
             <div class="relative group">
               <img
                 :src="profileData.photo || '/default-avatar.png'"
-                :alt="`${profileData.firstName} ${profileData.lastName}`"
+                :alt="`${profileData.firstName}`"
                 class="h-24 w-24 rounded-full object-cover"
               />
               <div
@@ -88,7 +88,7 @@
               <div class="flex items-center justify-between">
                 <div>
                   <h1 class="text-2xl font-bold text-gray-900">
-                    {{ profileData.firstName }} {{ profileData.lastName }}
+                    {{ profileData.firstName }}
                   </h1>
                   <p class="text-gray-600 flex items-center mt-1">
                     <MapPinIcon class="w-4 h-4 mr-1" />
@@ -156,14 +156,6 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1"> Prénom </label>
                 <input
                   v-model="profileData.firstName"
-                  type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1"> Nom </label>
-                <input
-                  v-model="profileData.lastName"
                   type="text"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 />
@@ -366,7 +358,6 @@ const photoInput = ref<HTMLInputElement | null>(null)
 // Mock data for development
 const profileData = ref<Partial<Coach>>({
   firstName: 'Jean',
-  lastName: 'Dupont',
   email: 'jean.dupont@example.com',
   phone: '+596 696 12 34 56',
   bio: "Coach sportif passionné avec 5 ans d'expérience dans l'accompagnement personnalisé.",

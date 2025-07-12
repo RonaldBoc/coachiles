@@ -16,10 +16,10 @@ import type { Coach } from '@/types/coach'
 // Profile data (would normally come from store/API)
 const profileData = ref<Partial<Coach>>({
   firstName: 'Marie',
-  lastName: 'Dubois',
   email: 'marie@example.com',
   phone: '0596123456',
-  photo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=600&fit=crop&crop=face',
+  photo:
+    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=600&fit=crop&crop=face',
   bio: 'Coach fitness spécialisée dans la remise en forme et la perte de poids. Passionnée par le sport depuis 10 ans.',
   location: 'Fort-de-France',
   specialties: ['Fitness', 'Musculation', 'Perte de poids', 'Remise en forme'],
@@ -37,10 +37,27 @@ const newCertification = ref('')
 
 // Predefined specialty options
 const availableSpecialties = [
-  'Fitness', 'Musculation', 'Cardio', 'Yoga', 'Pilates', 'Natation',
-  'Course à pied', 'Crossfit', 'Powerlifting', 'Stretching', 'HIIT',
-  'Perte de poids', 'Prise de masse', 'Remise en forme', 'Préparation physique',
-  'Nutrition', 'Bien-être', 'Méditation', 'Relaxation', 'Tennis', 'Football'
+  'Fitness',
+  'Musculation',
+  'Cardio',
+  'Yoga',
+  'Pilates',
+  'Natation',
+  'Course à pied',
+  'Crossfit',
+  'Powerlifting',
+  'Stretching',
+  'HIIT',
+  'Perte de poids',
+  'Prise de masse',
+  'Remise en forme',
+  'Préparation physique',
+  'Nutrition',
+  'Bien-être',
+  'Méditation',
+  'Relaxation',
+  'Tennis',
+  'Football',
 ]
 
 // Tabs
@@ -57,24 +74,27 @@ watch(
   () => {
     saveProfile()
   },
-  { deep: true }
+  { deep: true },
 )
 
 // Functions
 const saveProfile = () => {
   console.log('Auto-saving profile:', profileData.value)
-  
+
   // Show saved indicator
   showSavedIndicator.value = true
   setTimeout(() => {
     showSavedIndicator.value = false
   }, 2000)
-  
+
   // TODO: Call API to save profile
 }
 
 const addSpecialty = () => {
-  if (newSpecialty.value.trim() && !profileData.value.specialties?.includes(newSpecialty.value.trim())) {
+  if (
+    newSpecialty.value.trim() &&
+    !profileData.value.specialties?.includes(newSpecialty.value.trim())
+  ) {
     if (!profileData.value.specialties) profileData.value.specialties = []
     profileData.value.specialties.push(newSpecialty.value.trim())
     newSpecialty.value = ''
@@ -83,12 +103,15 @@ const addSpecialty = () => {
 
 const removeSpecialty = (specialty: string) => {
   if (profileData.value.specialties) {
-    profileData.value.specialties = profileData.value.specialties.filter(s => s !== specialty)
+    profileData.value.specialties = profileData.value.specialties.filter((s) => s !== specialty)
   }
 }
 
 const addCertification = () => {
-  if (newCertification.value.trim() && !profileData.value.certifications?.includes(newCertification.value.trim())) {
+  if (
+    newCertification.value.trim() &&
+    !profileData.value.certifications?.includes(newCertification.value.trim())
+  ) {
     if (!profileData.value.certifications) profileData.value.certifications = []
     profileData.value.certifications.push(newCertification.value.trim())
     newCertification.value = ''
@@ -97,7 +120,9 @@ const addCertification = () => {
 
 const removeCertification = (certification: string) => {
   if (profileData.value.certifications) {
-    profileData.value.certifications = profileData.value.certifications.filter(c => c !== certification)
+    profileData.value.certifications = profileData.value.certifications.filter(
+      (c) => c !== certification,
+    )
   }
 }
 
@@ -173,7 +198,7 @@ const handlePhotoUpload = (event: Event) => {
 
                   <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                     <!-- First Name -->
-                    <div class="sm:col-span-3">
+                    <div class="sm:col-span-6">
                       <label for="firstName" class="block text-sm font-medium text-gray-700">
                         Prénom
                       </label>
@@ -181,21 +206,6 @@ const handlePhotoUpload = (event: Event) => {
                         <input
                           id="firstName"
                           v-model="profileData.firstName"
-                          type="text"
-                          class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <!-- Last Name -->
-                    <div class="sm:col-span-3">
-                      <label for="lastName" class="block text-sm font-medium text-gray-700">
-                        Nom
-                      </label>
-                      <div class="mt-1">
-                        <input
-                          id="lastName"
-                          v-model="profileData.lastName"
                           type="text"
                           class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                         />
@@ -332,7 +342,9 @@ const handlePhotoUpload = (event: Event) => {
                       >
                         <option value="">Choisir une spécialité...</option>
                         <option
-                          v-for="specialty in availableSpecialties.filter(s => !profileData.specialties?.includes(s))"
+                          v-for="specialty in availableSpecialties.filter(
+                            (s) => !profileData.specialties?.includes(s),
+                          )"
                           :key="specialty"
                           :value="specialty"
                         >
@@ -459,7 +471,10 @@ const handlePhotoUpload = (event: Event) => {
                         </button>
                       </div>
                     </div>
-                    <p v-if="!profileData.certifications?.length" class="text-sm text-gray-500 italic">
+                    <p
+                      v-if="!profileData.certifications?.length"
+                      class="text-sm text-gray-500 italic"
+                    >
                       Aucune certification ajoutée pour le moment.
                     </p>
                   </div>
@@ -473,9 +488,7 @@ const handlePhotoUpload = (event: Event) => {
             <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
               <div class="px-4 py-6 sm:p-8">
                 <div class="max-w-2xl">
-                  <h2 class="text-base font-semibold leading-7 text-gray-900">
-                    Photo de profil
-                  </h2>
+                  <h2 class="text-base font-semibold leading-7 text-gray-900">Photo de profil</h2>
                   <p class="mt-1 text-sm leading-6 text-gray-600">
                     Une photo professionnelle augmente la confiance des clients.
                   </p>
@@ -486,16 +499,19 @@ const handlePhotoUpload = (event: Event) => {
                       <div class="shrink-0">
                         <img
                           :src="profileData.photo || '/default-avatar.png'"
-                          :alt="`${profileData.firstName} ${profileData.lastName}`"
+                          :alt="`${profileData.firstName}`"
                           class="h-32 w-32 rounded-full object-cover border-4 border-gray-200"
                         />
                       </div>
                       <div class="flex-1">
                         <h3 class="text-lg font-medium text-gray-900 mb-2">Photo actuelle</h3>
                         <p class="text-sm text-gray-600 mb-4">
-                          Choisissez une photo claire où votre visage est bien visible. Format recommandé : carré, minimum 400x400px.
+                          Choisissez une photo claire où votre visage est bien visible. Format
+                          recommandé : carré, minimum 400x400px.
                         </p>
-                        <label class="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <label
+                          class="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
                           <PhotoIcon class="h-5 w-5 mr-2" />
                           Changer la photo
                           <input

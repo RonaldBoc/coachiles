@@ -1,7 +1,7 @@
 export interface Coach {
   id: string
   firstName: string
-  lastName: string
+  lastName?: string // Optional since we're hiding last names on the platform
   email: string
   phone: string
   photo?: string
