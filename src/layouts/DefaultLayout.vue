@@ -230,8 +230,8 @@ const isPublicRoute = computed(() => {
   const coachDashboardPages = ['account', 'services', 'proposals', 'profile', 'leads']
   return (
     publicRoutes.includes(route.path) ||
-    (route.path.startsWith('/coach/') && 
-     !coachDashboardPages.some(page => route.path.includes(`/coach/${page}`)))
+    (route.path.startsWith('/coach/') &&
+      !coachDashboardPages.some((page) => route.path.includes(`/coach/${page}`)))
   )
 })
 

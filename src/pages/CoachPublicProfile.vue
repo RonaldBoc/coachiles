@@ -791,14 +791,15 @@ onMounted(() => {
   const firstName = route.params.firstName as string
 
   // Find the coach by first name (case insensitive)
-  coach.value = mockCoaches.find((c) => c.firstName.toLowerCase() === firstName.toLowerCase()) || null
+  coach.value =
+    mockCoaches.find((c) => c.firstName.toLowerCase() === firstName.toLowerCase()) || null
 
   if (coach.value) {
     // Find similar coaches (same specialties, different coach)
     similarCoaches.value = mockCoaches
       .filter(
         (c) =>
-          c.firstName.toLowerCase() !== firstName.toLowerCase() && 
+          c.firstName.toLowerCase() !== firstName.toLowerCase() &&
           c.specialties.some((spec) => coach.value?.specialties.includes(spec)),
       )
       .slice(0, 4)
