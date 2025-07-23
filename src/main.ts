@@ -6,12 +6,6 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { config } from './utils/config'
-import { useAuthStore } from './stores/auth'
-
-// Import Supabase to trigger connection test if not using mock data
-if (!config.useMockData) {
-  import('./utils/supabase')
-}
 
 console.log('🚀 App starting...')
 console.log('🔧 Environment check:', {
@@ -26,12 +20,15 @@ async function initializeApp() {
   const pinia = createPinia()
 
   app.use(pinia)
-
-  // Initialize auth store before router to ensure auth state is ready
-  const authStore = useAuthStore()
-  await authStore.initialize()
-
   app.use(router)
+  
+  // Initialize auth store after mounting to avoid blocking the app
+  if (!config.useMockData) {
+    const { useAuthStore } = await import('./stores/auth')
+    const authStore = useAuthStore()
+    authStore.initialize().catch(console.error)
+  }
+  
   app.mount('#app')
 }
 

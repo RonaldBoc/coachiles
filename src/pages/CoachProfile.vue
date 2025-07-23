@@ -1,60 +1,6 @@
 <template>
   <CoachLayout>
     <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <!-- Subscription Status Banner -->
-      <div class="mb-6">
-        <div
-          v-if="subscriptionStatus === 'active'"
-          class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between"
-        >
-          <div class="flex items-center">
-            <CheckIcon class="w-5 h-5 text-green-600 mr-2" />
-            <span class="text-green-800 font-medium">Abonnement actif</span>
-            <span class="text-green-600 ml-2">{{ leadsRemaining }} leads restants ce mois</span>
-          </div>
-          <button
-            @click="showSubscriptionModal = true"
-            class="text-green-600 hover:text-green-800 text-sm font-medium"
-          >
-            Gérer l'abonnement
-          </button>
-        </div>
-
-        <div
-          v-else-if="subscriptionStatus === 'trial'"
-          class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between"
-        >
-          <div class="flex items-center">
-            <InformationCircleIcon class="w-5 h-5 text-blue-600 mr-2" />
-            <span class="text-blue-800 font-medium">Période d'essai</span>
-            <span class="text-blue-600 ml-2">{{ trialDaysLeft }} jours restants</span>
-          </div>
-          <button
-            @click="showSubscriptionModal = true"
-            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium"
-          >
-            Choisir un plan
-          </button>
-        </div>
-
-        <div
-          v-else
-          class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center justify-between"
-        >
-          <div class="flex items-center">
-            <ExclamationTriangleIcon class="w-5 h-5 text-yellow-600 mr-2" />
-            <span class="text-yellow-800 font-medium">Aucun abonnement</span>
-            <span class="text-yellow-600 ml-2">Vous ne recevez pas de leads</span>
-          </div>
-          <button
-            @click="showSubscriptionModal = true"
-            class="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 text-sm font-medium"
-          >
-            S'abonner maintenant
-          </button>
-        </div>
-      </div>
-
       <!-- Profile Header -->
       <div class="mb-8 bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
         <div class="px-4 py-6 sm:p-8">
@@ -239,14 +185,6 @@
         </TabPanels>
       </TabGroup>
     </div>
-
-    <!-- Subscription Modal -->
-    <SubscriptionModal
-      v-if="showSubscriptionModal"
-      :currentPlan="currentPlan"
-      @close="showSubscriptionModal = false"
-      @subscribe="handleSubscription"
-    />
   </CoachLayout>
 </template>
 
@@ -258,13 +196,8 @@ import {
   MapPinIcon,
   CameraIcon,
   StarIcon,
-  CheckIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon,
 } from '@heroicons/vue/24/outline'
 import CoachLayout from '@/layouts/CoachLayout.vue'
-import type { SubscriptionPlan } from '@/types/subscription'
-import SubscriptionModal from '@/components/SubscriptionModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getCitiesByCountry, type CountryType } from '@/constants/locations'
 
@@ -338,18 +271,11 @@ const parseLocationCity = (location?: string): string => {
   return parts[0]?.trim() || ''
 }
 
-// State
-const showSubscriptionModal = ref(false)
+// State - not needed anymore
+// const showMobileMenu = ref(false)
 
-// Computed for subscription status from auth store
-const subscriptionStatus = computed(() => profileData.value?.subscriptionStatus || 'inactive')
-
-// Mock data that will be replaced with Supabase calls
-const leadsUsed = ref(3)
-const leadsAllowed = ref(10)
-const leadsRemaining = computed(() => leadsAllowed.value - leadsUsed.value)
-const trialDaysLeft = ref(7)
-const currentPlan = ref<SubscriptionPlan | null>(null)
+// Note: subscriptionStatus might be used for future subscription features
+// but currently not displayed since we removed the subscription banner
 
 // Tabs configuration
 const tabs = [
@@ -394,14 +320,6 @@ const handlePhotoUpload = (event: Event) => {
     // Handle photo upload
     console.log('Photo upload:', file)
   }
-}
-
-// Handle subscription
-const handleSubscription = (plan: SubscriptionPlan) => {
-  // Handle subscription
-  console.log('Subscribe to plan:', plan)
-  currentPlan.value = plan
-  showSubscriptionModal.value = false
 }
 
 // Lifecycle
