@@ -651,16 +651,21 @@ import { StarIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
 import type { ClientRequest } from '@/types/Lead'
 import RequestModal from '@/components/RequestModal.vue'
+import { useCoachStore } from '@/stores/coach'
 
 // Router
 const route = useRoute()
 const router = useRouter()
+
+// Coach Store
+const coachStore = useCoachStore()
 
 // State
 const coach = ref<Coach | null>(null)
 const similarCoaches = ref<Coach[]>([])
 const showContactModal = ref(false)
 const showTrialModal = ref(false)
+const isLoading = ref(false)
 
 // Helper function to get coach pricing
 const getCoachPrice = (coach: Coach | null): number => {
@@ -676,77 +681,6 @@ const getCoachPrice = (coach: Coach | null): number => {
 
   return Math.round(basePrice + experienceMultiplier + ratingBonus + specialtyBonus)
 }
-
-// Mock data (same as CoachBrowser)
-const mockCoaches: Coach[] = [
-  {
-    id: '1',
-    firstName: 'Marie',
-    lastName: 'Dubois',
-    email: 'marie@example.com',
-    phone: '0596123456',
-    photo:
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=600&fit=crop&crop=face',
-    bio: 'Coach fitness spécialisée dans la remise en forme et la perte de poids. Passionnée par le sport depuis 10 ans.',
-    location: 'Fort-de-France',
-    specialties: ['Fitness', 'Musculation', 'Perte de poids', 'Remise en forme'],
-    certifications: ['BPJEPS', 'CQP Fitness'],
-    experience: 5,
-    availability: 'Lun-Ven 9h-18h',
-    rating: 4.8,
-    totalClients: 45,
-    subscriptionStatus: 'active',
-    services: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    isActive: true,
-  },
-  {
-    id: '2',
-    firstName: 'Pierre',
-    lastName: 'Martin',
-    email: 'pierre@example.com',
-    phone: '0596234567',
-    photo:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=600&fit=crop&crop=face',
-    bio: 'Coach yoga et méditation. Formé en Inde, je vous accompagne vers un bien-être physique et mental.',
-    location: 'Schoelcher',
-    specialties: ['Yoga', 'Méditation', 'Relaxation', 'Bien-être'],
-    certifications: ['RYT 200', 'Instructeur Méditation'],
-    experience: 8,
-    availability: 'Lun-Sam 8h-20h',
-    rating: 4.9,
-    totalClients: 67,
-    subscriptionStatus: 'active',
-    services: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    isActive: true,
-  },
-  {
-    id: '3',
-    firstName: 'Sophie',
-    lastName: 'Laurent',
-    email: 'sophie@example.com',
-    phone: '0596345678',
-    photo:
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=600&fit=crop&crop=face',
-    bio: 'Nutritionniste et coach bien-être. Je vous accompagne vers une alimentation saine et équilibrée.',
-    location: 'Le Lamentin',
-    specialties: ['Nutrition', 'Bien-être', 'Perte de poids'],
-    certifications: ['Diplôme de Nutritionniste', 'Formation Coach Bien-être'],
-    experience: 6,
-    availability: 'Mar-Sam 10h-19h',
-    rating: 4.7,
-    totalClients: 38,
-    subscriptionStatus: 'active',
-    services: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    isActive: true,
-  },
-  // Add more coaches as needed
-]
 
 // Methods
 const bookFreeTrial = () => {
@@ -787,22 +721,43 @@ const navigateToCoach = (coachFirstName: string) => {
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   const firstName = route.params.firstName as string
+  console.log('🔍 CoachPublicProfile: Loading coach profile for:', firstName)
 
-  // Find the coach by first name (case insensitive)
-  coach.value =
-    mockCoaches.find((c) => c.firstName.toLowerCase() === firstName.toLowerCase()) || null
+  try {
+    isLoading.value = true
 
-  if (coach.value) {
-    // Find similar coaches (same specialties, different coach)
-    similarCoaches.value = mockCoaches
-      .filter(
-        (c) =>
-          c.firstName.toLowerCase() !== firstName.toLowerCase() &&
-          c.specialties.some((spec) => coach.value?.specialties.includes(spec)),
-      )
-      .slice(0, 4)
+    // Load coaches from API if not already loaded
+    if (coachStore.coaches.length === 0) {
+      console.log('📡 Loading coaches from API...')
+      await coachStore.fetchCoaches()
+    }
+
+    // Find the coach by first name (case insensitive)
+    coach.value =
+      coachStore.coaches.find((c) => c.firstName.toLowerCase() === firstName.toLowerCase()) || null
+
+    console.log('✅ Found coach:', coach.value?.firstName || 'Not found')
+
+    if (coach.value) {
+      // Find similar coaches (same specialties, different coach)
+      similarCoaches.value = coachStore.coaches
+        .filter(
+          (c) =>
+            c.firstName.toLowerCase() !== firstName.toLowerCase() &&
+            c.specialties.some((spec) => coach.value?.specialties.includes(spec)),
+        )
+        .slice(0, 4)
+
+      console.log('🔗 Found', similarCoaches.value.length, 'similar coaches')
+    } else {
+      console.log('❌ Coach not found:', firstName)
+    }
+  } catch (error) {
+    console.error('❌ Error loading coach profile:', error)
+  } finally {
+    isLoading.value = false
   }
 })
 </script>

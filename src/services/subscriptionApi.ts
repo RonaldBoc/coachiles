@@ -26,7 +26,10 @@ export const subscriptionApi = {
   },
 
   // Subscribe to a plan
-  subscribeToPlan: (coachId: string, data: CreateSubscriptionRequest): Promise<UserSubscription> => {
+  subscribeToPlan: (
+    coachId: string,
+    data: CreateSubscriptionRequest,
+  ): Promise<UserSubscription> => {
     return api.post<UserSubscription>(`/coaches/${coachId}/subscription`, data)
   },
 
@@ -46,21 +49,24 @@ export const subscriptionApi = {
   },
 
   // Get billing history
-  getBillingHistory: (coachId: string, params?: {
-    page?: number
-    limit?: number
-  }): Promise<{ data: BillingHistoryItem[], total: number }> => {
+  getBillingHistory: (
+    coachId: string,
+    params?: {
+      page?: number
+      limit?: number
+    },
+  ): Promise<{ data: BillingHistoryItem[]; total: number }> => {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.limit) searchParams.append('limit', params.limit.toString())
-    
+
     return api.get(`/coaches/${coachId}/billing?${searchParams.toString()}`)
   },
 
   // Download invoice
   downloadInvoice: (invoiceId: string): Promise<Blob> => {
-    return api.get(`/billing/invoices/${invoiceId}/download`, { 
-      responseType: 'blob' 
+    return api.get(`/billing/invoices/${invoiceId}/download`, {
+      responseType: 'blob',
     })
   },
 }

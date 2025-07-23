@@ -30,8 +30,11 @@ export const handleApiError = (error: unknown): ApiError => {
 
   // Axios error handling
   if (typeof error === 'object' && error !== null && 'response' in error) {
-    const axiosError = error as { response?: { status: number; data?: { message?: string; errors?: unknown } }; request?: unknown }
-    
+    const axiosError = error as {
+      response?: { status: number; data?: { message?: string; errors?: unknown } }
+      request?: unknown
+    }
+
     if (axiosError.response) {
       // Server responded with error status
       const status = axiosError.response.status

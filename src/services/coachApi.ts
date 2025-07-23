@@ -37,12 +37,12 @@ export const coachApi = {
     minRating?: number
   }): Promise<CoachResponse> => {
     const searchParams = new URLSearchParams()
-    
+
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.limit) searchParams.append('limit', params.limit.toString())
     if (params?.search) searchParams.append('search', params.search)
     if (params?.specialties?.length) {
-      params.specialties.forEach(specialty => searchParams.append('specialties[]', specialty))
+      params.specialties.forEach((specialty) => searchParams.append('specialties[]', specialty))
     }
     if (params?.location) searchParams.append('location', params.location)
     if (params?.minRating) searchParams.append('minRating', params.minRating.toString())
@@ -71,7 +71,11 @@ export const coachApi = {
   },
 
   // Upload coach photo
-  uploadPhoto: (id: string, file: File, onProgress?: (progress: number) => void): Promise<{ photoUrl: string }> => {
+  uploadPhoto: (
+    id: string,
+    file: File,
+    onProgress?: (progress: number) => void,
+  ): Promise<{ photoUrl: string }> => {
     return api.upload<{ photoUrl: string }>(`/coaches/${id}/photo`, file, onProgress)
   },
 

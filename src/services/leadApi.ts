@@ -25,19 +25,22 @@ export interface LeadCreateRequest {
 // Lead API service
 export const leadApi = {
   // Get leads for a coach (requires authentication)
-  getLeadsForCoach: (coachId: string, params?: {
-    page?: number
-    limit?: number
-    status?: string[]
-    dateFrom?: string
-    dateTo?: string
-  }): Promise<LeadResponse> => {
+  getLeadsForCoach: (
+    coachId: string,
+    params?: {
+      page?: number
+      limit?: number
+      status?: string[]
+      dateFrom?: string
+      dateTo?: string
+    },
+  ): Promise<LeadResponse> => {
     const searchParams = new URLSearchParams()
-    
+
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.limit) searchParams.append('limit', params.limit.toString())
     if (params?.status?.length) {
-      params.status.forEach(status => searchParams.append('status[]', status))
+      params.status.forEach((status) => searchParams.append('status[]', status))
     }
     if (params?.dateFrom) searchParams.append('dateFrom', params.dateFrom)
     if (params?.dateTo) searchParams.append('dateTo', params.dateTo)
@@ -66,7 +69,10 @@ export const leadApi = {
   },
 
   // Get lead statistics for coach
-  getLeadStats: (coachId: string, period?: '7d' | '30d' | '90d' | '1y'): Promise<{
+  getLeadStats: (
+    coachId: string,
+    period?: '7d' | '30d' | '90d' | '1y',
+  ): Promise<{
     totalLeads: number
     newLeads: number
     contactedLeads: number
@@ -76,7 +82,7 @@ export const leadApi = {
   }> => {
     const searchParams = new URLSearchParams()
     if (period) searchParams.append('period', period)
-    
+
     return api.get(`/coaches/${coachId}/leads/stats?${searchParams.toString()}`)
   },
 }

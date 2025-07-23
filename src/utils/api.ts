@@ -25,7 +25,7 @@ apiClient.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error)
-  }
+  },
 )
 
 // Response interceptor for error handling
@@ -40,14 +40,14 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('authToken')
       window.location.href = '/login'
     }
-    
+
     // Log errors in development
     if (import.meta.env.DEV) {
       console.error('API Error:', error.response?.data || error.message)
     }
-    
+
     return Promise.reject(error)
-  }
+  },
 )
 
 // Generic API methods
@@ -77,15 +77,19 @@ export const api = {
     const formData = new FormData()
     formData.append('file', file)
 
-    return apiClient.post(url, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress: onProgress ? (event) => {
-        const progress = Math.round((event.loaded * 100) / (event.total || 1))
-        onProgress(progress)
-      } : undefined,
-    }).then((response) => response.data)
+    return apiClient
+      .post(url, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: onProgress
+          ? (event) => {
+              const progress = Math.round((event.loaded * 100) / (event.total || 1))
+              onProgress(progress)
+            }
+          : undefined,
+      })
+      .then((response) => response.data)
   },
 }
 

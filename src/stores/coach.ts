@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Coach } from '@/types/coach'
-import { coachApi } from '@/services/coachApi'
+import { coachApi } from '@/services'
 
 export const useCoachStore = defineStore('coach', () => {
   // State
@@ -41,6 +41,7 @@ export const useCoachStore = defineStore('coach', () => {
     limit?: number
   }) => {
     try {
+      console.log('🔍 Fetching coaches with filters:', filters)
       setLoading(true)
       clearError()
 
@@ -50,15 +51,16 @@ export const useCoachStore = defineStore('coach', () => {
         ...filters,
       }
 
+      console.log('📡 Making API call with params:', params)
       const response = await coachApi.getCoaches(params)
-      
+      console.log('✅ API response received:', response)
+
       coaches.value = response.data
       total.value = response.total
       currentPage.value = response.page
-
     } catch (err) {
+      console.error('❌ Error fetching coaches:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch coaches')
-      console.error('Error fetching coaches:', err)
     } finally {
       setLoading(false)
     }
@@ -72,7 +74,7 @@ export const useCoachStore = defineStore('coach', () => {
 
       const coach = await coachApi.getCoachByFirstName(firstName)
       currentCoach.value = coach
-      
+
       return coach
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Coach not found')
@@ -90,13 +92,13 @@ export const useCoachStore = defineStore('coach', () => {
       clearError()
 
       const updatedCoach = await coachApi.updateCoach(id, data)
-      
+
       // Update in coaches list
-      const index = coaches.value.findIndex(coach => coach.id === id)
+      const index = coaches.value.findIndex((coach) => coach.id === id)
       if (index !== -1) {
         coaches.value[index] = updatedCoach
       }
-      
+
       // Update current coach if it's the same one
       if (currentCoach.value?.id === id) {
         currentCoach.value = updatedCoach
@@ -113,19 +115,19 @@ export const useCoachStore = defineStore('coach', () => {
   }
 
   // Upload coach photo
-  const uploadCoachPhoto = async (id: string, file: File, onProgress?: (progress: number) => void) => {
+  const uploadCoachPhoto = async (id: string, file: File) => {
     try {
       setLoading(true)
       clearError()
 
-      const result = await coachApi.uploadPhoto(id, file, onProgress)
-      
+      const result = await coachApi.uploadPhoto(id, file)
+
       // Update coach photo in state
       if (currentCoach.value?.id === id) {
         currentCoach.value.photo = result.photoUrl
       }
-      
-      const coachIndex = coaches.value.findIndex(coach => coach.id === id)
+
+      const coachIndex = coaches.value.findIndex((coach) => coach.id === id)
       if (coachIndex !== -1) {
         coaches.value[coachIndex].photo = result.photoUrl
       }
@@ -180,12 +182,12 @@ export const useCoachStore = defineStore('coach', () => {
     total,
     currentPage,
     pageSize,
-    
+
     // Getters
     isLoading,
     hasError,
     totalPages,
-    
+
     // Actions
     fetchCoaches,
     fetchCoachByFirstName,

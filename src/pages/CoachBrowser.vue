@@ -299,9 +299,13 @@ import { StarIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
 import type { ClientRequest } from '@/types/Lead'
 import RequestModal from '@/components/RequestModal.vue'
+import { useCoachStore } from '@/stores/coach'
 
 // Router
 const router = useRouter()
+
+// Coach Store
+const coachStore = useCoachStore()
 
 // State
 const coaches = ref<Coach[]>([])
@@ -1334,7 +1338,7 @@ const debouncedSearch = (query: string, specialty: string, sort: string) => {
     clearTimeout(searchDebounceTimer.value)
   }
 
-  searchDebounceTimer.value = setTimeout(() => {
+  searchDebounceTimer.value = window.setTimeout(() => {
     searchCoaches(query, specialty, sort, 1)
   }, 300) // 300ms delay
 }
@@ -1376,13 +1380,17 @@ watch([searchQuery, selectedSpecialty, sortBy], ([query, specialty, sort]) => {
 })
 
 // Lifecycle
-onMounted(() => {
-  // Load coaches - in real app, this would be an API call
-  if (import.meta.env.PROD) {
-    // In production, trigger initial search
-    searchCoaches('', '', sortBy.value, 1)
-  } else {
-    // Development mode - use mock data
+onMounted(async () => {
+  console.log('🏗️ CoachBrowser: Loading coaches...')
+  // Load coaches using the API service (will use Supabase if configured)
+  try {
+    await coachStore.fetchCoaches()
+    coaches.value = coachStore.coaches
+    totalCoaches.value = coachStore.total
+    console.log('✅ CoachBrowser: Loaded coaches from API:', coaches.value.length)
+  } catch (error) {
+    console.error('❌ CoachBrowser: Failed to load coaches:', error)
+    // Fallback to mock data if API fails
     coaches.value = mockCoaches
   }
 })
