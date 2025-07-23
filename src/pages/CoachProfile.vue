@@ -62,9 +62,10 @@
             <!-- Profile Photo -->
             <div class="relative group">
               <img
-                :src="profileData?.photo || '/default-avatar.png'"
+                :src="profileData?.photo || '/default-avatar.svg'"
                 :alt="`${profileData?.firstName || 'Coach'}`"
-                class="h-24 w-24 rounded-full object-cover"
+                class="h-24 w-24 rounded-full object-cover bg-gray-200"
+                @error="handleImageError"
               />
               <div
                 class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center cursor-pointer"
@@ -92,7 +93,7 @@
                   </h1>
                   <p class="text-gray-600 flex items-center mt-1">
                     <MapPinIcon class="w-4 h-4 mr-1" />
-                    {{ profileData?.location || 'Non spécifié' }}
+                    {{ locationDisplay }}
                   </p>
                 </div>
                 <div class="flex items-center space-x-2">
@@ -181,11 +182,38 @@
               </div>
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1"> Localisation </label>
-                <input
-                  v-model="profileForm.location"
-                  type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                />
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm text-gray-600 mb-1">Territoire</label>
+                    <select
+                      v-model="profileForm.country"
+                      @change="handleCountryChange"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">Sélectionner un territoire</option>
+                      <option value="martinique">Martinique</option>
+                      <option value="guadeloupe">Guadeloupe</option>
+                      <option value="guyane">Guyane</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-600 mb-1">Ville</label>
+                    <select
+                      v-model="profileForm.city"
+                      :disabled="!profileForm.country"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50 disabled:text-gray-400"
+                    >
+                      <option value="">{{ profileForm.country ? 'Sélectionner une ville' : 'Choisir d\'abord un territoire' }}</option>
+                      <option 
+                        v-for="city in availableCities" 
+                        :key="city" 
+                        :value="city"
+                      >
+                        {{ city }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
               </div>
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1"> Bio </label>
@@ -208,128 +236,6 @@
               </div>
             </div>
           </TabPanel>
-
-          <!-- Services Tab -->
-          <TabPanel class="bg-white rounded-lg shadow-sm p-6">
-            <div class="flex justify-between items-center mb-4">
-              <h3 class="text-lg font-medium text-gray-900">Mes services</h3>
-              <button
-                @click="addService"
-                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
-              >
-                <PlusIcon class="w-4 h-4 inline-block mr-1" />
-                Ajouter un service
-              </button>
-            </div>
-
-            <div class="space-y-4">
-              <div
-                v-for="service in services"
-                :key="service.id"
-                class="border border-gray-200 rounded-lg p-4"
-              >
-                <div class="flex justify-between items-start mb-2">
-                  <div>
-                    <h4 class="font-medium text-gray-900">{{ service.name }}</h4>
-                    <p class="text-sm text-gray-600">{{ service.category }}</p>
-                  </div>
-                  <div class="flex space-x-2">
-                    <button
-                      @click="editService(service)"
-                      class="text-indigo-600 hover:text-indigo-800"
-                    >
-                      <PencilIcon class="w-4 h-4" />
-                    </button>
-                    <button
-                      @click="deleteService(service.id)"
-                      class="text-red-600 hover:text-red-800"
-                    >
-                      <TrashIcon class="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                <p class="text-sm text-gray-700 mb-2">{{ service.description }}</p>
-                <div class="flex items-center space-x-4 text-sm text-gray-600">
-                  <span>{{ service.location }}</span>
-                  <span>{{ service.levels.join(', ') }}</span>
-                </div>
-              </div>
-            </div>
-          </TabPanel>
-
-          <!-- Leads Tab -->
-          <TabPanel class="bg-white rounded-lg shadow-sm p-6">
-            <div class="flex justify-between items-center mb-4">
-              <h3 class="text-lg font-medium text-gray-900">Mes leads</h3>
-              <div class="text-sm text-gray-600">
-                {{ leadsUsed }}/{{ leadsAllowed }} leads utilisés ce mois
-              </div>
-            </div>
-
-            <div v-if="subscriptionStatus === 'active'" class="space-y-4">
-              <div
-                v-for="lead in leads"
-                :key="lead.id"
-                class="border border-gray-200 rounded-lg p-4"
-              >
-                <div class="flex justify-between items-start mb-2">
-                  <div>
-                    <h4 class="font-medium text-gray-900">{{ lead.clientInfo?.name }}</h4>
-                    <p class="text-sm text-gray-600">{{ lead.clientInfo?.location }}</p>
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <span
-                      :class="[
-                        'px-2 py-1 rounded-full text-xs',
-                        lead.status === 'new'
-                          ? 'bg-blue-100 text-blue-800'
-                          : lead.status === 'contacted'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : lead.status === 'converted'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800',
-                      ]"
-                    >
-                      {{ getStatusLabel(lead.status) }}
-                    </span>
-                  </div>
-                </div>
-                <p class="text-sm text-gray-700 mb-2">{{ lead.clientInfo?.goals }}</p>
-                <div class="flex items-center space-x-4 text-sm text-gray-600">
-                  <span>Budget: {{ lead.clientInfo?.budget }}</span>
-                  <span>Disponibilité: {{ lead.clientInfo?.availability }}</span>
-                </div>
-                <div class="mt-3 flex space-x-2">
-                  <button
-                    v-if="lead.status === 'new'"
-                    @click="contactLead(lead)"
-                    class="bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700"
-                  >
-                    Contacter
-                  </button>
-                  <button
-                    v-if="lead.status === 'contacted'"
-                    @click="markConverted(lead)"
-                    class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                  >
-                    Marquer comme converti
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div v-else class="text-center py-8">
-              <p class="text-gray-500 mb-4">
-                Vous devez avoir un abonnement actif pour voir vos leads.
-              </p>
-              <button
-                @click="showSubscriptionModal = true"
-                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-              >
-                S'abonner maintenant
-              </button>
-            </div>
-          </TabPanel>
         </TabPanels>
       </TabGroup>
     </div>
@@ -349,24 +255,18 @@ import { ref, computed, onMounted } from 'vue'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/vue'
 import {
   UserCircleIcon,
-  BriefcaseIcon,
-  DocumentTextIcon,
   MapPinIcon,
   CameraIcon,
   StarIcon,
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
   CheckIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
 } from '@heroicons/vue/24/outline'
-import type { CoachService } from '@/types/coach'
 import CoachLayout from '@/layouts/CoachLayout.vue'
-import type { Lead } from '@/types/Lead'
 import type { SubscriptionPlan } from '@/types/subscription'
 import SubscriptionModal from '@/components/SubscriptionModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import { getCitiesByCountry, type CountryType } from '@/constants/locations'
 
 // Auth Store
 const authStore = useAuthStore()
@@ -383,11 +283,26 @@ const profileForm = ref({
   firstName: '',
   phone: '',
   bio: '',
-  location: '',
+  country: '' as CountryType | '',
+  city: '',
   specialties: [] as string[],
   certifications: [] as string[],
   experience: 0,
   availability: '',
+})
+
+// Computed for available cities based on selected country
+const availableCities = computed(() => {
+  if (!profileForm.value.country) return []
+  return getCitiesByCountry(profileForm.value.country as CountryType)
+})
+
+// Location display computed
+const locationDisplay = computed(() => {
+  if (profileForm.value.city && profileForm.value.country) {
+    return `${profileForm.value.city}, ${profileForm.value.country.charAt(0).toUpperCase() + profileForm.value.country.slice(1)}`
+  }
+  return profileData.value?.location || 'Non spécifié'
 })
 
 // Initialize form data
@@ -397,7 +312,8 @@ const initializeForm = () => {
       firstName: profileData.value.firstName || '',
       phone: profileData.value.phone || '',
       bio: profileData.value.bio || '',
-      location: profileData.value.location || '',
+      country: parseLocationCountry(profileData.value.location),
+      city: parseLocationCity(profileData.value.location),
       specialties: [...(profileData.value.specialties || [])],
       certifications: [...(profileData.value.certifications || [])],
       experience: profileData.value.experience || 0,
@@ -406,52 +322,21 @@ const initializeForm = () => {
   }
 }
 
-// Update profile function
-const updateProfile = async () => {
-  try {
-    await authStore.updateCoachProfile(profileForm.value)
-    console.log('✅ Profile updated successfully')
-  } catch (error) {
-    console.error('❌ Error updating profile:', error)
-  }
+// Parse existing location to extract country and city
+const parseLocationCountry = (location?: string): CountryType | '' => {
+  if (!location) return ''
+  const lowerLocation = location.toLowerCase()
+  if (lowerLocation.includes('martinique')) return 'martinique'
+  if (lowerLocation.includes('guadeloupe')) return 'guadeloupe'
+  if (lowerLocation.includes('guyane')) return 'guyane'
+  return ''
 }
 
-const services = ref<CoachService[]>([
-  {
-    id: '1',
-    name: 'Coaching Remise en Forme',
-    category: 'Fitness & Musculation',
-    subcategory: 'Remise en forme générale',
-    description:
-      'Programme personnalisé pour retrouver la forme et améliorer sa condition physique.',
-    location: 'Fort-de-France',
-    duration: 60,
-    groupSize: 'individual',
-    ageGroups: ['Adultes'],
-    levels: ['Débutant', 'Intermédiaire'],
-    isActive: true,
-  },
-])
-
-const leads = ref<Lead[]>([
-  {
-    id: '1',
-    clientRequestId: 'req-1',
-    coachId: 'coach-1',
-    status: 'new',
-    unlockedAt: new Date(),
-    clientInfo: {
-      name: 'Marie Dubois',
-      email: 'marie@example.com',
-      phone: '0596123456',
-      goals: 'Perte de poids et remise en forme',
-      location: 'Fort-de-France',
-      budget: '50-70€ par séance',
-      availability: 'Lundi et mercredi soir',
-      preferences: ['Fitness', 'Cardio'],
-    },
-  },
-])
+const parseLocationCity = (location?: string): string => {
+  if (!location) return ''
+  const parts = location.split(',')
+  return parts[0]?.trim() || ''
+}
 
 // State
 const showSubscriptionModal = ref(false)
@@ -469,11 +354,40 @@ const currentPlan = ref<SubscriptionPlan | null>(null)
 // Tabs configuration
 const tabs = [
   { id: 'profile', name: 'Profil', icon: UserCircleIcon },
-  { id: 'services', name: 'Services', icon: BriefcaseIcon },
-  { id: 'leads', name: 'Leads', icon: DocumentTextIcon },
 ]
 
-// Methods
+// Update profile function
+const updateProfile = async () => {
+  try {
+    // Combine country and city into location string
+    const location = profileForm.value.city && profileForm.value.country 
+      ? `${profileForm.value.city}, ${profileForm.value.country.charAt(0).toUpperCase() + profileForm.value.country.slice(1)}`
+      : ''
+    
+    const updateData = {
+      ...profileForm.value,
+      location
+    }
+    
+    await authStore.updateCoachProfile(updateData)
+    console.log('✅ Profile updated successfully')
+  } catch (error) {
+    console.error('❌ Error updating profile:', error)
+  }
+}
+
+// Handle country change - reset city when country changes
+const handleCountryChange = () => {
+  profileForm.value.city = ''
+}
+
+// Handle image error - set to default
+const handleImageError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  target.src = '/default-avatar.svg'
+}
+
+// Handle photo upload
 const handlePhotoUpload = (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (file) {
@@ -482,44 +396,7 @@ const handlePhotoUpload = (event: Event) => {
   }
 }
 
-const addService = () => {
-  // Add new service
-  console.log('Add service')
-}
-
-const editService = (service: CoachService) => {
-  // Edit service
-  console.log('Edit service:', service)
-}
-
-const deleteService = (serviceId: string) => {
-  // Delete service
-  services.value = services.value.filter((s: CoachService) => s.id !== serviceId)
-}
-
-const contactLead = (lead: Lead) => {
-  lead.status = 'contacted'
-  lead.contactedAt = new Date()
-  console.log('Contact lead:', lead)
-}
-
-const markConverted = (lead: Lead) => {
-  lead.status = 'converted'
-  lead.convertedAt = new Date()
-  console.log('Mark converted:', lead)
-}
-
-const getStatusLabel = (status: string) => {
-  const labels = {
-    new: 'Nouveau',
-    viewed: 'Vu',
-    contacted: 'Contacté',
-    converted: 'Converti',
-    lost: 'Perdu',
-  }
-  return labels[status as keyof typeof labels] || status
-}
-
+// Handle subscription
 const handleSubscription = (plan: SubscriptionPlan) => {
   // Handle subscription
   console.log('Subscribe to plan:', plan)

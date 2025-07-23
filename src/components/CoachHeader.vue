@@ -45,15 +45,26 @@
               </span>
             </router-link>
             <router-link
-              to="/coach/services"
+              to="/coach/marketplace"
               :class="[
                 'px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                $route.path === '/coach/services'
+                $route.path === '/coach/marketplace'
                   ? 'bg-orange-100 text-orange-800'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
               ]"
             >
-              Mes Services
+              Marketplace
+            </router-link>
+            <router-link
+              to="/coach/bookings"
+              :class="[
+                'px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                $route.path === '/coach/bookings'
+                  ? 'bg-orange-100 text-orange-800'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
+              ]"
+            >
+              Réservations
             </router-link>
             <router-link
               to="/coach/account"
@@ -90,9 +101,9 @@
               class="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
             >
               <img
-                :src="coach?.photo || '/default-avatar.png'"
+                :src="coach?.photo || '/default-avatar.svg'"
                 :alt="coach?.firstName"
-                class="h-8 w-8 rounded-full object-cover"
+                class="h-8 w-8 rounded-full object-cover bg-gray-200"
               />
               <span class="hidden md:block text-sm font-medium text-gray-700">
                 {{ coach?.firstName }}
@@ -210,16 +221,28 @@
             </span>
           </router-link>
           <router-link
-            to="/coach/services"
+            to="/coach/marketplace"
             @click="showMobileMenu = false"
             :class="[
               'block px-3 py-2 rounded-md text-base font-medium',
-              $route.path === '/coach/services'
+              $route.path === '/coach/marketplace'
                 ? 'bg-orange-100 text-orange-800'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
             ]"
           >
-            Mes Services
+            Marketplace
+          </router-link>
+          <router-link
+            to="/coach/bookings"
+            @click="showMobileMenu = false"
+            :class="[
+              'block px-3 py-2 rounded-md text-base font-medium',
+              $route.path === '/coach/bookings'
+                ? 'bg-orange-100 text-orange-800'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
+            ]"
+          >
+            Réservations
           </router-link>
           <router-link
             to="/coach/account"

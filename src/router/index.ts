@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import CoachBrowser from '@/pages/CoachBrowser.vue'
 import ServiceBrowser from '@/pages/ServiceBrowser.vue'
 import CoachAccount from '@/pages/CoachAccount.vue'
-import CoachServices from '@/pages/CoachServices.vue'
 import CoachMarketplace from '@/pages/CoachMarketplace.vue'
 import CoachMarketplaceDebug from '@/pages/CoachMarketplaceDebug.vue'
 import CoachMarketplaceSimple from '@/pages/CoachMarketplaceSimple.vue'
@@ -44,8 +43,7 @@ const routes = [
   },
   {
     path: '/coach/services',
-    component: CoachServices,
-    beforeEnter: requireAuth,
+    redirect: '/coach/marketplace',
   },
   {
     path: '/coach/marketplace',
@@ -90,7 +88,7 @@ const routes = [
   // Legacy routes for backward compatibility
   { path: '/CoachProfile', redirect: '/coach/profile' },
   { path: '/CoachAccount', redirect: '/coach/account' },
-  { path: '/CoachServices', redirect: '/coach/services' },
+  { path: '/CoachServices', redirect: '/coach/marketplace' },
   { path: '/CoachProposals', redirect: '/coach/proposals' },
   { path: '/CoachLeads', redirect: '/coach/proposals' },
 ]
