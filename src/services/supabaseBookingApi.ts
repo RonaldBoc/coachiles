@@ -276,7 +276,7 @@ export const supabaseBookingApi = {
   // Update booking
   updateBooking: async (id: string, updates: UpdateBookingData): Promise<Booking> => {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       }
 
@@ -370,7 +370,7 @@ export const supabaseBookingApi = {
     meetingPassword?: string
   }): Promise<Booking> => {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         status: 'confirmed',
         confirmed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

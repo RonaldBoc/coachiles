@@ -361,7 +361,7 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
 } from '@heroicons/vue/24/outline'
-import type { Coach, CoachService } from '@/types/coach'
+import type { CoachService } from '@/types/coach'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import type { Lead } from '@/types/Lead'
 import type { SubscriptionPlan } from '@/types/subscription'
@@ -416,7 +416,7 @@ const updateProfile = async () => {
   }
 }
 
-const services = ref<Service[]>([
+const services = ref<CoachService[]>([
   {
     id: '1',
     name: 'Coaching Remise en Forme',
@@ -487,14 +487,14 @@ const addService = () => {
   console.log('Add service')
 }
 
-const editService = (service: Service) => {
+const editService = (service: CoachService) => {
   // Edit service
   console.log('Edit service:', service)
 }
 
 const deleteService = (serviceId: string) => {
   // Delete service
-  services.value = services.value.filter((s) => s.id !== serviceId)
+  services.value = services.value.filter((s: CoachService) => s.id !== serviceId)
 }
 
 const contactLead = (lead: Lead) => {

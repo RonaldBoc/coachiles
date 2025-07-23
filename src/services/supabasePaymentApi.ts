@@ -171,11 +171,6 @@ export const supabasePaymentApi = {
           clientName: data.bookings.client_name,
           clientEmail: data.bookings.client_email,
           scheduledAt: new Date(data.bookings.scheduled_at),
-          service: data.bookings.services ? {
-            id: data.bookings.services.id,
-            name: data.bookings.services.name,
-            category: data.bookings.services.category,
-          } : undefined
         } : undefined,
         coach: data.coaches ? {
           id: data.coaches.id,
@@ -285,7 +280,7 @@ export const supabasePaymentApi = {
   // Update payment
   updatePayment: async (id: string, updates: UpdatePaymentData): Promise<Payment> => {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       }
 
@@ -437,10 +432,10 @@ export const supabasePaymentApi = {
       const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
       const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
 
-      // Get all payments for the coach
+      // Get all completed payments that haven't been paid out
       const { data: allPayments, error: allError } = await supabase
         .from('payments')
-        .select('status, payment_type, payment_method, amount, platform_fee, payment_processor_fee, coach_earnings, created_at')
+        .select('status, payment_type, payment_method, amount, platform_fee, payment_processor_fee, coach_earnings, created_at, payout_id')
         .eq('coach_id', coachId)
 
       if (allError) throw allError
@@ -550,7 +545,7 @@ export const supabasePaymentApi = {
       if (allError) throw allError
 
       // Get last payout date
-      const { data: lastPayout, error: payoutError } = await supabase
+      const { data: lastPayout } = await supabase
         .from('payments')
         .select('payout_date')
         .eq('coach_id', coachId)
@@ -559,7 +554,7 @@ export const supabasePaymentApi = {
         .limit(1)
         .single()
 
-      // Note: payoutError is expected if no payouts exist yet
+      // Note: Error is expected if no payouts exist yet
 
       const availableBalance = availablePayments?.reduce((sum, p) => sum + Number(p.coach_earnings), 0) || 0
       const pendingBalance = pendingPayments?.reduce((sum, p) => sum + Number(p.coach_earnings), 0) || 0

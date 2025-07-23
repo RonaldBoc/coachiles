@@ -38,8 +38,8 @@ export interface Booking {
   meetingPassword?: string
   
   // Related data (populated in queries)
-  service?: import('./service').Service
-  coach?: import('./coach').Coach
+  service?: import('./simple').SimpleService
+  coach?: import('./simple').SimpleCoach
 }
 
 export interface CreateBookingData {

@@ -322,10 +322,10 @@ const authStore = useAuthStore()
 const leadStore = useLeadStore()
 
 // Computed
-const currentCoach = computed(() => authStore.coach)
+// const currentCoach = computed(() => authStore.coach)
 const isLoading = computed(() => authStore.loading || leadStore.isLoading)
 const allLeads = computed(() => leadStore.leads)
-const totalLeads = computed(() => leadStore.total)
+// const totalLeads = computed(() => leadStore.total)
 const newLeadsCount = computed(() => leadStore.newLeadsCount)
 
 // Component state

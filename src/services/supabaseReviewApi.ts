@@ -52,7 +52,8 @@ export const supabaseReviewApi = {
         ),
         bookings(
           id,
-          scheduled_at
+          scheduled_at,
+          client_name
         )
       `)
 
@@ -136,6 +137,7 @@ export const supabaseReviewApi = {
           booking: item.bookings ? {
             id: item.bookings.id,
             scheduledAt: new Date(item.bookings.scheduled_at),
+            clientName: item.bookings.client_name || undefined,
           } : undefined
         })) || [],
         total: count || 0,
@@ -217,7 +219,8 @@ export const supabaseReviewApi = {
           ),
           bookings(
             id,
-            scheduled_at
+            scheduled_at,
+            client_name
           )
         `)
         .eq('coach_id', coachId)
@@ -247,6 +250,7 @@ export const supabaseReviewApi = {
         booking: item.bookings ? {
           id: item.bookings.id,
           scheduledAt: new Date(item.bookings.scheduled_at),
+          clientName: item.bookings.client_name || undefined,
         } : undefined
       })) || []
     } catch (error) {
@@ -294,7 +298,7 @@ export const supabaseReviewApi = {
   // Update review
   updateReview: async (id: string, updates: UpdateReviewData): Promise<Review> => {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       }
 

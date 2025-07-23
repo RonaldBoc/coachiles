@@ -375,7 +375,7 @@ const profileData = ref<Partial<Coach>>({
   photo: '/avatars/jean.jpg',
 })
 
-const services = ref<Service[]>([
+const services = ref<CoachService[]>([
   {
     id: '1',
     name: 'Coaching Remise en Forme',
@@ -442,14 +442,14 @@ const addService = () => {
   console.log('Add service')
 }
 
-const editService = (service: Service) => {
+const editService = (service: CoachService) => {
   // Edit service
   console.log('Edit service:', service)
 }
 
 const deleteService = (serviceId: string) => {
   // Delete service
-  services.value = services.value.filter((s) => s.id !== serviceId)
+  services.value = services.value.filter((s: CoachService) => s.id !== serviceId)
 }
 
 const contactLead = (lead: Lead) => {

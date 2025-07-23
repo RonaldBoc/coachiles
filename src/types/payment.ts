@@ -36,7 +36,7 @@ export interface Payment {
   // Metadata
   description?: string
   failureReason?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   
   // Payout tracking
   payoutId?: string
@@ -44,8 +44,8 @@ export interface Payment {
   payoutDate?: Date
   
   // Related data (populated in queries)
-  booking?: import('./booking').Booking
-  coach?: import('./coach').Coach
+  booking?: import('./simple').SimpleBooking
+  coach?: import('./simple').SimpleCoach
 }
 
 export interface CreatePaymentData {
@@ -56,7 +56,7 @@ export interface CreatePaymentData {
   paymentMethod?: string
   paymentType?: 'booking' | 'subscription' | 'commission' | 'refund' | 'payout'
   description?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface UpdatePaymentData {
@@ -72,7 +72,7 @@ export interface UpdatePaymentData {
   payoutId?: string
   payoutStatus?: 'pending' | 'paid' | 'failed'
   payoutDate?: Date
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface PaymentFilters {

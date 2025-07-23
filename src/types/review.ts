@@ -36,9 +36,9 @@ export interface Review {
   coachRespondedAt?: Date
   
   // Related data (populated in queries)
-  booking?: import('./booking').Booking
-  coach?: import('./coach').Coach
-  service?: import('./service').Service
+  booking?: import('./simple').SimpleBooking
+  coach?: import('./simple').SimpleCoach
+  service?: import('./simple').SimpleService
 }
 
 export interface CreateReviewData {
