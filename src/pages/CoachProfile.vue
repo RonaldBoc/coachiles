@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <CoachLayout>
     <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <!-- Subscription Status Banner -->
       <div class="mb-6">
@@ -62,8 +62,8 @@
             <!-- Profile Photo -->
             <div class="relative group">
               <img
-                :src="profileData.photo || '/default-avatar.png'"
-                :alt="`${profileData.firstName}`"
+                :src="profileData?.photo || '/default-avatar.png'"
+                :alt="`${profileData?.firstName || 'Coach'}`"
                 class="h-24 w-24 rounded-full object-cover"
               />
               <div
@@ -88,11 +88,11 @@
               <div class="flex items-center justify-between">
                 <div>
                   <h1 class="text-2xl font-bold text-gray-900">
-                    {{ profileData.firstName }}
+                    {{ profileData?.firstName || 'Coach' }}
                   </h1>
                   <p class="text-gray-600 flex items-center mt-1">
                     <MapPinIcon class="w-4 h-4 mr-1" />
-                    {{ profileData.location }}
+                    {{ profileData?.location || 'Non spécifié' }}
                   </p>
                 </div>
                 <div class="flex items-center space-x-2">
@@ -100,23 +100,25 @@
                     <div class="text-sm text-gray-500">Note</div>
                     <div class="flex items-center">
                       <StarIcon class="w-4 h-4 text-yellow-400 fill-current" />
-                      <span class="ml-1 font-medium">{{ profileData.rating }}</span>
+                      <span class="ml-1 font-medium">{{ profileData?.rating || '0.0' }}</span>
                     </div>
                   </div>
                   <div class="text-right">
                     <div class="text-sm text-gray-500">Clients</div>
-                    <div class="font-medium">{{ profileData.totalClients }}</div>
+                    <div class="font-medium">{{ profileData?.totalClients || 0 }}</div>
                   </div>
                 </div>
               </div>
 
               <div class="mt-4">
-                <p class="text-gray-700">{{ profileData.bio }}</p>
+                <p class="text-gray-700">
+                  {{ profileData?.bio || 'Aucune biographie disponible.' }}
+                </p>
               </div>
 
               <div class="mt-4 flex flex-wrap gap-2">
                 <span
-                  v-for="specialty in profileData.specialties"
+                  v-for="specialty in profileData?.specialties || []"
                   :key="specialty"
                   class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-indigo-100 text-indigo-800"
                 >
@@ -155,7 +157,7 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1"> Prénom </label>
                 <input
-                  v-model="profileData.firstName"
+                  v-model="profileForm.firstName"
                   type="text"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 />
@@ -163,15 +165,16 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1"> Email </label>
                 <input
-                  v-model="profileData.email"
+                  :value="profileData?.email || ''"
                   type="email"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  disabled
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
                 />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1"> Téléphone </label>
                 <input
-                  v-model="profileData.phone"
+                  v-model="profileForm.phone"
                   type="tel"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 />
@@ -179,7 +182,7 @@
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1"> Localisation </label>
                 <input
-                  v-model="profileData.location"
+                  v-model="profileForm.location"
                   type="text"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 />
@@ -187,10 +190,21 @@
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1"> Bio </label>
                 <textarea
-                  v-model="profileData.bio"
+                  v-model="profileForm.bio"
                   rows="4"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 />
+              </div>
+
+              <!-- Save Button -->
+              <div class="md:col-span-2 flex justify-end">
+                <button
+                  @click="updateProfile"
+                  :disabled="isLoading"
+                  class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  {{ isLoading ? 'Enregistrement...' : 'Enregistrer les modifications' }}
+                </button>
               </div>
             </div>
           </TabPanel>
@@ -327,7 +341,7 @@
       @close="showSubscriptionModal = false"
       @subscribe="handleSubscription"
     />
-  </div>
+  </CoachLayout>
 </template>
 
 <script setup lang="ts">
@@ -348,26 +362,59 @@ import {
   InformationCircleIcon,
 } from '@heroicons/vue/24/outline'
 import type { Coach, Service } from '@/types/coach'
+import CoachLayout from '@/layouts/CoachLayout.vue'
 import type { Lead } from '@/types/Lead'
 import type { SubscriptionPlan } from '@/types/subscription'
 import SubscriptionModal from '@/components/SubscriptionModal.vue'
+import { useAuthStore } from '@/stores/auth'
+
+// Auth Store
+const authStore = useAuthStore()
 
 // Template refs
 const photoInput = ref<HTMLInputElement | null>(null)
 
-// Mock data for development
-const profileData = ref<Partial<Coach>>({
-  firstName: 'Jean',
-  email: 'jean.dupont@example.com',
-  phone: '+596 696 12 34 56',
-  bio: "Coach sportif passionné avec 5 ans d'expérience dans l'accompagnement personnalisé.",
-  location: 'Fort-de-France',
-  specialties: ['Fitness & Musculation', 'Nutrition'],
-  rating: 4.7,
-  totalClients: 23,
-  subscriptionStatus: 'active',
-  photo: '/avatars/jean.jpg',
+// Reactive data from auth store
+const profileData = computed(() => authStore.coach)
+const isLoading = computed(() => authStore.loading)
+
+// Form data for editing
+const profileForm = ref({
+  firstName: '',
+  phone: '',
+  bio: '',
+  location: '',
+  specialties: [] as string[],
+  certifications: [] as string[],
+  experience: 0,
+  availability: '',
 })
+
+// Initialize form data
+const initializeForm = () => {
+  if (profileData.value) {
+    profileForm.value = {
+      firstName: profileData.value.firstName || '',
+      phone: profileData.value.phone || '',
+      bio: profileData.value.bio || '',
+      location: profileData.value.location || '',
+      specialties: [...(profileData.value.specialties || [])],
+      certifications: [...(profileData.value.certifications || [])],
+      experience: profileData.value.experience || 0,
+      availability: profileData.value.availability || '',
+    }
+  }
+}
+
+// Update profile function
+const updateProfile = async () => {
+  try {
+    await authStore.updateCoachProfile(profileForm.value)
+    console.log('✅ Profile updated successfully')
+  } catch (error) {
+    console.error('❌ Error updating profile:', error)
+  }
+}
 
 const services = ref<Service[]>([
   {
@@ -408,7 +455,11 @@ const leads = ref<Lead[]>([
 
 // State
 const showSubscriptionModal = ref(false)
-const subscriptionStatus = ref<'active' | 'inactive' | 'trial'>('active')
+
+// Computed for subscription status from auth store
+const subscriptionStatus = computed(() => profileData.value?.subscriptionStatus || 'inactive')
+
+// Mock data that will be replaced with Supabase calls
 const leadsUsed = ref(3)
 const leadsAllowed = ref(10)
 const leadsRemaining = computed(() => leadsAllowed.value - leadsUsed.value)
@@ -473,13 +524,13 @@ const handleSubscription = (plan: SubscriptionPlan) => {
   // Handle subscription
   console.log('Subscribe to plan:', plan)
   currentPlan.value = plan
-  subscriptionStatus.value = 'active'
   showSubscriptionModal.value = false
 }
 
 // Lifecycle
-onMounted(() => {
-  // Load data
+onMounted(async () => {
+  // Initialize form with current profile data
+  initializeForm()
   console.log('Coach Profile loaded')
 })
 </script>

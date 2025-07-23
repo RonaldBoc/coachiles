@@ -68,7 +68,42 @@ export const supabaseCoachApi = {
       const limit = params?.limit || 12
       const offset = (page - 1) * limit
 
-      // Get data
+      // Get total count first (without pagination)
+      let countQuery = supabase
+        .from('coaches')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true)
+
+      // Apply same filters for count
+      if (params?.specialties?.length) {
+        countQuery = countQuery.overlaps('specialties', params.specialties)
+      }
+      if (params?.locations?.length) {
+        countQuery = countQuery.overlaps('locations', params.locations)
+      }
+      if (params?.experienceMin) {
+        countQuery = countQuery.gte('experience_years', params.experienceMin)
+      }
+      if (params?.rateMax) {
+        countQuery = countQuery.lte('hourly_rate', params.rateMax)
+      }
+      if (params?.languages?.length) {
+        countQuery = countQuery.overlaps('languages', params.languages)
+      }
+      if (params?.search) {
+        countQuery = countQuery.or(
+          `first_name.ilike.%${params.search}%,bio.ilike.%${params.search}%`,
+        )
+      }
+
+      const { count, error: countError } = await countQuery
+
+      if (countError) {
+        console.error('Supabase count error:', countError)
+        throw countError
+      }
+
+      // Get data with pagination
       const { data, error } = await query
         .range(offset, offset + limit - 1)
         .order('rating', { ascending: false })
@@ -78,7 +113,7 @@ export const supabaseCoachApi = {
         throw error
       }
 
-      console.log('Supabase query result:', { data, totalItems: data?.length })
+      console.log('Supabase query result:', { data, totalItems: data?.length, totalCount: count })
 
       // Map Supabase data to our Coach interface
       const mappedCoaches = data?.map(mapSupabaseToCoach) || []
@@ -86,7 +121,7 @@ export const supabaseCoachApi = {
 
       return {
         data: mappedCoaches,
-        total: mappedCoaches.length,
+        total: count || 0,
         page,
         limit,
       }
