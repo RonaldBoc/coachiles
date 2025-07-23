@@ -227,6 +227,317 @@ export interface Database {
           next_payment_at?: string | null
         }
       }
+      services: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          coach_id: string
+          name: string
+          description: string | null
+          category: string
+          subcategory: string | null
+          price: number
+          duration_minutes: number
+          location_type: string
+          group_size: string
+          max_participants: number
+          is_active: boolean
+          requires_approval: boolean
+          advance_booking_hours: number
+          tags: string[]
+          target_audience: string[]
+          prerequisites: string | null
+          materials_included: string | null
+          cancellation_policy: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          coach_id: string
+          name: string
+          description?: string | null
+          category: string
+          subcategory?: string | null
+          price: number
+          duration_minutes: number
+          location_type?: string
+          group_size?: string
+          max_participants?: number
+          is_active?: boolean
+          requires_approval?: boolean
+          advance_booking_hours?: number
+          tags?: string[]
+          target_audience?: string[]
+          prerequisites?: string | null
+          materials_included?: string | null
+          cancellation_policy?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          coach_id?: string
+          name?: string
+          description?: string | null
+          category?: string
+          subcategory?: string | null
+          price?: number
+          duration_minutes?: number
+          location_type?: string
+          group_size?: string
+          max_participants?: number
+          is_active?: boolean
+          requires_approval?: boolean
+          advance_booking_hours?: number
+          tags?: string[]
+          target_audience?: string[]
+          prerequisites?: string | null
+          materials_included?: string | null
+          cancellation_policy?: string | null
+        }
+      }
+      bookings: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          service_id: string
+          coach_id: string
+          client_name: string
+          client_email: string
+          client_phone: string | null
+          scheduled_at: string
+          duration_minutes: number
+          timezone: string
+          status: string
+          payment_status: string
+          total_amount: number
+          currency: string
+          notes: string | null
+          internal_notes: string | null
+          confirmed_at: string | null
+          cancelled_at: string | null
+          cancellation_reason: string | null
+          reminder_sent_at: string | null
+          meeting_url: string | null
+          meeting_id: string | null
+          meeting_password: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          service_id: string
+          coach_id: string
+          client_name: string
+          client_email: string
+          client_phone?: string | null
+          scheduled_at: string
+          duration_minutes: number
+          timezone?: string
+          status?: string
+          payment_status?: string
+          total_amount: number
+          currency?: string
+          notes?: string | null
+          internal_notes?: string | null
+          confirmed_at?: string | null
+          cancelled_at?: string | null
+          cancellation_reason?: string | null
+          reminder_sent_at?: string | null
+          meeting_url?: string | null
+          meeting_id?: string | null
+          meeting_password?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          service_id?: string
+          coach_id?: string
+          client_name?: string
+          client_email?: string
+          client_phone?: string | null
+          scheduled_at?: string
+          duration_minutes?: number
+          timezone?: string
+          status?: string
+          payment_status?: string
+          total_amount?: number
+          currency?: string
+          notes?: string | null
+          internal_notes?: string | null
+          confirmed_at?: string | null
+          cancelled_at?: string | null
+          cancellation_reason?: string | null
+          reminder_sent_at?: string | null
+          meeting_url?: string | null
+          meeting_id?: string | null
+          meeting_password?: string | null
+        }
+      }
+      reviews: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          booking_id: string | null
+          coach_id: string
+          service_id: string | null
+          client_name: string
+          client_email: string
+          rating: number
+          title: string | null
+          comment: string | null
+          communication_rating: number | null
+          professionalism_rating: number | null
+          expertise_rating: number | null
+          value_rating: number | null
+          is_verified: boolean
+          is_published: boolean
+          is_anonymous: boolean
+          moderation_status: string
+          moderation_notes: string | null
+          coach_response: string | null
+          coach_responded_at: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          booking_id?: string | null
+          coach_id: string
+          service_id?: string | null
+          client_name: string
+          client_email: string
+          rating: number
+          title?: string | null
+          comment?: string | null
+          communication_rating?: number | null
+          professionalism_rating?: number | null
+          expertise_rating?: number | null
+          value_rating?: number | null
+          is_verified?: boolean
+          is_published?: boolean
+          is_anonymous?: boolean
+          moderation_status?: string
+          moderation_notes?: string | null
+          coach_response?: string | null
+          coach_responded_at?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          booking_id?: string | null
+          coach_id?: string
+          service_id?: string | null
+          client_name?: string
+          client_email?: string
+          rating?: number
+          title?: string | null
+          comment?: string | null
+          communication_rating?: number | null
+          professionalism_rating?: number | null
+          expertise_rating?: number | null
+          value_rating?: number | null
+          is_verified?: boolean
+          is_published?: boolean
+          is_anonymous?: boolean
+          moderation_status?: string
+          moderation_notes?: string | null
+          coach_response?: string | null
+          coach_responded_at?: string | null
+        }
+      }
+      payments: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          booking_id: string | null
+          coach_id: string
+          amount: number
+          currency: string
+          payment_method: string | null
+          transaction_id: string | null
+          status: string
+          payment_type: string
+          platform_fee: number
+          payment_processor_fee: number
+          coach_earnings: number
+          stripe_payment_intent_id: string | null
+          stripe_charge_id: string | null
+          paypal_transaction_id: string | null
+          processed_at: string | null
+          failed_at: string | null
+          refunded_at: string | null
+          description: string | null
+          failure_reason: string | null
+          metadata: any
+          payout_id: string | null
+          payout_status: string | null
+          payout_date: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          booking_id?: string | null
+          coach_id: string
+          amount: number
+          currency?: string
+          payment_method?: string | null
+          transaction_id?: string | null
+          status?: string
+          payment_type?: string
+          platform_fee?: number
+          payment_processor_fee?: number
+          coach_earnings: number
+          stripe_payment_intent_id?: string | null
+          stripe_charge_id?: string | null
+          paypal_transaction_id?: string | null
+          processed_at?: string | null
+          failed_at?: string | null
+          refunded_at?: string | null
+          description?: string | null
+          failure_reason?: string | null
+          metadata?: any
+          payout_id?: string | null
+          payout_status?: string | null
+          payout_date?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          booking_id?: string | null
+          coach_id?: string
+          amount?: number
+          currency?: string
+          payment_method?: string | null
+          transaction_id?: string | null
+          status?: string
+          payment_type?: string
+          platform_fee?: number
+          payment_processor_fee?: number
+          coach_earnings?: number
+          stripe_payment_intent_id?: string | null
+          stripe_charge_id?: string | null
+          paypal_transaction_id?: string | null
+          processed_at?: string | null
+          failed_at?: string | null
+          refunded_at?: string | null
+          description?: string | null
+          failure_reason?: string | null
+          metadata?: any
+          payout_id?: string | null
+          payout_status?: string | null
+          payout_date?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never

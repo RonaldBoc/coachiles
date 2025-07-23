@@ -14,13 +14,13 @@ export interface Coach {
   rating: number
   totalClients: number
   subscriptionStatus: 'active' | 'inactive' | 'trial'
-  services: Service[]
+  services: CoachService[]
   createdAt: Date
   updatedAt: Date
   isActive: boolean
 }
 
-export interface Service {
+export interface CoachService {
   id: string
   name: string
   description: string

@@ -355,7 +355,7 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
 } from '@heroicons/vue/24/outline'
-import type { Coach, Service } from '@/types/coach'
+import type { Coach, CoachService } from '@/types/coach'
 import type { Lead } from '@/types/Lead'
 import type { SubscriptionPlan } from '@/types/subscription'
 import SubscriptionModal from '@/components/SubscriptionModal.vue'

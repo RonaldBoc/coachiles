@@ -32,7 +32,7 @@ export interface Lead {
     location: string
     budget: string
     availability: string
-    preferences: string[]
+    preferences: readonly string[]
   }
 }
 
