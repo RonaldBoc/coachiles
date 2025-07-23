@@ -3,26 +3,26 @@ export interface Service {
   id: string
   createdAt: Date
   updatedAt: Date
-  
+
   // Service Details
   coachId: string
   name: string
   description?: string
   category: string
   subcategory?: string
-  
+
   // Pricing & Logistics
   price: number
   durationMinutes: number
   locationType: 'online' | 'in-person' | 'both'
   groupSize: 'individual' | 'small_group' | 'large_group'
   maxParticipants: number
-  
+
   // Availability
   isActive: boolean
   requiresApproval: boolean
   advanceBookingHours: number
-  
+
   // Metadata
   tags: string[]
   targetAudience: string[]
@@ -60,6 +60,7 @@ export interface UpdateServiceData {
   locationType?: 'online' | 'in-person' | 'both'
   groupSize?: 'individual' | 'small_group' | 'large_group'
   maxParticipants?: number
+  isActive?: boolean
   requiresApproval?: boolean
   advanceBookingHours?: number
   tags?: string[]

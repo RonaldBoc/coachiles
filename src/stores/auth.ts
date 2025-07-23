@@ -56,16 +56,28 @@ export const useAuthStore = defineStore('auth', () => {
       } = await supabase.auth.getSession()
 
       if (sessionError) {
-        throw sessionError
-      }
-
-      if (currentSession) {
+        console.warn('⚠️ Session error during initialization:', sessionError.message)
+        // Clear any corrupted session data
+        user.value = null
+        session.value = null
+        coach.value = null
+      } else if (currentSession) {
         console.log('✅ Found existing session for:', currentSession.user?.email)
         session.value = currentSession
         user.value = currentSession.user
-        await loadCoachProfile()
+
+        try {
+          await loadCoachProfile()
+        } catch (profileError) {
+          console.warn('⚠️ Failed to load coach profile during initialization:', profileError)
+          // Don't clear session just because profile loading failed
+        }
       } else {
         console.log('ℹ️ No existing session found')
+        // Ensure clean state
+        user.value = null
+        session.value = null
+        coach.value = null
       }
 
       // Listen for auth changes
@@ -76,7 +88,11 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = newSession?.user || null
 
         if (event === 'SIGNED_IN' && newSession) {
-          await loadCoachProfile()
+          try {
+            await loadCoachProfile()
+          } catch (profileError) {
+            console.warn('⚠️ Failed to load coach profile after sign in:', profileError)
+          }
         } else if (event === 'SIGNED_OUT') {
           coach.value = null
         }
@@ -86,6 +102,13 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('✅ Auth initialization complete')
     } catch (err) {
       console.error('❌ Auth initialization error:', err)
+
+      // Ensure clean state on initialization failure
+      user.value = null
+      session.value = null
+      coach.value = null
+      initialized.value = true // Still mark as initialized to prevent loops
+
       setError(err instanceof Error ? err.message : 'Failed to initialize authentication')
     } finally {
       setLoading(false)
@@ -135,10 +158,82 @@ export const useAuthStore = defineStore('auth', () => {
         console.log('✅ Coach profile loaded:', coach.value?.firstName)
       } else {
         console.log('ℹ️ No coach profile found for user:', user.value.email)
+        console.log('📝 Auto-creating coach profile...')
+        await createCoachProfile()
       }
     } catch (err) {
       console.error('❌ Error loading coach profile:', err)
       setError(err instanceof Error ? err.message : 'Failed to load coach profile')
+    }
+  }
+
+  // Create a new coach profile
+  const createCoachProfile = async () => {
+    if (!user.value?.email) {
+      throw new Error('User must be authenticated to create coach profile')
+    }
+
+    try {
+      console.log('👤 Creating coach profile for:', user.value.email)
+
+      const newCoachData = {
+        email: user.value.email,
+        first_name: user.value.user_metadata?.firstName || user.value.email.split('@')[0],
+        avatar_url: user.value.user_metadata?.avatar_url || '',
+        bio: '',
+        phone: user.value.user_metadata?.phone || '',
+        locations: [],
+        specialties: [],
+        certifications: [],
+        experience_years: 0,
+        availability: [],
+        rating: 0,
+        total_sessions: 0,
+        subscription_type: 'inactive',
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      const { data, error: createError } = await supabase
+        .from('coaches')
+        .insert(newCoachData)
+        .select()
+        .single()
+
+      if (createError) {
+        throw createError
+      }
+
+      // Transform to local coach format and set directly (no recursion)
+      coach.value = {
+        id: data.id,
+        firstName: data.first_name,
+        email: data.email,
+        phone: data.phone || '',
+        photo: data.avatar_url || '',
+        bio: data.bio || '',
+        location: (data.locations && data.locations[0]) || '',
+        specialties: data.specialties || [],
+        certifications: data.certifications || [],
+        experience: data.experience_years || 0,
+        availability: data.availability?.join(', ') || '',
+        rating: Number(data.rating) || 0,
+        totalClients: data.total_sessions || 0,
+        subscriptionStatus: data.subscription_type === 'active' ? 'active' : 'inactive',
+        services: [],
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at),
+        isActive: data.is_active || false,
+      }
+
+      console.log('✅ Coach profile created:', coach.value.firstName)
+      return coach.value
+    } catch (err) {
+      console.error('❌ Error creating coach profile:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create coach profile'
+      setError(errorMessage)
+      throw new Error(errorMessage)
     }
   }
 
@@ -212,13 +307,26 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Create coach profile in database
       if (data.user) {
-        const { error: profileError } = await supabase.from('coaches').insert({
+        const newCoachData = {
           email,
           first_name: coachData.firstName,
+          avatar_url: '',
+          bio: '',
           phone: coachData.phone || '',
+          locations: [],
           specialties: coachData.specialties || [],
+          certifications: [],
+          experience_years: 0,
+          availability: [],
+          rating: 0,
+          total_sessions: 0,
+          subscription_type: 'inactive',
           is_active: false, // Requires admin approval or email confirmation
-        })
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+
+        const { error: profileError } = await supabase.from('coaches').insert(newCoachData)
 
         if (profileError) {
           console.error('❌ Error creating coach profile:', profileError)
@@ -243,18 +351,41 @@ export const useAuthStore = defineStore('auth', () => {
       setLoading(true)
       clearError()
 
-      const { error: signOutError } = await supabase.auth.signOut()
+      console.log('🚪 Attempting sign out...')
+
+      // Try to sign out from Supabase
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
 
       if (signOutError) {
-        throw signOutError
+        console.warn(
+          '⚠️ Supabase sign out error (will clear local state anyway):',
+          signOutError.message,
+        )
+        // Don't throw the error, just log it and clear local state
       }
 
-      // Clear local state
+      // Always clear local state regardless of Supabase response
       user.value = null
       session.value = null
       coach.value = null
+
+      console.log('✅ Sign out completed (local state cleared)')
+
+      // Clear any persisted auth data
+      try {
+        localStorage.removeItem('supabase.auth.token')
+        sessionStorage.clear()
+      } catch (storageError) {
+        console.warn('⚠️ Could not clear storage:', storageError)
+      }
     } catch (err) {
       console.error('❌ Sign out error:', err)
+
+      // Even if there's an error, clear local state
+      user.value = null
+      session.value = null
+      coach.value = null
+
       setError(err instanceof Error ? err.message : 'Failed to sign out')
     } finally {
       setLoading(false)
@@ -338,6 +469,37 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Force clear all session data (for debugging corrupted sessions)
+  const forceClearSession = async () => {
+    try {
+      console.log('🧹 Force clearing all session data...')
+
+      // Clear Supabase session
+      await supabase.auth.signOut({ scope: 'local' })
+
+      // Clear local state
+      user.value = null
+      session.value = null
+      coach.value = null
+
+      // Clear storage
+      try {
+        localStorage.clear()
+        sessionStorage.clear()
+      } catch (storageError) {
+        console.warn('⚠️ Could not clear storage:', storageError)
+      }
+
+      console.log('✅ Session force cleared')
+    } catch (err) {
+      console.error('❌ Force clear error:', err)
+      // Clear local state anyway
+      user.value = null
+      session.value = null
+      coach.value = null
+    }
+  }
+
   return {
     // State
     user: readonly(user),
@@ -358,9 +520,11 @@ export const useAuthStore = defineStore('auth', () => {
     signIn,
     signUp,
     signOut,
+    forceClearSession,
     resetPassword,
     updateCoachProfile,
     loadCoachProfile,
+    createCoachProfile,
     setError,
     clearError,
   }
