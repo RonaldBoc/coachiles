@@ -181,10 +181,31 @@ Ready for Supabase Auth when needed:
 ## 🎯 Next Steps
 
 1. ✅ **Setup Complete**: You now have a fully functional database
-2. 🔐 **Add Authentication**: Implement user login/signup
-3. 💳 **Payment Integration**: Connect Stripe/PayPal for subscriptions
-4. 📊 **Analytics**: Add performance tracking
-5. 🚀 **Deploy**: Push to production with real domain
+2. � **Apply Coach Services Migration**: Add dynamic service management
+   - Go to **SQL Editor** in your Supabase dashboard
+   - Copy the contents of `migrations/01_add_coach_services.sql`
+   - Paste and run to add the coach_services table
+3. �🔐 **Add Authentication**: Implement user login/signup
+4. 💳 **Payment Integration**: Connect Stripe/PayPal for subscriptions
+5. 📊 **Analytics**: Add performance tracking
+6. 🚀 **Deploy**: Push to production with real domain
+
+## 🆕 New Features Added
+
+### Coach Services Management
+
+- **Dynamic Services**: Coaches can now create their own services instead of using hardcoded ones
+- **Pricing Options**: Support for both solo and group pricing
+- **Location Types**: Online, outdoor, indoor, and client location options
+- **Scheduling**: Available days and time slots configuration
+- **Equipment Management**: Track provided and required equipment
+- **Cancellation Policies**: Customizable policies for each service
+
+To enable this feature:
+
+1. Run the migration in `migrations/01_add_coach_services.sql`
+2. Services will be loaded automatically when coaches visit their profile page
+3. The public profile will display dynamic services instead of hardcoded ones
 
 ## 📞 Support
 

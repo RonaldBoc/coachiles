@@ -18,11 +18,9 @@
           </svg>
         </div>
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          {{ isSignUp ? 'Créer un compte coach' : 'Connexion Espace Coach' }}
+          Connexion Espace Coach
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
-          {{ isSignUp ? 'Rejoignez la communauté Coachiles' : 'Accédez à votre espace coach' }}
-        </p>
+        <p class="mt-2 text-center text-sm text-gray-600">Accédez à votre espace coach</p>
       </div>
 
       <!-- Error Alert -->
@@ -48,33 +46,6 @@
       <!-- Form -->
       <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
         <div class="space-y-4">
-          <!-- First Name (Sign Up Only) -->
-          <div v-if="isSignUp">
-            <label for="firstName" class="block text-sm font-medium text-gray-700">
-              Prénom *
-            </label>
-            <input
-              id="firstName"
-              v-model="formData.firstName"
-              type="text"
-              required
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-              placeholder="Votre prénom"
-            />
-          </div>
-
-          <!-- Phone (Sign Up Only) -->
-          <div v-if="isSignUp">
-            <label for="phone" class="block text-sm font-medium text-gray-700"> Téléphone </label>
-            <input
-              id="phone"
-              v-model="formData.phone"
-              type="tel"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-              placeholder="0696 XX XX XX"
-            />
-          </div>
-
           <!-- Email -->
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700"> Email * </label>
@@ -99,32 +70,8 @@
               type="password"
               required
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-              :placeholder="isSignUp ? 'Minimum 6 caractères' : 'Votre mot de passe'"
+              placeholder="Votre mot de passe"
             />
-          </div>
-
-          <!-- Specialties (Sign Up Only) -->
-          <div v-if="isSignUp">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Spécialités (optionnel)
-            </label>
-            <div class="grid grid-cols-2 gap-2">
-              <button
-                v-for="specialty in availableSpecialties"
-                :key="specialty.name"
-                type="button"
-                @click="toggleSpecialty(specialty.name)"
-                :class="[
-                  'px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                  formData.specialties.includes(specialty.name)
-                    ? 'bg-orange-100 text-orange-800 border-orange-200'
-                    : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100',
-                ]"
-                class="border"
-              >
-                {{ specialty.emoji }} {{ specialty.name }}
-              </button>
-            </div>
           </div>
         </div>
 
@@ -156,32 +103,30 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              {{ isSignUp ? 'Création du compte...' : 'Connexion...' }}
+              {{ loading ? 'Connexion...' : 'Se connecter' }}
             </span>
-            <span v-else>
-              {{ isSignUp ? 'Créer mon compte coach' : 'Se connecter' }}
-            </span>
+            <span v-else> Se connecter </span>
           </button>
         </div>
 
         <!-- Links -->
-        <div class="flex items-center justify-between">
-          <button
-            type="button"
-            @click="toggleMode"
-            class="text-sm text-orange-600 hover:text-orange-500"
-          >
-            {{ isSignUp ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire" }}
-          </button>
+        <div class="flex flex-col space-y-3">
+          <div class="flex items-center justify-between">
+            <router-link
+              to="/signup"
+              class="text-sm text-orange-600 hover:text-orange-500 font-medium"
+            >
+              Créer un nouveau compte coach
+            </router-link>
 
-          <button
-            v-if="!isSignUp"
-            type="button"
-            @click="showForgotPassword = true"
-            class="text-sm text-gray-600 hover:text-gray-500"
-          >
-            Mot de passe oublié ?
-          </button>
+            <button
+              type="button"
+              @click="showForgotPassword = true"
+              class="text-sm text-gray-600 hover:text-gray-500"
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
         </div>
       </form>
 
@@ -237,110 +182,57 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 
 // Router
 const router = useRouter()
+const route = useRoute()
 
 // Auth Store
 const authStore = useAuthStore()
 
 // Component State
-const isSignUp = ref(false)
 const showForgotPassword = ref(false)
 const resetEmail = ref('')
 const successMessage = ref('')
 
 // Form Data
 const formData = ref({
-  firstName: '',
   email: '',
-  phone: '',
   password: '',
-  specialties: [] as string[],
 })
-
-// Available specialties for signup
-const availableSpecialties = [
-  { name: 'Fitness', emoji: '💪' },
-  { name: 'Musculation', emoji: '🏋️' },
-  { name: 'Yoga', emoji: '🧘' },
-  { name: 'Méditation', emoji: '🧠' },
-  { name: 'Nutrition', emoji: '🥗' },
-  { name: 'Perte de poids', emoji: '⚖️' },
-  { name: 'Remise en forme', emoji: '🎯' },
-  { name: 'Course à pied', emoji: '🏃' },
-]
 
 // Computed
 const loading = computed(() => authStore.loading)
 const error = computed(() => authStore.error)
 
-// Methods
-const toggleMode = () => {
-  isSignUp.value = !isSignUp.value
-  authStore.clearError()
-  successMessage.value = ''
-  // Reset form
-  formData.value = {
-    firstName: '',
-    email: '',
-    phone: '',
-    password: '',
-    specialties: [],
+// Check if user came from email confirmation
+onMounted(() => {
+  if (route.query.confirmed === 'true') {
+    successMessage.value =
+      'Email confirmé avec succès ! Connectez-vous pour compléter votre profil.'
   }
-}
-
-const toggleSpecialty = (specialty: string) => {
-  const index = formData.value.specialties.indexOf(specialty)
-  if (index > -1) {
-    formData.value.specialties.splice(index, 1)
-  } else {
-    formData.value.specialties.push(specialty)
-  }
-}
+})
 
 const handleSubmit = async () => {
   try {
     authStore.clearError()
     successMessage.value = ''
 
-    console.log('📝 Form submission:', {
-      mode: isSignUp.value ? 'signup' : 'signin',
-      email: formData.value.email,
-      hasPassword: !!formData.value.password,
-      passwordLength: formData.value.password?.length || 0,
-    })
+    console.log('📝 Form submission - signin:', formData.value.email)
 
-    if (isSignUp.value) {
-      await authStore.signUp(formData.value.email, formData.value.password, {
-        firstName: formData.value.firstName,
-        phone: formData.value.phone,
-        specialties: formData.value.specialties,
-      })
+    await authStore.signIn(formData.value.email, formData.value.password)
 
-      successMessage.value =
-        'Compte créé avec succès ! Vérifiez votre email pour confirmer votre compte.'
-
-      // Switch to login mode after successful signup
-      setTimeout(() => {
-        isSignUp.value = false
-        formData.value = {
-          firstName: '',
-          email: formData.value.email, // Keep email for login
-          phone: '',
-          password: '',
-          specialties: [],
-        }
-      }, 2000)
-    } else {
-      await authStore.signIn(formData.value.email, formData.value.password)
-
-      // Redirect to coach dashboard on successful login
+    // Check if user has completed onboarding (coach profile loaded in signIn)
+    if (authStore.isCoach) {
+      console.log('✅ User is an existing coach, redirecting to profile')
       router.push('/coach/profile')
+    } else {
+      console.log('ℹ️ User needs to complete onboarding')
+      router.push('/coach/onboarding')
     }
   } catch (err) {
     console.error('Auth error:', err)

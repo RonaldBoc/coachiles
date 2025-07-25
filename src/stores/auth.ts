@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
 import { supabase } from '@/utils/supabase'
+import { initializeSessionManager } from '@/utils/sessionManager'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Coach } from '@/types/coach'
 
@@ -20,6 +21,18 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(true) // Start with loading true
   const error = ref<string | null>(null)
   const initialized = ref(false) // Track initialization state
+
+  // Session manager
+  let sessionManager: ReturnType<typeof initializeSessionManager> | null = null
+
+  // Session expired handler
+  const handleSessionExpired = async () => {
+    console.log('🔒 Session expired, signing out...')
+    user.value = null
+    session.value = null
+    coach.value = null
+    setError('Your session has expired. Please sign in again.')
+  }
 
   // Getters
   const isAuthenticated = computed(() => !!session.value && !!user.value)
@@ -49,15 +62,27 @@ export const useAuthStore = defineStore('auth', () => {
 
       console.log('🔄 Initializing auth state...')
 
-      // Get current session
-      const {
-        data: { session: currentSession },
-        error: sessionError,
-      } = await supabase.auth.getSession()
+      // Get current session with retry logic
+      let currentSession: Session | null = null
+      let sessionError: Error | null = null
+
+      for (let retryCount = 0; retryCount < 3; retryCount++) {
+        const { data, error } = await supabase.auth.getSession()
+        currentSession = data.session
+        sessionError = error
+
+        if (!sessionError) break
+
+        console.warn(`⚠️ Session error (attempt ${retryCount + 1}/3):`, sessionError.message)
+        if (retryCount < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (retryCount + 1)))
+        }
+      }
 
       if (sessionError) {
-        console.warn('⚠️ Session error during initialization:', sessionError.message)
+        console.warn('⚠️ Persistent session error, clearing corrupted data:', sessionError.message)
         // Clear any corrupted session data
+        await supabase.auth.signOut()
         user.value = null
         session.value = null
         coach.value = null
@@ -80,26 +105,69 @@ export const useAuthStore = defineStore('auth', () => {
         coach.value = null
       }
 
-      // Listen for auth changes
-      supabase.auth.onAuthStateChange(async (event, newSession) => {
+      // Listen for auth changes with enhanced error handling
+      supabase.auth.onAuthStateChange((event, newSession) => {
         console.log('🔐 Auth state changed:', event, newSession?.user?.email)
 
+        // Handle token refresh events
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('🔄 Token refreshed successfully')
+          session.value = newSession
+          user.value = newSession?.user || null
+          return
+        }
+
+        // Handle sign in events
+        if (event === 'SIGNED_IN') {
+          session.value = newSession
+          user.value = newSession?.user || null
+
+          if (newSession) {
+            // For sign-in events, we need to load coach profile immediately for router guards
+            // This is safe because it's not during a tab visibility change
+            loadCoachProfile().catch((profileError) => {
+              console.warn('⚠️ Failed to load coach profile after sign in:', profileError)
+            })
+
+            // Defer session manager setup to prevent Supabase deadlock (GitHub issue #273)
+            setTimeout(() => {
+              try {
+                // Start health monitoring for new session
+                if (sessionManager) {
+                  sessionManager.cleanup()
+                }
+                sessionManager = initializeSessionManager(handleSessionExpired)
+                sessionManager.startHealthCheck(5)
+              } catch (sessionError) {
+                console.warn('⚠️ Failed to setup session manager:', sessionError)
+              }
+            }, 0)
+          }
+          return
+        }
+
+        // Handle sign out events
+        if (event === 'SIGNED_OUT') {
+          session.value = null
+          user.value = null
+          coach.value = null
+          console.log('👋 User signed out, clearing state')
+          return
+        }
+
+        // Handle session updates
         session.value = newSession
         user.value = newSession?.user || null
-
-        if (event === 'SIGNED_IN' && newSession) {
-          try {
-            await loadCoachProfile()
-          } catch (profileError) {
-            console.warn('⚠️ Failed to load coach profile after sign in:', profileError)
-          }
-        } else if (event === 'SIGNED_OUT') {
-          coach.value = null
-        }
       })
 
       initialized.value = true
       console.log('✅ Auth initialization complete')
+
+      // Start session health monitoring if we have a valid session
+      if (session.value && user.value) {
+        sessionManager = initializeSessionManager(handleSessionExpired)
+        sessionManager.startHealthCheck(5) // Check every 5 minutes
+      }
     } catch (err) {
       console.error('❌ Auth initialization error:', err)
 
@@ -136,8 +204,9 @@ export const useAuthStore = defineStore('auth', () => {
       if (data) {
         // Transform Supabase data to Coach type
         coach.value = {
-          id: data.id,
+          id: data.id, // This is the coaches table UUID
           firstName: data.first_name,
+          lastName: data.last_name,
           email: data.email,
           phone: data.phone || '',
           photo: data.avatar_url || '',
@@ -154,12 +223,13 @@ export const useAuthStore = defineStore('auth', () => {
           createdAt: new Date(data.created_at),
           updatedAt: new Date(data.updated_at),
           isActive: data.is_active || false,
+          hourlyRate: data.hourly_rate || 50,
+          languages: data.languages || ['Français'],
         }
-        console.log('✅ Coach profile loaded:', coach.value?.firstName)
+        console.log('✅ Coach profile loaded:', coach.value?.firstName, coach.value?.lastName)
       } else {
         console.log('ℹ️ No coach profile found for user:', user.value.email)
-        console.log('📝 Auto-creating coach profile...')
-        await createCoachProfile()
+        coach.value = null
       }
     } catch (err) {
       console.error('❌ Error loading coach profile:', err)
@@ -191,6 +261,8 @@ export const useAuthStore = defineStore('auth', () => {
         total_sessions: 0,
         subscription_type: 'inactive',
         is_active: true,
+        hourly_rate: 50,
+        languages: ['Français'],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
@@ -225,6 +297,8 @@ export const useAuthStore = defineStore('auth', () => {
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
         isActive: data.is_active || false,
+        hourlyRate: data.hourly_rate || 50,
+        languages: data.languages || ['Français'],
       }
 
       console.log('✅ Coach profile created:', coach.value.firstName)
@@ -257,6 +331,13 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       console.log('✅ Sign in successful:', data.user?.email)
+
+      // Set user immediately
+      user.value = data.user
+      session.value = data.session
+
+      // Load coach profile to determine if onboarding is complete
+      await loadCoachProfile()
 
       // Auth state change will be handled by the listener
       return { user: data.user, session: data.session }
@@ -300,39 +381,10 @@ export const useAuthStore = defineStore('auth', () => {
         throw signUpError
       }
 
-      // If email confirmation is disabled, create coach profile immediately
-      if (data.user && !data.user.email_confirmed_at) {
-        console.log('📧 Please check your email to confirm your account')
-      }
+      console.log('✅ Auth user created, coach profile will be created later via registration form')
 
-      // Create coach profile in database
-      if (data.user) {
-        const newCoachData = {
-          email,
-          first_name: coachData.firstName,
-          avatar_url: '',
-          bio: '',
-          phone: coachData.phone || '',
-          locations: [],
-          specialties: coachData.specialties || [],
-          certifications: [],
-          experience_years: 0,
-          availability: [],
-          rating: 0,
-          total_sessions: 0,
-          subscription_type: 'inactive',
-          is_active: false, // Requires admin approval or email confirmation
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
-
-        const { error: profileError } = await supabase.from('coaches').insert(newCoachData)
-
-        if (profileError) {
-          console.error('❌ Error creating coach profile:', profileError)
-          // Don't throw here as the user account was created successfully
-        }
-      }
+      // Note: We don't create the coach profile here anymore
+      // The user will be redirected to CoachRegistration to complete their profile
 
       return { user: data.user, session: data.session }
     } catch (err) {
@@ -350,6 +402,12 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       setLoading(true)
       clearError()
+
+      // Cleanup session manager if running
+      if (sessionManager) {
+        sessionManager.cleanup()
+        sessionManager = null
+      }
 
       console.log('🚪 Attempting sign out...')
 
@@ -374,6 +432,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Clear any persisted auth data
       try {
         localStorage.removeItem('supabase.auth.token')
+        localStorage.removeItem('coachiles-auth-token')
         sessionStorage.clear()
       } catch (storageError) {
         console.warn('⚠️ Could not clear storage:', storageError)
@@ -427,6 +486,8 @@ export const useAuthStore = defineStore('auth', () => {
       setLoading(true)
       clearError()
 
+      console.log('🔄 Updating coach profile with data:', updates)
+
       // Transform Coach type to Supabase format
       const supabaseUpdates: Record<string, string | number | string[] | boolean> = {}
 
@@ -441,8 +502,13 @@ export const useAuthStore = defineStore('auth', () => {
       if (updates.availability !== undefined)
         supabaseUpdates.availability = updates.availability.split(', ')
       if (updates.location !== undefined) supabaseUpdates.locations = [updates.location]
+      if (updates.hourlyRate !== undefined) supabaseUpdates.hourly_rate = updates.hourlyRate
+      if (updates.languages !== undefined) supabaseUpdates.languages = updates.languages
 
       supabaseUpdates.updated_at = new Date().toISOString()
+
+      console.log('📤 Sending to Supabase:', supabaseUpdates)
+      console.log('🎯 Updating coach with ID:', coach.value.id)
 
       const { data, error: updateError } = await supabase
         .from('coaches')
@@ -452,6 +518,7 @@ export const useAuthStore = defineStore('auth', () => {
         .single()
 
       if (updateError) {
+        console.error('💥 Supabase update error:', updateError)
         throw updateError
       }
 
@@ -500,6 +567,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Manual session health check (for debugging)
+  const manualSessionHealthCheck = async (): Promise<boolean> => {
+    if (!sessionManager) {
+      console.warn('⚠️ Session manager not initialized')
+      return false
+    }
+    return await sessionManager.manualHealthCheck()
+  }
+
   return {
     // State
     user: readonly(user),
@@ -527,5 +603,6 @@ export const useAuthStore = defineStore('auth', () => {
     createCoachProfile,
     setError,
     clearError,
+    manualSessionHealthCheck,
   }
 })

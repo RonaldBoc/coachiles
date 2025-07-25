@@ -37,12 +37,28 @@ export const requireAuth: NavigationGuard = async (to, from, next) => {
       query: { redirect: to.fullPath },
     })
   } else if (!authStore.isCoach) {
-    console.log('❌ User is not a coach, redirecting to coach registration')
-    // User is authenticated but not a coach - redirect to registration
-    next({
-      path: '/coach/registration',
-      query: { redirect: to.fullPath },
-    })
+    // If user is authenticated but no coach profile yet, wait a bit for it to load
+    console.log('⏳ Waiting for coach profile to load...')
+
+    let attempts = 0
+    const maxAttempts = 10 // 1 second max wait for coach profile
+
+    while (!authStore.isCoach && attempts < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      attempts++
+    }
+
+    if (!authStore.isCoach) {
+      console.log('❌ User is not a coach, redirecting to coach registration')
+      // User is authenticated but not a coach - redirect to registration
+      next({
+        path: '/coach/registration',
+        query: { redirect: to.fullPath },
+      })
+    } else {
+      console.log('✅ Coach profile loaded, proceeding to route')
+      next()
+    }
   } else {
     console.log('✅ Auth check passed, proceeding to route')
     next()
@@ -84,6 +100,35 @@ export const requireAuthOnly: NavigationGuard = async (to, from, next) => {
     })
   } else {
     console.log('✅ User authenticated, allowing access')
+    next()
+  }
+}
+
+// Route guard for onboarding - only allow users who need to complete their profile
+export const requireOnboarding: NavigationGuard = async (to, from, next) => {
+  const authStore = useAuthStore()
+
+  // Wait for auth initialization to complete
+  if (!authStore.isInitialized || authStore.loading) {
+    console.log('⏳ Waiting for auth initialization before onboarding check...')
+
+    let attempts = 0
+    const maxAttempts = 50 // 5 seconds max
+
+    while ((!authStore.isInitialized || authStore.loading) && attempts < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      attempts++
+    }
+  }
+
+  if (!authStore.isAuthenticated) {
+    console.log('❌ Not authenticated, redirecting to /auth')
+    next('/auth')
+  } else if (authStore.isCoach) {
+    console.log('✅ User already has coach profile, redirecting to /coach/profile')
+    next('/coach/profile')
+  } else {
+    console.log('👋 User needs to complete onboarding, allowing access')
     next()
   }
 }

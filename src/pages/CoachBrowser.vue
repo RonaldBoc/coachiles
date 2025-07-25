@@ -491,9 +491,8 @@ const loadMoreCoaches = () => {
 
 // Methods
 const navigateToCoachProfile = (coach: Coach) => {
-  // Navigate to coach profile page using first name (lowercase for URL)
-  const firstName = coach.firstName.toLowerCase()
-  router.push(`/coach/${firstName}`)
+  // Navigate to coach profile page using unique coach ID
+  router.push(`/coach/${coach.id}`)
 }
 
 const requestCoach = (coach: Coach) => {

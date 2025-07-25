@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels, Switch } from '@headlessui/vue'
 import {
   CogIcon,
@@ -11,7 +12,11 @@ import {
   CheckIcon,
 } from '@heroicons/vue/24/outline'
 import { useSubscriptionStore } from '@/stores/subscription'
+import CoachLayout from '@/layouts/CoachLayout.vue'
+import AccountDeletionModal from '@/components/AccountDeletionModal.vue'
+import type { DeletionResult } from '@/services/accountDeletionApi'
 
+const router = useRouter()
 const subscriptionStore = useSubscriptionStore()
 
 // Account settings
@@ -22,6 +27,9 @@ const twoFactorAuth = ref(false)
 
 // Auto-save indicator
 const showSavedIndicator = ref(false)
+
+// Account deletion modal
+const showDeletionModal = ref(false)
 
 // Auto-save when settings change
 watch(
@@ -61,9 +69,23 @@ const saveSettings = () => {
 }
 
 const deleteAccount = () => {
-  if (confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
-    console.log('Deleting account...')
-  }
+  showDeletionModal.value = true
+}
+
+const handleAccountDeleted = (result: DeletionResult) => {
+  showDeletionModal.value = false
+
+  // Show success message and redirect
+  alert(
+    'Votre compte a été programmé pour suppression. Vous avez 30 jours pour le réactiver via le lien envoyé par email.',
+  )
+
+  // Redirect to homepage
+  router.push('/')
+}
+
+const closeDeletionModal = () => {
+  showDeletionModal.value = false
 }
 
 // Subscription functions
@@ -78,7 +100,7 @@ const upgradeSubscription = () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <CoachLayout>
     <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="mb-8">
@@ -474,5 +496,12 @@ const upgradeSubscription = () => {
         </TabPanels>
       </TabGroup>
     </div>
-  </div>
+
+    <!-- Account Deletion Modal -->
+    <AccountDeletionModal
+      :showModal="showDeletionModal"
+      @close="closeDeletionModal"
+      @deleted="handleAccountDeleted"
+    />
+  </CoachLayout>
 </template>

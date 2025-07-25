@@ -12,19 +12,38 @@ import CoachProfile from '@/pages/CoachProfile.vue'
 import CoachPublicProfile from '@/pages/CoachPublicProfile.vue'
 import CoachProposals from '@/pages/CoachProposals.vue'
 import CoachRegistration from '@/pages/CoachRegistration.vue'
+import CoachSignup from '@/pages/CoachSignup.vue'
+import CoachOnboarding from '@/pages/CoachOnboarding.vue'
+import AccountReactivation from '@/pages/AccountReactivation.vue'
+import AccountDeletionDemo from '@/pages/AccountDeletionDemo.vue'
 import APITestPage from '@/pages/APITestPage.vue'
 import AuthForm from '@/components/AuthForm.vue'
-import { requireAuth, requireAuthOnly, redirectIfAuthenticated } from './guards'
+import { requireAuth, requireAuthOnly, redirectIfAuthenticated, requireOnboarding } from './guards'
 
 const routes = [
   { path: '/', redirect: '/coaches' },
   { path: '/coaches', component: CoachBrowser },
   { path: '/services', component: ServiceBrowser },
-  { path: '/coach/:firstName', component: CoachPublicProfile, props: true },
+  { path: '/coach/:id', component: CoachPublicProfile, props: true },
+  {
+    path: '/signup',
+    component: CoachSignup,
+    beforeEnter: redirectIfAuthenticated,
+  },
   {
     path: '/auth',
     component: AuthForm,
     beforeEnter: redirectIfAuthenticated,
+  },
+  {
+    path: '/account/reactivate',
+    component: AccountReactivation,
+    // No auth guard - this is for deleted accounts
+  },
+  {
+    path: '/coach/onboarding',
+    component: CoachOnboarding,
+    beforeEnter: requireOnboarding, // Only allow users who need onboarding
   },
   {
     path: '/coach/registration',
@@ -83,6 +102,10 @@ const routes = [
   {
     path: '/test-api',
     component: APITestPage,
+  },
+  {
+    path: '/demo/account-deletion',
+    component: AccountDeletionDemo,
   },
   { path: '/coach/leads', redirect: '/coach/proposals' },
   // Legacy routes for backward compatibility

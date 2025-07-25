@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <CoachLayout>
     <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div class="px-4 py-6 sm:px-0">
         <!-- Header Section -->
@@ -258,13 +258,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </CoachLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/utils/supabase'
+import CoachLayout from '@/layouts/CoachLayout.vue'
 
 // Types
 interface Booking {

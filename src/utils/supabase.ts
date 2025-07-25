@@ -1,25 +1,33 @@
 import { createClient } from '@supabase/supabase-js'
-import { config } from './config'
 
-// Supabase configuration
-const supabaseUrl = config.supabase.url
-const supabaseAnonKey = config.supabase.anonKey
+// Supabase configuration from environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase configuration:', { supabaseUrl, hasAnonKey: !!supabaseAnonKey })
   throw new Error('Missing Supabase configuration. Please check your environment variables.')
 }
 
-// Create Supabase client
+// Create Supabase client with enhanced session management
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    flowType: 'pkce', // Use PKCE flow for better security
+    storage: localStorage, // Explicitly use localStorage
+    storageKey: 'coachiles-auth-token', // Custom storage key
+    debug: import.meta.env.DEV, // Enable debug in development
   },
   realtime: {
     params: {
       eventsPerSecond: 2,
+    },
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'coachiles-web-app',
     },
   },
 })
@@ -463,7 +471,7 @@ export interface Database {
           refunded_at: string | null
           description: string | null
           failure_reason: string | null
-          metadata: any
+          metadata: Record<string, unknown>
           payout_id: string | null
           payout_status: string | null
           payout_date: string | null
@@ -491,7 +499,7 @@ export interface Database {
           refunded_at?: string | null
           description?: string | null
           failure_reason?: string | null
-          metadata?: any
+          metadata?: Record<string, unknown>
           payout_id?: string | null
           payout_status?: string | null
           payout_date?: string | null
@@ -519,7 +527,7 @@ export interface Database {
           refunded_at?: string | null
           description?: string | null
           failure_reason?: string | null
-          metadata?: any
+          metadata?: Record<string, unknown>
           payout_id?: string | null
           payout_status?: string | null
           payout_date?: string | null

@@ -14,24 +14,12 @@ export interface Coach {
   rating: number
   totalClients: number
   subscriptionStatus: 'active' | 'inactive' | 'trial'
-  services: CoachService[]
+  services?: unknown[] // Services are managed separately in the marketplace now
   createdAt: Date
   updatedAt: Date
   isActive: boolean
-}
-
-export interface CoachService {
-  id: string
-  name: string
-  description: string
-  category: string
-  subcategory: string
-  location: string
-  duration: number // in minutes
-  groupSize: 'individual' | 'small_group' | 'large_group'
-  ageGroups: string[]
-  levels: string[]
-  isActive: boolean
+  hourlyRate?: number // hourly rate in euros
+  languages?: string[] // spoken languages
 }
 
 export interface DiplomaDocument {

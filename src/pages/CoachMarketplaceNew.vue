@@ -98,7 +98,7 @@
               </div>
             </div>
 
-            <!-- Category & Subcategory -->
+            <!-- Category & Duration -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
               <select
@@ -107,55 +107,29 @@
                 required
               >
                 <option value="">Sélectionner une catégorie</option>
-                <option v-for="specialty in coachSpecialties" :key="specialty" :value="specialty">
-                  {{ specialty }}
+                <option v-for="category in availableCategories" :key="category" :value="category">
+                  {{ category }}
                 </option>
               </select>
 
               <div class="mt-3">
                 <label class="block text-sm font-medium text-gray-700 mb-1"
-                  >Sous-catégorie (optionnel)</label
+                  >Durée de la séance *</label
                 >
-                <input
-                  v-model="serviceForm.subCategory"
-                  type="text"
-                  placeholder="Ex: Débutants, Performance, Rééducation..."
+                <select
+                  v-model.number="serviceForm.duration"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-            </div>
-
-            <!-- Description -->
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Description du service</label
-              >
-              <textarea
-                v-model="serviceForm.description"
-                rows="3"
-                placeholder="Décrivez votre service, les objectifs, le matériel inclus..."
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              ></textarea>
-            </div>
-
-            <!-- Duration -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Durée de la séance *</label
-              >
-              <select
-                v-model.number="serviceForm.duration"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              >
-                <option
-                  v-for="option in DURATION_OPTIONS"
-                  :key="option.value"
-                  :value="option.value"
+                  required
                 >
-                  {{ option.label }}
-                </option>
-              </select>
+                  <option
+                    v-for="option in DURATION_OPTIONS"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
             </div>
 
             <!-- Location Options -->
@@ -189,7 +163,7 @@
               </div>
             </div>
 
-            <!-- Free Trial -->
+            <!-- Free Trial & Cancellation -->
             <div>
               <label class="flex items-center mb-3">
                 <input
@@ -200,86 +174,33 @@
                 <span class="ml-2 text-sm font-medium text-gray-700">Premier cours gratuit</span>
               </label>
 
-              <div v-if="serviceForm.hasFreeTrial">
+              <div class="mt-3">
                 <label class="block text-sm font-medium text-gray-700 mb-1"
-                  >Modalités du cours gratuit</label
+                  >Politique d'annulation *</label
                 >
-                <textarea
-                  v-model="serviceForm.freeTrialModalities"
-                  rows="2"
-                  placeholder="Ex: Séance de 45min pour évaluer vos besoins..."
+                <select
+                  v-model="serviceForm.cancellationPolicy"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                ></textarea>
-              </div>
-            </div>
-
-            <!-- Cancellation Policy -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Politique d'annulation *</label
-              >
-              <select
-                v-model="serviceForm.cancellationPolicy"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              >
-                <option v-for="policy in CANCELLATION_POLICIES" :key="policy" :value="policy">
-                  {{ policy }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Availability Settings -->
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-3"
-                >Disponibilités pour ce service</label
-              >
-
-              <div class="space-y-4">
-                <label class="flex items-center">
-                  <input
-                    v-model="serviceForm.useProfileAvailability"
-                    type="radio"
-                    :value="true"
-                    name="availabilityType"
-                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                  />
-                  <span class="ml-2 text-sm text-gray-700"
-                    >Utiliser mes disponibilités générales du profil</span
-                  >
-                </label>
-
-                <label class="flex items-center">
-                  <input
-                    v-model="serviceForm.useProfileAvailability"
-                    type="radio"
-                    :value="false"
-                    name="availabilityType"
-                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                  />
-                  <span class="ml-2 text-sm text-gray-700"
-                    >Définir des créneaux spécifiques pour ce service</span
-                  >
-                </label>
-
-                <div
-                  v-if="!serviceForm.useProfileAvailability"
-                  class="mt-4 bg-white border border-gray-200 rounded-lg p-4"
+                  required
                 >
-                  <div class="flex justify-between items-center mb-3">
-                    <h4 class="text-sm font-medium text-gray-900">Créneaux spécifiques</h4>
-                    <button
-                      @click="copyAvailabilityFromProfile"
-                      class="text-sm text-indigo-600 hover:text-indigo-800"
-                    >
-                      Copier depuis le profil
-                    </button>
-                  </div>
-                  <p class="text-sm text-gray-500">
-                    Fonctionnalité à venir - Pour l'instant, les créneaux généraux seront utilisés.
-                  </p>
-                </div>
+                  <option v-for="policy in CANCELLATION_POLICIES" :key="policy" :value="policy">
+                    {{ policy }}
+                  </option>
+                </select>
               </div>
+            </div>
+
+            <!-- Description -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Description du service</label
+              >
+              <textarea
+                v-model="serviceForm.description"
+                rows="3"
+                placeholder="Décrivez votre service, les objectifs, le matériel inclus..."
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              ></textarea>
             </div>
 
             <!-- Form Actions -->
@@ -433,15 +354,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import type { CoachService, ServiceFormData } from '@/types/service'
 import { DURATION_OPTIONS, CANCELLATION_POLICIES } from '@/types/service'
 import { supabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
-import { useAuthStore } from '@/stores/auth'
-
-// Store
-const authStore = useAuthStore()
 
 // State
 const coachServices = ref<CoachService[]>([])
@@ -469,18 +386,17 @@ const serviceForm = ref<ServiceFormData>({
   customAvailability: [],
 })
 
-// Coach specialties from profile (used as categories)
-const coachSpecialties = computed(() => {
-  // Get specialties from the authenticated coach's profile
-  const specialties = authStore.coach?.specialties || []
-
-  // If no specialties are set, provide some defaults
-  if (specialties.length === 0) {
-    return ['Sport', 'Fitness', 'Bien-être', 'Nutrition']
-  }
-
-  return specialties
-})
+// Available categories (you can expand this)
+const availableCategories = [
+  'Développement personnel',
+  'Bien-être',
+  'Leadership',
+  'Fitness',
+  'Nutrition',
+  'Sport',
+  'Business',
+  'Autre',
+]
 
 // Methods
 const addNewService = () => {
@@ -587,13 +503,6 @@ const deleteService = async (serviceId: string) => {
   }
 }
 
-// Copy availability from profile (placeholder function)
-const copyAvailabilityFromProfile = () => {
-  // This would copy the coach's general availability to the service
-  // For now, just a placeholder
-  console.log('Copy availability from profile - to be implemented')
-}
-
 // Load services when component mounts
 const loadCoachServices = async () => {
   try {
@@ -607,9 +516,5 @@ const loadCoachServices = async () => {
 
 onMounted(async () => {
   await loadCoachServices()
-
-  // Debug: Log current coach and specialties
-  console.log('🧑‍💼 Current coach:', authStore.coach)
-  console.log('🎯 Coach specialties:', authStore.coach?.specialties || [])
 })
 </script>

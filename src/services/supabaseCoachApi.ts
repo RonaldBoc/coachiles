@@ -1,6 +1,7 @@
 import { supabase, type Tables } from '@/utils/supabase'
 import type { Coach } from '@/types/coach'
 import { handleApiError } from '@/utils/errors'
+import { generateProfilePictureSizes, validateImageFile } from '@/utils/imageProcessing'
 
 // Helper function to map Supabase data to our Coach interface
 const mapSupabaseToCoach = (supabaseData: Tables<'coaches'>): Coach => {
@@ -213,30 +214,100 @@ export const supabaseCoachApi = {
     return { photoUrl: avatarUrl }
   },
 
-  // Upload avatar image
+  // Upload avatar image with enhanced validation and processing
   uploadAvatar: async (coachId: string, file: File): Promise<string> => {
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${coachId}.${fileExt}`
-      const filePath = `avatars/${fileName}`
+      // Validate file using utility
+      const validation = validateImageFile(file)
+      if (!validation.valid) {
+        throw new Error(validation.error)
+      }
 
-      // Upload file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      console.log(
+        `📸 Processing avatar for coach ${coachId}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`,
+      )
+
+      // Generate multiple sizes
+      const processedImages = await generateProfilePictureSizes(file)
+
+      const fileExt = 'jpg' // Always save as JPG for consistency
+      const basePath = `avatars/${coachId}`
+
+      // Upload all sizes
+      const uploadPromises = [
+        // Upload thumbnail (150x150)
+        supabase.storage
+          .from('coach-avatars')
+          .upload(`${basePath}_thumb.${fileExt}`, processedImages.thumbnail, {
+            upsert: true,
+            cacheControl: '3600',
+          }),
+
+        // Upload profile size (300x300)
+        supabase.storage
+          .from('coach-avatars')
+          .upload(`${basePath}_profile.${fileExt}`, processedImages.profile, {
+            upsert: true,
+            cacheControl: '3600',
+          }),
+
+        // Upload high-res (600x600)
+        supabase.storage
+          .from('coach-avatars')
+          .upload(`${basePath}_highres.${fileExt}`, processedImages.highRes, {
+            upsert: true,
+            cacheControl: '3600',
+          }),
+      ]
+
+      const uploadResults = await Promise.all(uploadPromises)
+
+      // Check for upload errors
+      const uploadError = uploadResults.find((result) => result.error)
+      if (uploadError?.error) {
+        console.error('❌ Upload error:', uploadError.error)
+        throw uploadError.error
+      }
+
+      // Get public URLs for all sizes
+      const { data: thumbUrl } = supabase.storage
         .from('coach-avatars')
-        .upload(filePath, file, {
-          upsert: true,
+        .getPublicUrl(`${basePath}_thumb.${fileExt}`)
+      const { data: profileUrl } = supabase.storage
+        .from('coach-avatars')
+        .getPublicUrl(`${basePath}_profile.${fileExt}`)
+      const { data: highResUrl } = supabase.storage
+        .from('coach-avatars')
+        .getPublicUrl(`${basePath}_highres.${fileExt}`)
+
+      // Prepare avatar URLs object
+      const avatarUrls = {
+        thumbnail: thumbUrl.publicUrl,
+        profile: profileUrl.publicUrl,
+        highRes: highResUrl.publicUrl,
+        original: profileUrl.publicUrl, // Use profile as default
+      }
+
+      console.log('✅ All avatar sizes uploaded successfully')
+      console.log('📊 Image metadata:', processedImages.metadata)
+
+      // Update coach record with new avatar URLs
+      const { error: updateError } = await supabase
+        .from('coaches')
+        .update({
+          avatar_url: avatarUrls.profile, // Keep existing field for compatibility
+          updated_at: new Date().toISOString(),
         })
+        .eq('id', coachId)
 
-      if (uploadError) throw uploadError
+      if (updateError) {
+        console.error('❌ Database update error:', updateError)
+        throw updateError
+      }
 
-      // Get public URL
-      const { data } = supabase.storage.from('coach-avatars').getPublicUrl(filePath)
-
-      // Update coach record with new avatar URL
-      await supabase.from('coaches').update({ avatar_url: data.publicUrl }).eq('id', coachId)
-
-      return data.publicUrl
+      return avatarUrls.profile
     } catch (error) {
+      console.error('❌ Avatar upload failed:', error)
       throw handleApiError(error)
     }
   },

@@ -34,7 +34,7 @@
         <ul class="space-y-2">
           <li>
             <router-link
-              to="/CoachProposals"
+              to="/coach/proposals"
               class="nav-link"
               :class="{ 'justify-center': isCollapsed }"
               :title="isCollapsed ? 'Propositions' : ''"
@@ -60,7 +60,7 @@
 
           <li>
             <router-link
-              to="/CoachLeads"
+              to="/coach/leads"
               class="nav-link"
               :class="{ 'justify-center': isCollapsed }"
               :title="isCollapsed ? 'Leads' : ''"
@@ -160,7 +160,7 @@
 
           <li>
             <router-link
-              to="/CoachProfile"
+              to="/coach/profile"
               class="nav-link"
               :class="{ 'justify-center': isCollapsed }"
               :title="isCollapsed ? 'Profil' : ''"
@@ -184,7 +184,7 @@
 
           <li>
             <router-link
-              to="/CoachAccount"
+              to="/coach/account"
               class="nav-link"
               :class="{ 'justify-center': isCollapsed }"
               :title="isCollapsed ? 'Mon compte' : ''"
@@ -277,7 +277,7 @@ const route = useRoute()
 // Define public routes that shouldn't show the sidebar
 const publicRoutes = ['/coaches', '/']
 const isPublicRoute = computed(() => {
-  // Public routes: home, coaches listing, and individual coach profiles (/coach/:firstName)
+  // Public routes: home, coaches listing, and individual coach profiles (/coach/:id)
   // But NOT coach dashboard pages (/coach/account, /coach/services, etc.)
   const coachDashboardPages = ['account', 'services', 'proposals', 'profile', 'leads']
   return (

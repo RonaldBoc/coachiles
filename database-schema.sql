@@ -125,10 +125,10 @@ CREATE POLICY "Coaches can view all active coaches" ON public.coaches
     FOR SELECT USING (is_active = true);
 
 CREATE POLICY "Coaches can update own profile" ON public.coaches
-    FOR UPDATE USING (auth.uid()::text = id::text);
+    FOR UPDATE USING (auth.jwt() ->> 'email' = email);
 
 CREATE POLICY "Coaches can insert own profile" ON public.coaches
-    FOR INSERT WITH CHECK (auth.uid()::text = id::text);
+    FOR INSERT WITH CHECK (auth.jwt() ->> 'email' = email);
 
 -- RLS Policies for leads table
 CREATE POLICY "Anyone can create leads" ON public.leads

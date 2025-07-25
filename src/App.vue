@@ -1,9 +1,9 @@
 <template>
-  <DefaultLayout />
+  <router-view />
 </template>
 
 <script setup lang="ts">
-import DefaultLayout from '@/layouts/DefaultLayout.vue'
+// No need for global layout imports - each page handles its own layout
 </script>
 
 <style scoped></style>

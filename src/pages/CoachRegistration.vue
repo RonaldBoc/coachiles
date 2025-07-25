@@ -190,11 +190,16 @@ onMounted(async () => {
     return
   }
 
-  // Pre-fill with user email
+  // Pre-fill with user data from auth if available
   if (authStore.user.email) {
-    // You can extract first name from email if needed
-    const emailName = authStore.user.email.split('@')[0]
-    form.value.firstName = emailName.charAt(0).toUpperCase() + emailName.slice(1)
+    // Get user metadata from auth signup
+    const userMetadata = authStore.user.user_metadata || {}
+
+    // Only pre-fill if we have actual metadata, don't use email prefix as fallback
+    if (userMetadata.first_name) {
+      form.value.firstName = userMetadata.first_name
+    }
+    // Leave firstName empty if no metadata - let user fill it manually
   }
 })
 
@@ -208,13 +213,13 @@ const createProfile = async () => {
   error.value = ''
 
   try {
-    console.log('🏗️ Creating coach profile for user:', authStore.user.id)
+    console.log('🏗️ Creating coach profile for user:', authStore.user.email)
 
     // First check if a coach profile already exists
     const { data: existingCoach, error: checkError } = await supabase
       .from('coaches')
       .select('*')
-      .eq('id', authStore.user.id)
+      .eq('email', authStore.user.email) // Check by email, not user ID
       .single()
 
     if (checkError && checkError.code !== 'PGRST116') {
@@ -223,41 +228,57 @@ const createProfile = async () => {
     }
 
     if (existingCoach) {
-      console.log('ℹ️ Coach profile already exists, reloading...')
-      // Profile already exists, just reload it
-      await authStore.loadCoachProfile()
-      success.value = true
-      return
-    }
-
-    // Create new coach profile
-    const { data, error: createError } = await supabase
-      .from('coaches')
-      .insert([
-        {
-          id: authStore.user.id, // Use the authenticated user's ID
-          email: authStore.user.email,
+      console.log('ℹ️ Coach profile already exists, updating it...')
+      // Profile already exists, update it instead of creating new one
+      const { data: updatedCoach, error: updateError } = await supabase
+        .from('coaches')
+        .update({
           first_name: form.value.firstName,
           phone: form.value.phone,
           bio: form.value.bio,
-          locations: ['Martinique'],
           specialties: form.value.specialties,
-          certifications: [],
           experience_years: form.value.experienceYears,
-          availability: ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
-          rating: 0,
-          total_sessions: 0,
-          subscription_type: 'premium',
-          is_active: true,
-        },
-      ])
-      .select()
+          is_active: true, // Activate the profile
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingCoach.id)
+        .select()
 
-    if (createError) {
-      throw createError
+      if (updateError) {
+        throw updateError
+      }
+
+      console.log('✅ Coach profile updated:', updatedCoach)
+    } else {
+      // Create new coach profile
+      const { data, error: createError } = await supabase
+        .from('coaches')
+        .insert([
+          {
+            // Let database auto-generate UUID for coaches table
+            email: authStore.user.email,
+            first_name: form.value.firstName,
+            phone: form.value.phone,
+            bio: form.value.bio,
+            locations: ['Martinique'],
+            specialties: form.value.specialties,
+            certifications: [],
+            experience_years: form.value.experienceYears,
+            availability: ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
+            rating: 0,
+            total_sessions: 0,
+            subscription_type: 'premium',
+            is_active: true,
+          },
+        ])
+        .select()
+
+      if (createError) {
+        throw createError
+      }
+
+      console.log('✅ Coach profile created:', data)
     }
-
-    console.log('✅ Coach profile created:', data)
 
     // Reload the auth store to pick up the new coach profile
     await authStore.loadCoachProfile()

@@ -103,12 +103,7 @@
 
             <!-- Bio -->
             <div class="mb-8">
-              <p class="text-gray-700 leading-relaxed text-lg mb-4">{{ coach?.bio }}</p>
-              <p class="text-gray-600 leading-relaxed">
-                Passionné(e) par le coaching sportif, j'accompagne mes élèves vers l'atteinte de
-                leurs objectifs personnels. Que vous soyez débutant ou confirmé, je propose des
-                programmes adaptés à votre niveau et à vos besoins spécifiques.
-              </p>
+              <p class="text-gray-700 leading-relaxed text-lg">{{ coach?.bio }}</p>
             </div>
 
             <!-- Experience & Credentials -->
@@ -172,18 +167,67 @@
 
           <!-- Services Offered -->
           <div class="bg-white rounded-2xl shadow-lg p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Services proposés</h2>
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-gray-900">Services proposés</h2>
+              <button
+                @click="coach && loadCoachServices(coach.id)"
+                :disabled="isLoadingServices"
+                class="flex items-center space-x-2 text-gray-500 hover:text-orange-600 transition-colors disabled:opacity-50"
+                title="Actualiser les services"
+              >
+                <svg
+                  :class="['w-5 h-5', { 'animate-spin': isLoadingServices }]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                <span class="text-sm">{{
+                  isLoadingServices ? 'Actualisation...' : 'Actualiser'
+                }}</span>
+              </button>
+            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Individual Training -->
+            <!-- Dynamic Services -->
+            <div v-if="isLoadingServices" class="text-center py-12">
               <div
+                class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-spin"
+              >
+                <svg
+                  class="w-5 h-5 text-orange-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </div>
+              <p class="text-gray-600">Chargement des services...</p>
+            </div>
+            <div v-else-if="coachServices.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div
+                v-for="service in coachServices"
+                :key="service.id"
                 class="border border-gray-200 rounded-xl p-6 hover:border-orange-300 transition-colors"
               >
                 <div class="flex items-center mb-4">
                   <div
                     class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4"
                   >
+                    <!-- Service icon based on category -->
                     <svg
+                      v-if="service.canBeSolo && !service.canBeGroup"
                       class="w-6 h-6 text-orange-600"
                       fill="none"
                       stroke="currentColor"
@@ -196,31 +240,8 @@
                         d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                       />
                     </svg>
-                  </div>
-                  <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Cours particuliers</h3>
-                    <p class="text-orange-600 font-medium">{{ getCoachPrice(coach) }}€/séance</p>
-                  </div>
-                </div>
-                <p class="text-gray-600 mb-4">
-                  Accompagnement personnalisé pour atteindre vos objectifs rapidement.
-                </p>
-                <ul class="text-sm text-gray-500 space-y-1">
-                  <li>• Séance d'1h en face-à-face</li>
-                  <li>• Programme adapté à votre niveau</li>
-                  <li>• Suivi personnalisé</li>
-                </ul>
-              </div>
-
-              <!-- Group Training -->
-              <div
-                class="border border-gray-200 rounded-xl p-6 hover:border-orange-300 transition-colors"
-              >
-                <div class="flex items-center mb-4">
-                  <div
-                    class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4"
-                  >
                     <svg
+                      v-else-if="service.canBeGroup && !service.canBeSolo"
                       class="w-6 h-6 text-blue-600"
                       fill="none"
                       stroke="currentColor"
@@ -233,23 +254,77 @@
                         d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                       />
                     </svg>
+                    <svg
+                      v-else
+                      class="w-6 h-6 text-purple-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                      />
+                    </svg>
                   </div>
                   <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Cours en groupe</h3>
-                    <p class="text-blue-600 font-medium">
-                      {{ Math.round(getCoachPrice(coach) * 0.7) }}€/séance
-                    </p>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ service.title }}</h3>
+                    <div class="space-y-1">
+                      <p
+                        v-if="service.canBeSolo && service.soloPrice"
+                        class="text-orange-600 font-medium"
+                      >
+                        Individuel: {{ service.soloPrice }}€/séance
+                      </p>
+                      <p
+                        v-if="service.canBeGroup && service.groupPrice"
+                        class="text-blue-600 font-medium"
+                      >
+                        Groupe: {{ service.groupPrice }}€/séance
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <p class="text-gray-600 mb-4">
-                  Entraînements motivants en petit groupe (2-4 personnes).
+                  {{ service.description || 'Service personnalisé selon vos besoins.' }}
                 </p>
                 <ul class="text-sm text-gray-500 space-y-1">
-                  <li>• Séance d'1h15 en groupe</li>
-                  <li>• Ambiance conviviale et motivante</li>
-                  <li>• Tarif réduit par personne</li>
+                  <li>• Durée: {{ service.duration }} minutes</li>
+                  <li v-if="service.canBeSolo && service.canBeGroup">
+                    • Disponible en individuel et en groupe
+                  </li>
+                  <li v-else-if="service.canBeSolo">• Cours particulier uniquement</li>
+                  <li v-else-if="service.canBeGroup">• Cours en groupe uniquement</li>
+                  <li>• Catégorie: {{ service.category }}</li>
                 </ul>
               </div>
+            </div>
+
+            <!-- No Services Message -->
+            <div v-else class="text-center py-12">
+              <div
+                class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+              >
+                <svg
+                  class="w-10 h-10 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Services en préparation</h3>
+              <p class="text-gray-600">
+                Ce coach est en train de configurer ses services. Revenez bientôt !
+              </p>
             </div>
           </div>
 
@@ -463,7 +538,7 @@
                 v-for="similarCoach in similarCoaches"
                 :key="similarCoach.id"
                 class="border border-gray-200 rounded-xl p-4 hover:border-orange-300 transition-colors cursor-pointer"
-                @click="navigateToCoach(similarCoach.firstName)"
+                @click="navigateToCoach(similarCoach.id)"
               >
                 <div class="flex items-center space-x-4 mb-4">
                   <img
@@ -645,13 +720,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { StarIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
+import type { CoachService } from '@/types/service'
 import type { ClientRequest } from '@/types/Lead'
 import RequestModal from '@/components/RequestModal.vue'
 import { useCoachStore } from '@/stores/coach'
+import { supabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
 
 // Router
 const route = useRoute()
@@ -662,10 +739,12 @@ const coachStore = useCoachStore()
 
 // State
 const coach = ref<Coach | null>(null)
+const coachServices = ref<CoachService[]>([])
 const similarCoaches = ref<Coach[]>([])
 const showContactModal = ref(false)
 const showTrialModal = ref(false)
 const isLoading = ref(false)
+const isLoadingServices = ref(false)
 
 // Helper function to get coach pricing
 const getCoachPrice = (coach: Coach | null): number => {
@@ -716,14 +795,52 @@ const shareProfile = (platform: string) => {
   }
 }
 
-const navigateToCoach = (coachFirstName: string) => {
-  router.push(`/coach/${coachFirstName.toLowerCase()}`)
+const navigateToCoach = (coachId: string) => {
+  router.push(`/coach/${coachId}`)
 }
+
+// Load coach services from database
+const loadCoachServices = async (coachId: string) => {
+  try {
+    isLoadingServices.value = true
+    console.log('📡 Loading services for coach:', coachId)
+    const services = await supabaseCoachServicesApi.getPublicCoachServices(coachId)
+    coachServices.value = services
+    console.log('✅ Loaded', services.length, 'services')
+  } catch (error) {
+    console.error('❌ Error loading coach services:', error)
+    coachServices.value = []
+  } finally {
+    isLoadingServices.value = false
+  }
+}
+
+// Refresh services when page becomes visible again
+const handleVisibilityChange = () => {
+  if (!document.hidden && coach.value) {
+    console.log('👁️ Page visible again, refreshing services...')
+    loadCoachServices(coach.value.id)
+  }
+}
+
+// Watch for route parameter changes to reload services
+watch(
+  () => route.params.id,
+  async (newId) => {
+    if (newId && coach.value) {
+      console.log('🔄 Route changed, reloading services for coach ID:', newId)
+      await loadCoachServices(coach.value.id)
+    }
+  },
+)
 
 // Lifecycle
 onMounted(async () => {
-  const firstName = route.params.firstName as string
-  console.log('🔍 CoachPublicProfile: Loading coach profile for:', firstName)
+  const coachId = route.params.id as string
+  console.log('🔍 CoachPublicProfile: Loading coach profile for ID:', coachId)
+
+  // Add visibility change listener to refresh services when page becomes visible
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 
   try {
     isLoading.value = true
@@ -734,31 +851,38 @@ onMounted(async () => {
       await coachStore.fetchCoaches()
     }
 
-    // Find the coach by first name (case insensitive)
-    coach.value =
-      coachStore.coaches.find((c) => c.firstName.toLowerCase() === firstName.toLowerCase()) || null
+    // Find the coach by ID
+    coach.value = coachStore.coaches.find((c) => c.id === coachId) || null
 
     console.log('✅ Found coach:', coach.value?.firstName || 'Not found')
 
     if (coach.value) {
+      // Load coach services
+      await loadCoachServices(coach.value.id)
+
       // Find similar coaches (same specialties, different coach)
       similarCoaches.value = coachStore.coaches
         .filter(
           (c) =>
-            c.firstName.toLowerCase() !== firstName.toLowerCase() &&
+            c.id !== coachId &&
             c.specialties.some((spec) => coach.value?.specialties.includes(spec)),
         )
         .slice(0, 4)
 
       console.log('🔗 Found', similarCoaches.value.length, 'similar coaches')
     } else {
-      console.log('❌ Coach not found:', firstName)
+      console.log('❌ Coach not found with ID:', coachId)
     }
   } catch (error) {
     console.error('❌ Error loading coach profile:', error)
   } finally {
     isLoading.value = false
   }
+})
+
+onUnmounted(() => {
+  // Clean up visibility change listener
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
