@@ -366,7 +366,24 @@ const saveStep1 = async () => {
 
     const lead = await LeadService.createLead(leadData)
     if (lead) {
-      currentLead.value = lead
+      // Convert Lead to LeadData format
+      currentLead.value = {
+        id: lead.id,
+        client_name: lead.client_name,
+        client_email: lead.client_email,
+        client_phone: lead.client_phone,
+        coach_id: lead.coach_id,
+        location: lead.location,
+        preferred_coaching: lead.preferred_coaching ? [...lead.preferred_coaching] : undefined,
+        experience: lead.experience,
+        goals: lead.goals,
+        availability: lead.availability,
+        budget: lead.budget,
+        additional_info: lead.additional_info,
+        current_step: lead.current_step,
+        created_at: lead.created_at,
+        updated_at: lead.updated_at,
+      }
       currentStep.value = 2
       console.log('✅ Step 1 saved, lead created:', lead.id)
     } else {
@@ -389,7 +406,26 @@ const saveStep2 = async () => {
     const updatedLead = await LeadService.updateLeadStep(currentLead.value.id, 2, updateData)
 
     if (updatedLead) {
-      currentLead.value = updatedLead
+      // Convert Lead to LeadData format
+      currentLead.value = {
+        id: updatedLead.id,
+        client_name: updatedLead.client_name,
+        client_email: updatedLead.client_email,
+        client_phone: updatedLead.client_phone,
+        coach_id: updatedLead.coach_id,
+        location: updatedLead.location,
+        preferred_coaching: updatedLead.preferred_coaching
+          ? [...updatedLead.preferred_coaching]
+          : undefined,
+        experience: updatedLead.experience,
+        goals: updatedLead.goals,
+        availability: updatedLead.availability,
+        budget: updatedLead.budget,
+        additional_info: updatedLead.additional_info,
+        current_step: updatedLead.current_step,
+        created_at: updatedLead.created_at,
+        updated_at: updatedLead.updated_at,
+      }
       currentStep.value = 3
       console.log('✅ Step 2 saved')
     } else {
@@ -427,7 +463,9 @@ const saveStep3 = async () => {
         email: finalLead.client_email,
         phone: finalLead.client_phone,
         location: finalLead.location,
-        preferredCoaching: finalLead.preferred_coaching,
+        preferredCoaching: finalLead.preferred_coaching
+          ? [...finalLead.preferred_coaching]
+          : undefined,
         experience: finalLead.experience,
         coachingGoals: finalLead.goals,
         availability: finalLead.availability,

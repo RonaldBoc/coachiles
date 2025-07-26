@@ -11,6 +11,7 @@ async function testRpcFunctions() {
 
   try {
     // Test cancel function with dummy UUID
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data, error } = await supabase.rpc('cancel_coach_subscription', {
       coach_id_param: '00000000-0000-0000-0000-000000000000',
     })

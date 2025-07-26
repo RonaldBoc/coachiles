@@ -120,8 +120,8 @@ export const useLeadStore = defineStore('leads', () => {
       if (leadIndex !== -1) {
         leads.value[leadIndex] = {
           ...leads.value[leadIndex],
-          coachId: coachId,
-          status: 'viewed', // Change to valid status
+          coach_id: coachId,
+          status: 'assigned', // Change to valid status
         }
       }
 

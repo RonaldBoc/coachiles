@@ -371,9 +371,9 @@ import {
   ExclamationCircleIcon,
 } from '@heroicons/vue/24/outline'
 import { useModernSubscriptionStore, type PaymentMethod } from '@/stores/modernSubscription'
-import ModernSubscribeModal from './ModernSubscribeModal.vue'
-import CancelSubscriptionModal from './CancelSubscriptionModal.vue'
-import PaymentMethodModal from './PaymentMethodModal.vue'
+import ModernSubscribeModal from '@/components/ModernSubscribeModal.vue'
+import CancelSubscriptionModal from '@/components/CancelSubscriptionModal.vue'
+import PaymentMethodModal from '@/components/PaymentMethodModal.vue'
 
 const subscriptionStore = useModernSubscriptionStore()
 

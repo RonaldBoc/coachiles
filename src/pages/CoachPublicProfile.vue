@@ -47,11 +47,29 @@
           <!-- Coach Header Info (Mobile) -->
           <div class="lg:hidden bg-white rounded-2xl shadow-lg p-6">
             <div class="flex items-start space-x-4 mb-6">
-              <img
-                :src="coach?.photo || '/default-avatar.png'"
-                :alt="`${coach?.firstName}`"
-                class="w-20 h-20 rounded-full object-cover"
-              />
+              <div class="relative">
+                <img
+                  :src="coach?.photo || '/default-avatar.png'"
+                  :alt="`${coach?.firstName}`"
+                  class="w-20 h-20 rounded-full object-cover"
+                />
+                <!-- Certification badge (mobile) -->
+                <div v-if="isCoachCertified" class="absolute -top-2 -right-2">
+                  <span
+                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
+                    title="Coach certifié Coachiles"
+                  >
+                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        fill-rule="evenodd"
+                        d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                    Certifié
+                  </span>
+                </div>
+              </div>
               <div class="flex-1">
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">
                   {{ coach?.firstName }}
@@ -498,11 +516,29 @@
             <!-- Coach Info Card -->
             <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
               <div class="text-center mb-6">
-                <img
-                  :src="coach?.photo || '/default-avatar.png'"
-                  :alt="`${coach?.firstName}`"
-                  class="w-24 h-24 rounded-full object-cover mx-auto mb-4"
-                />
+                <div class="relative w-fit mx-auto">
+                  <img
+                    :src="coach?.photo || '/default-avatar.png'"
+                    :alt="`${coach?.firstName}`"
+                    class="w-24 h-24 rounded-full object-cover mb-4"
+                  />
+                  <!-- Certification badge (desktop) -->
+                  <div v-if="isCoachCertified" class="absolute -top-2 -right-2">
+                    <span
+                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
+                      title="Coach certifié Coachiles"
+                    >
+                      <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fill-rule="evenodd"
+                          d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                      Certifié
+                    </span>
+                  </div>
+                </div>
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">
                   {{ coach?.firstName }}
                 </h1>
@@ -642,6 +678,7 @@ import type { ClientRequest } from '@/types/Lead'
 import RequestModal from '@/components/RequestModal.vue'
 import { useCoachStore } from '@/stores/coach'
 import { supabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
+import { supabase } from '@/utils/supabase'
 
 // Router
 const route = useRoute()
@@ -658,6 +695,7 @@ const showContactModal = ref(false)
 const showTrialModal = ref(false)
 const isLoading = ref(false)
 const isLoadingServices = ref(false)
+const isCoachCertified = ref<boolean>(false) // Track if current coach has active subscription
 
 // Helper function to get coach pricing
 const getCoachPrice = (coach: Coach | null): number => {
@@ -672,6 +710,31 @@ const getCoachPrice = (coach: Coach | null): number => {
     : 0
 
   return Math.round(basePrice + experienceMultiplier + ratingBonus + specialtyBonus)
+}
+
+// Check if coach has active subscription (certified)
+const checkCoachCertification = async (coachId: string) => {
+  try {
+    console.log('🔍 Checking certification status for coach:', coachId)
+
+    const { data: subscription, error } = await supabase
+      .from('coaches_current_subscription')
+      .select('has_active_subscription')
+      .eq('id', coachId)
+      .single()
+
+    if (error) {
+      console.error('❌ Error checking coach certification:', error)
+      isCoachCertified.value = false
+      return
+    }
+
+    isCoachCertified.value = subscription?.has_active_subscription || false
+    console.log('✅ Coach certification status:', isCoachCertified.value)
+  } catch (error) {
+    console.error('❌ Error in checkCoachCertification:', error)
+    isCoachCertified.value = false
+  }
 }
 
 // Methods
@@ -772,6 +835,9 @@ onMounted(async () => {
     if (coach.value) {
       // Load coach services
       await loadCoachServices(coach.value.id)
+
+      // Check coach certification status
+      await checkCoachCertification(coach.value.id)
 
       // Find similar coaches (same specialties, different coach)
       similarCoaches.value = coachStore.coaches

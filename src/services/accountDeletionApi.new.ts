@@ -196,16 +196,17 @@ export class AccountDeletionApi {
       if (!canReactivate) return null
 
       // Get user email
+      const coachData = Array.isArray(data.coaches) ? data.coaches[0] : data.coaches
       const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(
-        data.coaches.user_id,
+        coachData.user_id,
       )
 
       if (authError) throw authError
 
       return {
         email: authUser.user?.email || '',
-        firstName: data.coaches.first_name,
-        lastName: data.coaches.last_name,
+        firstName: coachData.first_name,
+        lastName: coachData.last_name,
         deletedAt: data.deleted_at,
         permanentDeletionAt: data.permanent_deletion_at,
         canReactivate: true,

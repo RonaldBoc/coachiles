@@ -33,7 +33,7 @@ export interface Lead {
   client_email: string
   client_phone?: string
   location?: string
-  preferred_coaching?: string[]
+  preferred_coaching?: readonly string[]
   goals?: string
   experience?: string
   availability?: string
@@ -52,7 +52,7 @@ export interface Lead {
 
   // Multistep tracking
   current_step: number
-  completed_steps: number[]
+  completed_steps: readonly number[]
   is_completed: boolean
 }
 

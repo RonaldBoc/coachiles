@@ -154,16 +154,16 @@
                           class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center"
                         >
                           <span class="text-sm font-medium text-blue-600">
-                            {{ getClientNameParts(lead.clientInfo?.name).firstName.charAt(0) }}
+                            {{ getClientNameParts(lead.client_name).firstName.charAt(0) }}
                           </span>
                         </div>
                       </div>
                       <div>
                         <h3 class="text-lg font-medium text-gray-900">
-                          {{ getClientNameParts(lead.clientInfo?.name).firstName }}
-                          {{ getClientNameParts(lead.clientInfo?.name).fakeRestOfName }}
+                          {{ getClientNameParts(lead.client_name).firstName }}
+                          {{ getClientNameParts(lead.client_name).fakeRestOfName }}
                         </h3>
-                        <p class="text-sm text-gray-500">{{ formatDate(lead.unlockedAt) }}</p>
+                        <p class="text-sm text-gray-500">{{ formatDate(lead.created_at) }}</p>
                       </div>
                     </div>
                     <div class="flex items-center space-x-2">
@@ -183,7 +183,7 @@
                     <div>
                       <h4 class="text-sm font-medium text-gray-900 mb-2">Objetivos de Coaching</h4>
                       <p class="text-sm text-gray-600">
-                        {{ lead.clientInfo?.goals || 'No especificado' }}
+                        {{ lead.goals || 'No especificado' }}
                       </p>
                     </div>
                     <div>
@@ -191,19 +191,15 @@
                       <div class="space-y-1 text-sm text-gray-600">
                         <p>
                           <span class="font-medium">Ubicación:</span>
-                          {{ lead.clientInfo?.location || 'No especificado' }}
+                          {{ lead.location || 'No especificado' }}
                         </p>
                         <p>
                           <span class="font-medium">Presupuesto:</span>
-                          {{
-                            lead.clientInfo?.budget
-                              ? formatCurrency(lead.clientInfo.budget)
-                              : 'No especificado'
-                          }}
+                          {{ lead.budget ? formatCurrency(lead.budget) : 'No especificado' }}
                         </p>
                         <p>
                           <span class="font-medium">Disponibilidad:</span>
-                          {{ lead.clientInfo?.availability || 'No especificado' }}
+                          {{ lead.availability || 'No especificado' }}
                         </p>
                       </div>
                     </div>
@@ -221,7 +217,7 @@
                         Ver
                       </button>
                       <button
-                        v-if="lead.status === 'viewed' || lead.status === 'new'"
+                        v-if="lead.status === 'assigned' || lead.status === 'new'"
                         @click="handleContact(lead)"
                         class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       >
@@ -238,7 +234,7 @@
                     </div>
                     <div class="flex space-x-2">
                       <button
-                        v-if="lead.status !== 'lost' && lead.status !== 'converted'"
+                        v-if="lead.status !== 'closed' && lead.status !== 'converted'"
                         @click="handleReject(lead)"
                         class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                       >
@@ -275,19 +271,19 @@
                   <div class="space-y-3">
                     <div>
                       <p class="text-sm font-medium text-gray-700">Nombre:</p>
-                      <p class="text-sm text-gray-900">{{ selectedLead.clientInfo?.name }}</p>
+                      <p class="text-sm text-gray-900">{{ selectedLead.client_name }}</p>
                     </div>
                     <div>
                       <p class="text-sm font-medium text-gray-700">Email:</p>
-                      <p class="text-sm text-gray-900">{{ selectedLead.clientInfo?.email }}</p>
+                      <p class="text-sm text-gray-900">{{ selectedLead.client_email }}</p>
                     </div>
                     <div>
                       <p class="text-sm font-medium text-gray-700">Teléfono:</p>
-                      <p class="text-sm text-gray-900">{{ selectedLead.clientInfo?.phone }}</p>
+                      <p class="text-sm text-gray-900">{{ selectedLead.client_phone }}</p>
                     </div>
                     <div>
                       <p class="text-sm font-medium text-gray-700">Objetivos:</p>
-                      <p class="text-sm text-gray-900">{{ selectedLead.clientInfo?.goals }}</p>
+                      <p class="text-sm text-gray-900">{{ selectedLead.goals }}</p>
                     </div>
                   </div>
                 </div>
@@ -370,9 +366,9 @@ const filteredLeads = computed(() => {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(
       (lead) =>
-        lead.clientInfo?.name?.toLowerCase().includes(query) ||
-        lead.clientInfo?.goals?.toLowerCase().includes(query) ||
-        lead.clientInfo?.location?.toLowerCase().includes(query),
+        lead.client_name?.toLowerCase().includes(query) ||
+        lead.goals?.toLowerCase().includes(query) ||
+        lead.location?.toLowerCase().includes(query),
     )
   }
 
@@ -384,9 +380,9 @@ const statusOptions = computed(() => [
   { value: 'all', label: 'Todas las propuestas', count: allLeads.value.length },
   { value: 'new', label: 'Nuevas', count: allLeads.value.filter((l) => l.status === 'new').length },
   {
-    value: 'viewed',
-    label: 'Vistas',
-    count: allLeads.value.filter((l) => l.status === 'viewed').length,
+    value: 'assigned',
+    label: 'Asignadas',
+    count: allLeads.value.filter((l) => l.status === 'assigned').length,
   },
   {
     value: 'contacted',
@@ -399,9 +395,9 @@ const statusOptions = computed(() => [
     count: allLeads.value.filter((l) => l.status === 'converted').length,
   },
   {
-    value: 'lost',
-    label: 'Perdidas',
-    count: allLeads.value.filter((l) => l.status === 'lost').length,
+    value: 'closed',
+    label: 'Cerradas',
+    count: allLeads.value.filter((l) => l.status === 'closed').length,
   },
 ])
 
@@ -419,7 +415,7 @@ const loadLeads = async () => {
 // Handle lead actions
 const handleView = async (lead: Lead) => {
   try {
-    await leadStore.updateLeadStatus(lead.id, 'viewed')
+    await leadStore.updateLeadStatus(lead.id, 'assigned')
   } catch (error) {
     console.error('Error updating lead status:', error)
   }
@@ -444,7 +440,7 @@ const handleConvert = async (lead: Lead) => {
 
 const handleReject = async (lead: Lead) => {
   try {
-    await leadStore.updateLeadStatus(lead.id, 'lost')
+    await leadStore.updateLeadStatus(lead.id, 'closed')
   } catch (error) {
     console.error('Error updating lead status:', error)
   }
@@ -471,10 +467,10 @@ const formatCurrency = (amount: string) => {
 const getStatusColor = (status: string) => {
   const colors = {
     new: 'bg-blue-100 text-blue-800',
-    viewed: 'bg-yellow-100 text-yellow-800',
+    assigned: 'bg-yellow-100 text-yellow-800',
     contacted: 'bg-purple-100 text-purple-800',
     converted: 'bg-green-100 text-green-800',
-    lost: 'bg-red-100 text-red-800',
+    closed: 'bg-red-100 text-red-800',
   }
   return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800'
 }
@@ -482,10 +478,10 @@ const getStatusColor = (status: string) => {
 const getStatusLabel = (status: string) => {
   const labels = {
     new: 'Nueva',
-    viewed: 'Vista',
+    assigned: 'Asignada',
     contacted: 'Contactada',
     converted: 'Convertida',
-    lost: 'Perdida',
+    closed: 'Cerrada',
   }
   return labels[status as keyof typeof labels] || status
 }

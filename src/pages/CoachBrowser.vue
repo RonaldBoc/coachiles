@@ -230,6 +230,23 @@
                   Disponible
                 </span>
               </div>
+
+              <!-- Certification badge (for coaches with active subscription) -->
+              <div v-if="isCoachCertified(coach.id)" class="absolute top-4 right-4">
+                <span
+                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
+                  title="Coach certifié Coachiles"
+                >
+                  <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                  Certifié
+                </span>
+              </div>
             </div>
 
             <!-- Card content -->
@@ -337,6 +354,7 @@ import { useRouter } from 'vue-router'
 import { StarIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
 import { useCoachStore } from '@/stores/coach'
+import { supabase } from '@/utils/supabase'
 
 // Router
 const router = useRouter()
@@ -351,6 +369,7 @@ const selectedSpecialty = ref('')
 const sortBy = ref('rating')
 const isLoading = ref(false)
 const searchDebounceTimer = ref<number | null>(null)
+const coachSubscriptions = ref<Map<string, boolean>>(new Map()) // Track which coaches have active subscriptions
 
 // Pagination for database approach
 const currentPage = ref(1)
@@ -385,6 +404,39 @@ const getCoachPrice = (coach: Coach): number => {
     : 0 // Premium specialties
 
   return Math.round(basePrice + experienceMultiplier + ratingBonus + specialtyBonus)
+}
+
+// Check subscription status for coaches
+const checkCoachSubscriptions = async (coachIds: string[]) => {
+  try {
+    console.log('🔍 Checking subscription status for coaches:', coachIds)
+
+    const { data: subscriptions, error } = await supabase
+      .from('coaches_current_subscription')
+      .select('id, has_active_subscription')
+      .in('id', coachIds)
+
+    if (error) {
+      console.error('❌ Error checking coach subscriptions:', error)
+      return
+    }
+
+    console.log('✅ Coach subscription data:', subscriptions)
+
+    // Update the subscription map
+    subscriptions?.forEach((sub) => {
+      coachSubscriptions.value.set(sub.id, sub.has_active_subscription || false)
+    })
+
+    console.log('📊 Updated subscription map:', Object.fromEntries(coachSubscriptions.value))
+  } catch (error) {
+    console.error('❌ Error in checkCoachSubscriptions:', error)
+  }
+}
+
+// Helper to check if coach is certified (has active subscription)
+const isCoachCertified = (coachId: string): boolean => {
+  return coachSubscriptions.value.get(coachId) || false
 }
 
 // Computed - simply return coaches from store (filtering is done on server)
@@ -445,6 +497,12 @@ const searchCoaches = async (query: string, specialty: string, sort: string, pag
     totalCoaches.value = coachStore.total
     hasMore.value = coachStore.coaches.length === pageSize.value // Has more if we got a full page
     currentPage.value = page
+
+    // Load subscription status for the coaches
+    const coachIds = coachStore.coaches.map((coach) => coach.id)
+    if (coachIds.length > 0) {
+      await checkCoachSubscriptions(coachIds)
+    }
 
     console.log('✅ Search completed:', {
       totalResults: coaches.value.length,

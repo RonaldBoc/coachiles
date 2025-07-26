@@ -5,6 +5,7 @@ import { generateProfilePictureSizes, validateImageFile } from '@/utils/imagePro
 
 // Helper function to map Supabase data to our Coach interface
 // Helper function to get subscription status
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getSubscriptionStatus = async (coachId: string): Promise<'active' | 'inactive' | 'trial'> => {
   const { data } = await supabase
     .from('coaches_current_subscription')

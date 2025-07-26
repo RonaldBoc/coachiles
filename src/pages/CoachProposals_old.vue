@@ -356,7 +356,7 @@ import { EllipsisVerticalIcon, EyeIcon, CheckIcon, XMarkIcon } from '@heroicons/
 import { useAuthStore } from '@/stores/auth'
 import type { Lead } from '@/types/Lead'
 import CoachLayout from '@/layouts/CoachLayout.vue'
-import LeadDetailsModal from '@/components/LeadDetailsModal.vue'
+import LeadDetailsModal from '../components/LeadDetailsModal.vue'
 import LeadService from '@/services/leadService'
 
 // Stores
