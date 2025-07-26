@@ -18,7 +18,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     flowType: 'pkce', // Use PKCE flow for better security
     storage: localStorage, // Explicitly use localStorage
     storageKey: 'coachiles-auth-token', // Custom storage key
-    debug: import.meta.env.DEV, // Enable debug in development
+    debug: false, // Disable debug logs to reduce console noise
   },
   realtime: {
     params: {

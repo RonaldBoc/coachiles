@@ -275,7 +275,7 @@
                   <p class="text-xs text-gray-500">par séance</p>
                 </div>
                 <button
-                  @click.stop="requestCoach(coach)"
+                  @click.stop="navigateToCoachProfileWithContact(coach)"
                   class="bg-white border-2 border-orange-400 text-orange-600 px-4 py-2 rounded-full font-medium hover:bg-orange-50 hover:border-orange-500 hover:text-orange-700 transition-all duration-200 text-sm"
                 >
                   Contacter
@@ -328,14 +328,6 @@
         </button>
       </div>
     </div>
-
-    <!-- Request Modal -->
-    <RequestModal
-      v-if="showRequestModal"
-      :selectedCoach="selectedCoachForRequest"
-      @close="showRequestModal = false"
-      @submit="submitRequest"
-    />
   </div>
 </template>
 
@@ -344,8 +336,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { StarIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
-import type { ClientRequest } from '@/types/Lead'
-import RequestModal from '@/components/RequestModal.vue'
 import { useCoachStore } from '@/stores/coach'
 
 // Router
@@ -359,8 +349,6 @@ const coaches = ref<Coach[]>([])
 const searchQuery = ref('')
 const selectedSpecialty = ref('')
 const sortBy = ref('rating')
-const showRequestModal = ref(false)
-const selectedCoachForRequest = ref<Coach | null>(null)
 const isLoading = ref(false)
 const searchDebounceTimer = ref<number | null>(null)
 
@@ -495,16 +483,9 @@ const navigateToCoachProfile = (coach: Coach) => {
   router.push(`/coach/${coach.id}`)
 }
 
-const requestCoach = (coach: Coach) => {
-  selectedCoachForRequest.value = coach
-  showRequestModal.value = true
-}
-
-const submitRequest = (requestData: Partial<ClientRequest>) => {
-  // Handle request submission
-  console.log('Request submitted:', requestData)
-  showRequestModal.value = false
-  selectedCoachForRequest.value = null
+const navigateToCoachProfileWithContact = (coach: Coach) => {
+  // Navigate to coach profile page and trigger contact modal
+  router.push(`/coach/${coach.id}?contact=true`)
 }
 
 const clearFilters = () => {

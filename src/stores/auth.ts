@@ -183,6 +183,22 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Helper function to get subscription status from new architecture
+  const getCoachSubscriptionStatus = async (
+    coachId: string,
+  ): Promise<'active' | 'inactive' | 'trial'> => {
+    const { data } = await supabase
+      .from('coaches_current_subscription')
+      .select('subscription_type, has_active_subscription')
+      .eq('id', coachId)
+      .single()
+
+    if (data?.has_active_subscription) {
+      return data.subscription_type === 'premium' ? 'active' : 'trial'
+    }
+    return 'inactive'
+  }
+
   // Load coach profile from database
   const loadCoachProfile = async () => {
     if (!user.value?.email) {
@@ -202,6 +218,9 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       if (data) {
+        // Get subscription status from the new architecture
+        const subscriptionStatus = await getCoachSubscriptionStatus(data.id)
+
         // Transform Supabase data to Coach type
         coach.value = {
           id: data.id, // This is the coaches table UUID
@@ -218,7 +237,7 @@ export const useAuthStore = defineStore('auth', () => {
           availability: data.availability?.join(', ') || '',
           rating: Number(data.rating) || 0,
           totalClients: data.total_sessions || 0,
-          subscriptionStatus: data.subscription_type === 'active' ? 'active' : 'inactive',
+          subscriptionStatus,
           services: [], // Will be loaded separately if needed
           createdAt: new Date(data.created_at),
           updatedAt: new Date(data.updated_at),
@@ -259,7 +278,6 @@ export const useAuthStore = defineStore('auth', () => {
         availability: [],
         rating: 0,
         total_sessions: 0,
-        subscription_type: 'inactive',
         is_active: true,
         hourly_rate: 50,
         languages: ['Français'],
@@ -292,7 +310,7 @@ export const useAuthStore = defineStore('auth', () => {
         availability: data.availability?.join(', ') || '',
         rating: Number(data.rating) || 0,
         totalClients: data.total_sessions || 0,
-        subscriptionStatus: data.subscription_type === 'active' ? 'active' : 'inactive',
+        subscriptionStatus: 'inactive', // New coaches start with inactive subscription
         services: [],
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),

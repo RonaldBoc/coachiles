@@ -267,7 +267,6 @@ const createProfile = async () => {
             availability: ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
             rating: 0,
             total_sessions: 0,
-            subscription_type: 'premium',
             is_active: true,
           },
         ])

@@ -440,93 +440,6 @@
             </div>
           </div>
 
-          <!-- Pricing & Packages -->
-          <div class="bg-white rounded-2xl shadow-lg p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Tarifs & Formules</h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <!-- Single Session -->
-              <div
-                class="border border-gray-200 rounded-xl p-6 hover:border-orange-300 transition-colors"
-              >
-                <div class="text-center mb-4">
-                  <h3 class="text-lg font-semibold text-gray-900 mb-2">Séance unique</h3>
-                  <div class="text-3xl font-bold text-gray-900">{{ getCoachPrice(coach) }}€</div>
-                  <p class="text-sm text-gray-600">par séance d'1h</p>
-                </div>
-                <ul class="text-sm text-gray-600 space-y-2 mb-6">
-                  <li>• Flexibilité maximale</li>
-                  <li>• Aucun engagement</li>
-                  <li>• Idéal pour tester</li>
-                </ul>
-                <button
-                  class="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                >
-                  Réserver
-                </button>
-              </div>
-
-              <!-- 5-Session Package -->
-              <div class="border-2 border-orange-400 rounded-xl p-6 relative bg-orange-50">
-                <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span class="bg-orange-400 text-white px-3 py-1 rounded-full text-xs font-medium"
-                    >POPULAIRE</span
-                  >
-                </div>
-                <div class="text-center mb-4">
-                  <h3 class="text-lg font-semibold text-gray-900 mb-2">Forfait 5 séances</h3>
-                  <div class="text-3xl font-bold text-orange-600">
-                    {{ Math.round(getCoachPrice(coach) * 4.5) }}€
-                  </div>
-                  <p class="text-sm text-gray-600">
-                    {{ Math.round(getCoachPrice(coach) * 0.9) }}€ par séance
-                  </p>
-                  <p class="text-xs text-green-600 font-medium">
-                    Économie de {{ Math.round(getCoachPrice(coach) * 0.5) }}€
-                  </p>
-                </div>
-                <ul class="text-sm text-gray-600 space-y-2 mb-6">
-                  <li>• Engagement sur 1 mois</li>
-                  <li>• Suivi personnalisé</li>
-                  <li>• 10% de réduction</li>
-                </ul>
-                <button
-                  class="w-full bg-orange-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-orange-600 transition-colors"
-                >
-                  Choisir ce forfait
-                </button>
-              </div>
-
-              <!-- 10-Session Package -->
-              <div
-                class="border border-gray-200 rounded-xl p-6 hover:border-orange-300 transition-colors"
-              >
-                <div class="text-center mb-4">
-                  <h3 class="text-lg font-semibold text-gray-900 mb-2">Forfait 10 séances</h3>
-                  <div class="text-3xl font-bold text-blue-600">
-                    {{ Math.round(getCoachPrice(coach) * 8.5) }}€
-                  </div>
-                  <p class="text-sm text-gray-600">
-                    {{ Math.round(getCoachPrice(coach) * 0.85) }}€ par séance
-                  </p>
-                  <p class="text-xs text-green-600 font-medium">
-                    Économie de {{ Math.round(getCoachPrice(coach) * 1.5) }}€
-                  </p>
-                </div>
-                <ul class="text-sm text-gray-600 space-y-2 mb-6">
-                  <li>• Engagement sur 2 mois</li>
-                  <li>• Résultats garantis</li>
-                  <li>• 15% de réduction</li>
-                </ul>
-                <button
-                  class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors"
-                >
-                  Choisir ce forfait
-                </button>
-              </div>
-            </div>
-          </div>
-
           <!-- Similar Coaches -->
           <div class="bg-white rounded-2xl shadow-lg p-8">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">
@@ -870,6 +783,17 @@ onMounted(async () => {
         .slice(0, 4)
 
       console.log('🔗 Found', similarCoaches.value.length, 'similar coaches')
+
+      // Check if contact modal should be opened automatically
+      if (route.query.contact === 'true') {
+        console.log('🔔 Auto-opening contact modal due to query parameter')
+        showContactModal.value = true
+        // Remove the query parameter from URL without navigating
+        router.replace({
+          path: route.path,
+          query: { ...route.query, contact: undefined },
+        })
+      }
     } else {
       console.log('❌ Coach not found with ID:', coachId)
     }

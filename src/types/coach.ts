@@ -14,6 +14,7 @@ export interface Coach {
   rating: number
   totalClients: number
   subscriptionStatus: 'active' | 'inactive' | 'trial'
+  // subscription_type removed - use coaches_current_subscription view instead
   services?: unknown[] // Services are managed separately in the marketplace now
   createdAt: Date
   updatedAt: Date

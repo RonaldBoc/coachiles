@@ -4,14 +4,28 @@ import { handleApiError } from '@/utils/errors'
 import { generateProfilePictureSizes, validateImageFile } from '@/utils/imageProcessing'
 
 // Helper function to map Supabase data to our Coach interface
-const mapSupabaseToCoach = (supabaseData: Tables<'coaches'>): Coach => {
+// Helper function to get subscription status
+const getSubscriptionStatus = async (coachId: string): Promise<'active' | 'inactive' | 'trial'> => {
+  const { data } = await supabase
+    .from('coaches_current_subscription')
+    .select('subscription_type, has_active_subscription')
+    .eq('id', coachId)
+    .single()
+
+  if (data?.has_active_subscription) {
+    return data.subscription_type === 'premium' ? 'active' : 'trial'
+  }
+  return 'inactive'
+}
+
+function mapSupabaseToCoach(supabaseData: Tables<'coaches'>): Coach {
   return {
     id: supabaseData.id,
     firstName: supabaseData.first_name,
-    lastName: '', // Not stored in Supabase for privacy
+    lastName: '', // No last_name column in current schema
     email: supabaseData.email,
     phone: supabaseData.phone || '',
-    photo: supabaseData.avatar_url || undefined,
+    photo: supabaseData.avatar_url || '',
     bio: supabaseData.bio || '',
     location: supabaseData.locations?.[0] || 'Martinique', // Take first location
     specialties: supabaseData.specialties || [],
@@ -20,7 +34,7 @@ const mapSupabaseToCoach = (supabaseData: Tables<'coaches'>): Coach => {
     availability: supabaseData.availability?.join(', ') || '',
     rating: supabaseData.rating || 0,
     totalClients: supabaseData.total_sessions || 0,
-    subscriptionStatus: supabaseData.subscription_type === 'free' ? 'inactive' : 'active',
+    subscriptionStatus: 'inactive', // Will be updated by getSubscriptionStatus for specific coaches
     services: [], // Not implemented yet
     createdAt: new Date(supabaseData.created_at),
     updatedAt: new Date(supabaseData.updated_at),

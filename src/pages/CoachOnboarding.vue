@@ -738,7 +738,6 @@ const completeOnboarding = async () => {
           locations: ['Martinique'],
           rating: 0,
           total_sessions: 0,
-          subscription_type: 'premium',
           is_active: true,
         },
       ])
