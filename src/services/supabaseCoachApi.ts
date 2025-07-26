@@ -5,18 +5,61 @@ import { generateProfilePictureSizes, validateImageFile } from '@/utils/imagePro
 
 // Helper function to map Supabase data to our Coach interface
 // Helper function to get subscription status
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getSubscriptionStatus = async (coachId: string): Promise<'active' | 'inactive' | 'trial'> => {
-  const { data } = await supabase
-    .from('coaches_current_subscription')
-    .select('subscription_type, has_active_subscription')
-    .eq('id', coachId)
-    .single()
+  try {
+    const { data } = await supabase
+      .from('coaches_current_subscription')
+      .select('subscription_type, has_active_subscription')
+      .eq('id', coachId)
+      .single()
 
-  if (data?.has_active_subscription) {
-    return data.subscription_type === 'premium' ? 'active' : 'trial'
+    if (data?.has_active_subscription) {
+      return data.subscription_type === 'premium' ? 'active' : 'trial'
+    }
+    return 'inactive'
+  } catch (error) {
+    console.error('Error fetching subscription status for coach', coachId, ':', error)
+    return 'inactive'
   }
-  return 'inactive'
+}
+
+// Helper function to get subscription statuses for multiple coaches
+const getMultipleSubscriptionStatuses = async (
+  coachIds: string[],
+): Promise<Map<string, 'active' | 'inactive' | 'trial'>> => {
+  try {
+    const { data, error } = await supabase
+      .from('coaches_current_subscription')
+      .select('id, subscription_type, has_active_subscription')
+      .in('id', coachIds)
+
+    if (error) {
+      console.error('Error fetching subscription statuses:', error)
+      return new Map()
+    }
+
+    const statusMap = new Map<string, 'active' | 'inactive' | 'trial'>()
+
+    data?.forEach((subscription) => {
+      let status: 'active' | 'inactive' | 'trial' = 'inactive'
+      if (subscription.has_active_subscription) {
+        status = subscription.subscription_type === 'premium' ? 'active' : 'trial'
+      }
+      statusMap.set(subscription.id, status)
+    })
+
+    // Set 'inactive' for coaches not found in the subscription data
+    coachIds.forEach((id) => {
+      if (!statusMap.has(id)) {
+        statusMap.set(id, 'inactive')
+      }
+    })
+
+    return statusMap
+  } catch (error) {
+    console.error('Error in getMultipleSubscriptionStatuses:', error)
+    return new Map()
+  }
 }
 
 function mapSupabaseToCoach(supabaseData: Tables<'coaches'>): Coach {
@@ -40,6 +83,8 @@ function mapSupabaseToCoach(supabaseData: Tables<'coaches'>): Coach {
     createdAt: new Date(supabaseData.created_at),
     updatedAt: new Date(supabaseData.updated_at),
     isActive: supabaseData.is_active,
+    hourlyRate: supabaseData.hourly_rate || 50, // Add missing hourly rate field
+    languages: supabaseData.languages || ['Français'], // Add missing languages field
   }
 }
 
@@ -133,7 +178,19 @@ export const supabaseCoachApi = {
 
       // Map Supabase data to our Coach interface
       const mappedCoaches = data?.map(mapSupabaseToCoach) || []
-      console.log('✅ Mapped coaches:', mappedCoaches)
+
+      // Fetch subscription statuses for all coaches
+      if (mappedCoaches.length > 0) {
+        const coachIds = mappedCoaches.map((coach) => coach.id)
+        const subscriptionStatuses = await getMultipleSubscriptionStatuses(coachIds)
+
+        // Update coaches with their subscription status
+        mappedCoaches.forEach((coach) => {
+          coach.subscriptionStatus = subscriptionStatuses.get(coach.id) || 'inactive'
+        })
+      }
+
+      console.log('✅ Mapped coaches with subscription status:', mappedCoaches)
 
       return {
         data: mappedCoaches,
@@ -154,7 +211,12 @@ export const supabaseCoachApi = {
       if (error) throw error
       if (!data) throw new Error('Coach not found')
 
-      return mapSupabaseToCoach(data)
+      const coach = mapSupabaseToCoach(data)
+
+      // Fetch subscription status for this coach
+      coach.subscriptionStatus = await getSubscriptionStatus(id)
+
+      return coach
     } catch (error) {
       throw handleApiError(error)
     }
@@ -173,7 +235,12 @@ export const supabaseCoachApi = {
       if (error) throw error
       if (!data) throw new Error('Coach not found')
 
-      return mapSupabaseToCoach(data)
+      const coach = mapSupabaseToCoach(data)
+
+      // Fetch subscription status for this coach
+      coach.subscriptionStatus = await getSubscriptionStatus(data.id)
+
+      return coach
     } catch (error) {
       throw handleApiError(error)
     }
@@ -242,11 +309,35 @@ export const supabaseCoachApi = {
         `📸 Processing avatar for coach ${coachId}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`,
       )
 
+      // Clean up old avatar files before uploading new ones
+      try {
+        const { data: existingFiles } = await supabase.storage
+          .from('coach-avatars')
+          .list('avatars', {
+            search: coachId,
+          })
+
+        if (existingFiles && existingFiles.length > 0) {
+          const filesToDelete = existingFiles
+            .filter((f) => f.name.startsWith(coachId))
+            .map((f) => `avatars/${f.name}`)
+
+          if (filesToDelete.length > 0) {
+            console.log(`🗑️ Cleaning up ${filesToDelete.length} old avatar files`)
+            await supabase.storage.from('coach-avatars').remove(filesToDelete)
+          }
+        }
+      } catch (cleanupError) {
+        console.warn('⚠️ Could not cleanup old avatars:', cleanupError)
+        // Don't fail the upload if cleanup fails
+      }
+
       // Generate multiple sizes
       const processedImages = await generateProfilePictureSizes(file)
 
       const fileExt = 'jpg' // Always save as JPG for consistency
-      const basePath = `avatars/${coachId}`
+      const timestamp = Date.now()
+      const basePath = `avatars/${coachId}_${timestamp}`
 
       // Upload all sizes
       const uploadPromises = [
@@ -254,7 +345,6 @@ export const supabaseCoachApi = {
         supabase.storage
           .from('coach-avatars')
           .upload(`${basePath}_thumb.${fileExt}`, processedImages.thumbnail, {
-            upsert: true,
             cacheControl: '3600',
           }),
 
@@ -262,7 +352,6 @@ export const supabaseCoachApi = {
         supabase.storage
           .from('coach-avatars')
           .upload(`${basePath}_profile.${fileExt}`, processedImages.profile, {
-            upsert: true,
             cacheControl: '3600',
           }),
 
@@ -270,7 +359,6 @@ export const supabaseCoachApi = {
         supabase.storage
           .from('coach-avatars')
           .upload(`${basePath}_highres.${fileExt}`, processedImages.highRes, {
-            upsert: true,
             cacheControl: '3600',
           }),
       ]

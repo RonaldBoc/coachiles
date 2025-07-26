@@ -12,12 +12,17 @@
               </p>
             </div>
             <button
-              v-if="!isEditingService"
+              v-if="!isEditingService && !isLoadingServices"
               @click="addNewService"
               class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               + Ajouter un service
             </button>
+            <!-- Loading button skeleton -->
+            <div
+              v-else-if="isLoadingServices"
+              class="animate-pulse bg-gray-200 h-10 w-32 rounded-md"
+            ></div>
           </div>
         </div>
       </div>
@@ -309,7 +314,66 @@
       <!-- Services List -->
       <div v-if="!isEditingService" class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
         <div class="px-4 py-6 sm:p-8">
-          <div v-if="coachServices.length === 0" class="text-center py-12">
+          <!-- Loading Skeleton -->
+          <div v-if="isLoadingServices" class="space-y-4">
+            <div
+              v-for="n in 3"
+              :key="n"
+              class="border border-gray-200 rounded-lg p-6 animate-pulse"
+            >
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <!-- Title and status skeleton -->
+                  <div class="flex items-center space-x-3 mb-2">
+                    <div class="h-5 bg-gray-300 rounded w-48"></div>
+                    <div class="h-4 bg-gray-200 rounded w-16"></div>
+                  </div>
+
+                  <!-- Description skeleton -->
+                  <div class="mb-3">
+                    <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                  </div>
+
+                  <!-- Details grid skeleton -->
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                    <div>
+                      <div class="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                      <div class="h-4 bg-gray-300 rounded w-20"></div>
+                    </div>
+                    <div>
+                      <div class="h-3 bg-gray-200 rounded w-12 mb-1"></div>
+                      <div class="h-4 bg-gray-300 rounded w-16"></div>
+                    </div>
+                    <div>
+                      <div class="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                      <div class="h-4 bg-gray-300 rounded w-12"></div>
+                    </div>
+                    <div>
+                      <div class="h-3 bg-gray-200 rounded w-20 mb-1"></div>
+                      <div class="h-4 bg-gray-300 rounded w-12"></div>
+                    </div>
+                  </div>
+
+                  <!-- Tags skeleton -->
+                  <div class="flex flex-wrap gap-2">
+                    <div class="h-5 bg-gray-200 rounded-full w-24"></div>
+                    <div class="h-5 bg-gray-200 rounded-full w-28"></div>
+                    <div class="h-5 bg-gray-200 rounded-full w-32"></div>
+                  </div>
+                </div>
+
+                <!-- Action buttons skeleton -->
+                <div class="flex space-x-2 ml-4">
+                  <div class="h-4 bg-gray-200 rounded w-16"></div>
+                  <div class="h-4 bg-gray-200 rounded w-20"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- No services message -->
+          <div v-else-if="coachServices.length === 0" class="text-center py-12">
             <svg
               class="mx-auto h-12 w-12 text-gray-400"
               fill="none"
@@ -342,6 +406,7 @@
             </div>
           </div>
 
+          <!-- Services list -->
           <div v-else class="space-y-4">
             <div
               v-for="service in coachServices"
@@ -447,6 +512,7 @@ const authStore = useAuthStore()
 const coachServices = ref<CoachService[]>([])
 const isEditingService = ref(false)
 const editingServiceId = ref<string | null>(null)
+const isLoadingServices = ref(true) // Add loading state
 
 // Form data
 const serviceForm = ref<ServiceFormData>({
@@ -597,11 +663,18 @@ const copyAvailabilityFromProfile = () => {
 // Load services when component mounts
 const loadCoachServices = async () => {
   try {
+    isLoadingServices.value = true
+
+    // Small delay to ensure skeleton is visible (can be removed in production)
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
     const services = await supabaseCoachServicesApi.getCoachServices()
     coachServices.value = services
     console.log('✅ Loaded', services.length, 'services')
   } catch (error) {
     console.error('❌ Error loading services:', error)
+  } finally {
+    isLoadingServices.value = false
   }
 }
 

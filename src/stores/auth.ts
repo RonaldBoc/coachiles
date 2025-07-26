@@ -256,6 +256,34 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Refresh just the subscription status for the current coach
+  const refreshSubscriptionStatus = async () => {
+    if (!coach.value?.id) {
+      console.warn('⚠️ No coach loaded, cannot refresh subscription status')
+      return
+    }
+
+    try {
+      console.log('🔄 Refreshing subscription status for coach:', coach.value.id)
+      const oldStatus = coach.value.subscriptionStatus
+      const newStatus = await getCoachSubscriptionStatus(coach.value.id)
+
+      // Update the coach object with new subscription status
+      coach.value = {
+        ...coach.value,
+        subscriptionStatus: newStatus,
+      }
+
+      console.log('✅ Subscription status refreshed:', oldStatus, '->', newStatus)
+
+      if (oldStatus !== newStatus) {
+        console.log('🔄 Subscription status changed, UI should update automatically')
+      }
+    } catch (err) {
+      console.error('❌ Error refreshing subscription status:', err)
+    }
+  }
+
   // Create a new coach profile
   const createCoachProfile = async () => {
     if (!user.value?.email) {
@@ -618,6 +646,7 @@ export const useAuthStore = defineStore('auth', () => {
     resetPassword,
     updateCoachProfile,
     loadCoachProfile,
+    refreshSubscriptionStatus,
     createCoachProfile,
     setError,
     clearError,

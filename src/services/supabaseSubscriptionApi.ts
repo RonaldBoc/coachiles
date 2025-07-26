@@ -1,35 +1,39 @@
 import { supabase } from '@/utils/supabase'
 import { handleApiError } from '@/utils/errors'
 
-// Database subscription type (matches Supabase schema)
+// Database subscription type (matches coaches_current_subscription view)
 export interface Subscription {
   id: string
-  created_at: string
-  updated_at: string
-  coach_id: string
-  plan_type: string
-  status: string
+  email: string
+  first_name: string
+  last_name: string
+  coach_is_active: boolean
+  subscription_type: string
+  plan_name: string
+  plan_limits: Record<string, unknown>
+  plan_features: Record<string, unknown>
+  plan_price: number
+  subscription_status: string
   current_period_start: string
   current_period_end: string
-  price: number
-  features: string[]
-  is_active: boolean
+  subscription_is_active: boolean
   auto_renew: boolean
   payment_method: string | null
   last_payment_at: string | null
   next_payment_at: string | null
+  has_active_subscription: boolean
+  max_leads: number
 }
 
 // Supabase Subscription API service
 export const supabaseSubscriptionApi = {
-  // Get coach's current subscription
+  // Get coach's current subscription from the view
   getCoachSubscription: async (coachId: string): Promise<Subscription | null> => {
     try {
       const { data, error } = await supabase
-        .from('subscriptions')
+        .from('coaches_current_subscription')
         .select('*')
-        .eq('coach_id', coachId)
-        .eq('is_active', true)
+        .eq('id', coachId)
         .single()
 
       if (error && error.code !== 'PGRST116') {
@@ -47,20 +51,28 @@ export const supabaseSubscriptionApi = {
   createSubscription: async (subscriptionData: {
     coachId: string
     planType: string
-    price: number
-    features: string[]
     currentPeriodStart: string
     currentPeriodEnd: string
     paymentMethod?: string
-  }): Promise<Subscription> => {
+  }): Promise<{ id: string; coach_id: string; plan_id: string; status: string; price: number }> => {
     try {
+      // First, get the plan ID for the plan type
+      const { data: planData, error: planError } = await supabase
+        .from('subscription_plans')
+        .select('id, price')
+        .eq('plan_type', subscriptionData.planType)
+        .single()
+
+      if (planError || !planData) {
+        throw new Error(`Plan type '${subscriptionData.planType}' not found`)
+      }
+
       const { data, error } = await supabase
         .from('subscriptions')
         .insert({
           coach_id: subscriptionData.coachId,
-          plan_type: subscriptionData.planType,
-          price: subscriptionData.price,
-          features: subscriptionData.features,
+          plan_id: planData.id,
+          price: planData.price,
           current_period_start: subscriptionData.currentPeriodStart,
           current_period_end: subscriptionData.currentPeriodEnd,
           payment_method: subscriptionData.paymentMethod,
@@ -85,8 +97,13 @@ export const supabaseSubscriptionApi = {
   // Update subscription
   updateSubscription: async (
     subscriptionId: string,
-    updates: Partial<Subscription>,
-  ): Promise<Subscription> => {
+    updates: {
+      status?: string
+      is_active?: boolean
+      auto_renew?: boolean
+      payment_method?: string
+    },
+  ): Promise<{ id: string; status: string; is_active: boolean }> => {
     try {
       const { data, error } = await supabase
         .from('subscriptions')
@@ -108,7 +125,9 @@ export const supabaseSubscriptionApi = {
   },
 
   // Cancel subscription
-  cancelSubscription: async (subscriptionId: string): Promise<Subscription> => {
+  cancelSubscription: async (
+    subscriptionId: string,
+  ): Promise<{ id: string; status: string; is_active: boolean }> => {
     try {
       const { data, error } = await supabase
         .from('subscriptions')
@@ -132,7 +151,9 @@ export const supabaseSubscriptionApi = {
   },
 
   // Reactivate subscription
-  reactivateSubscription: async (subscriptionId: string): Promise<Subscription> => {
+  reactivateSubscription: async (
+    subscriptionId: string,
+  ): Promise<{ id: string; status: string; is_active: boolean }> => {
     try {
       const { data, error } = await supabase
         .from('subscriptions')
@@ -213,7 +234,19 @@ export const supabaseSubscriptionApi = {
     try {
       const { data, error } = await supabase
         .from('subscriptions')
-        .select('*')
+        .select(
+          `
+          id,
+          plan_id,
+          status,
+          current_period_start,
+          current_period_end,
+          price,
+          payment_method,
+          created_at,
+          subscription_plans(name, plan_type)
+        `,
+        )
         .eq('coach_id', coachId)
         .order('created_at', { ascending: false })
 

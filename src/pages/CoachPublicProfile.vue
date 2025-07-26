@@ -192,52 +192,60 @@
                 :disabled="isLoadingServices"
                 class="flex items-center space-x-2 text-gray-500 hover:text-orange-600 transition-colors disabled:opacity-50"
                 title="Actualiser les services"
-              >
-                <svg
-                  :class="['w-5 h-5', { 'animate-spin': isLoadingServices }]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                <span class="text-sm">{{
-                  isLoadingServices ? 'Actualisation...' : 'Actualiser'
-                }}</span>
-              </button>
+              ></button>
             </div>
 
-            <!-- Dynamic Services -->
-            <div v-if="isLoadingServices" class="text-center py-12">
+            <!-- Loading Skeleton (shown first while loading) -->
+            <div v-if="isLoadingServices" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Service Loading Skeletons - Only 2 cards -->
               <div
-                class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-spin"
+                v-for="n in 2"
+                :key="n"
+                class="border border-gray-200 rounded-xl p-6 animate-pulse"
               >
-                <svg
-                  class="w-5 h-5 text-orange-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
+                <div class="flex items-center mb-4">
+                  <!-- Icon skeleton -->
+                  <div class="w-12 h-12 bg-gray-200 rounded-lg mr-4"></div>
+                  <div class="flex-1">
+                    <!-- Title skeleton -->
+                    <div class="h-5 bg-gray-300 rounded w-32 mb-2"></div>
+                    <!-- Price skeletons -->
+                    <div class="space-y-1">
+                      <div class="h-4 bg-gray-200 rounded w-28"></div>
+                      <div class="h-4 bg-gray-200 rounded w-24"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Description skeleton -->
+                <div class="mb-4">
+                  <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                  <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+
+                <!-- Details list skeleton -->
+                <div class="space-y-1 mb-4">
+                  <div class="h-3 bg-gray-200 rounded w-32"></div>
+                  <div class="h-3 bg-gray-200 rounded w-48"></div>
+                  <div class="h-3 bg-gray-200 rounded w-28"></div>
+                  <div class="h-3 bg-gray-200 rounded w-40"></div>
+                </div>
+
+                <!-- Click indicator skeleton -->
+                <div class="flex items-center justify-between">
+                  <div class="h-3 bg-gray-200 rounded w-32"></div>
+                  <div class="w-4 h-4 bg-gray-200 rounded"></div>
+                </div>
               </div>
-              <p class="text-gray-600">Chargement des services...</p>
             </div>
+
+            <!-- Actual Services (shown after loading if services exist) -->
             <div v-else-if="coachServices.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div
                 v-for="service in coachServices"
                 :key="service.id"
-                class="border border-gray-200 rounded-xl p-6 hover:border-orange-300 transition-colors"
+                class="border border-gray-200 rounded-xl p-6 hover:border-orange-300 hover:shadow-md transition-all duration-200 cursor-pointer transform hover:scale-[1.02]"
+                @click="openServiceModal(service)"
               >
                 <div class="flex items-center mb-4">
                   <div
@@ -308,7 +316,7 @@
                 <p class="text-gray-600 mb-4">
                   {{ service.description || 'Service personnalisé selon vos besoins.' }}
                 </p>
-                <ul class="text-sm text-gray-500 space-y-1">
+                <ul class="text-sm text-gray-500 space-y-1 mb-4">
                   <li>• Durée: {{ service.duration }} minutes</li>
                   <li v-if="service.canBeSolo && service.canBeGroup">
                     • Disponible en individuel et en groupe
@@ -317,6 +325,23 @@
                   <li v-else-if="service.canBeGroup">• Cours en groupe uniquement</li>
                   <li>• Catégorie: {{ service.category }}</li>
                 </ul>
+                <!-- Click indicator -->
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-400 italic">Cliquez pour plus de détails</span>
+                  <svg
+                    class="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
               </div>
             </div>
 
@@ -554,7 +579,9 @@
               <!-- Key Stats -->
               <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="text-center p-3 bg-orange-50 rounded-lg">
-                  <p class="text-2xl font-bold text-orange-600">{{ getCoachPrice(coach) }}€</p>
+                  <p class="text-2xl font-bold text-orange-600">
+                    {{ coach?.hourlyRate || getCoachPrice(coach) }}€
+                  </p>
                   <p class="text-sm text-gray-600">par séance</p>
                 </div>
                 <div class="text-center p-3 bg-blue-50 rounded-lg">
@@ -587,15 +614,15 @@
 
               <!-- CTA Buttons -->
               <div class="space-y-3">
-                <button
+                <!-- <button
                   @click="bookFreeTrial"
                   class="w-full bg-gradient-to-r from-orange-500 to-blue-600 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
                 >
                   Réserver le 1er cours gratuit
-                </button>
+                </button> -->
                 <button
                   @click="contactCoach"
-                  class="w-full bg-white border-2 border-orange-400 text-orange-600 py-3 px-6 rounded-full font-semibold hover:bg-orange-50 transition-all duration-200"
+                  class="w-full bg-gradient-to-r from-orange-500 to-blue-600 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
                 >
                   Contacter {{ coach?.firstName }}
                 </button>
@@ -665,6 +692,299 @@
         </div>
       </div>
     </div>
+
+    <!-- Service Details Modal -->
+    <div
+      v-if="showServiceModal && selectedService"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      @click="closeServiceModal"
+    >
+      <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+        <!-- Modal Header -->
+        <div class="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+              <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <!-- Service icon based on type -->
+                <svg
+                  v-if="selectedService.canBeSolo && !selectedService.canBeGroup"
+                  class="w-6 h-6 text-orange-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <svg
+                  v-else-if="selectedService.canBeGroup && !selectedService.canBeSolo"
+                  class="w-6 h-6 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+                <svg
+                  v-else
+                  class="w-6 h-6 text-purple-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900">{{ selectedService.title }}</h3>
+                <p class="text-gray-600">{{ selectedService.category }}</p>
+              </div>
+            </div>
+            <button
+              @click="closeServiceModal"
+              class="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <svg
+                class="w-5 h-5 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="p-6 space-y-6">
+          <!-- Pricing Section -->
+          <div class="bg-gradient-to-r from-orange-50 to-blue-50 rounded-xl p-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">Tarifs</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                v-if="selectedService.canBeSolo && selectedService.soloPrice"
+                class="bg-white rounded-lg p-4"
+              >
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm text-gray-600">Cours particulier</p>
+                    <p class="text-2xl font-bold text-orange-600">
+                      {{ selectedService.soloPrice }}€
+                    </p>
+                  </div>
+                  <svg
+                    class="w-8 h-8 text-orange-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">
+                  Par séance de {{ selectedService.duration }} minutes
+                </p>
+              </div>
+              <div
+                v-if="selectedService.canBeGroup && selectedService.groupPrice"
+                class="bg-white rounded-lg p-4"
+              >
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm text-gray-600">Cours en groupe</p>
+                    <p class="text-2xl font-bold text-blue-600">
+                      {{ selectedService.groupPrice }}€
+                    </p>
+                  </div>
+                  <svg
+                    class="w-8 h-8 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">
+                  Par personne / {{ selectedService.duration }} minutes
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div v-if="selectedService.description">
+            <h4 class="text-lg font-semibold text-gray-900 mb-3">Description</h4>
+            <p class="text-gray-700 leading-relaxed">{{ selectedService.description }}</p>
+          </div>
+
+          <!-- Service Details -->
+          <div>
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">Détails du service</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                  <span class="text-gray-600">Durée</span>
+                  <span class="font-medium text-gray-900"
+                    >{{ selectedService.duration }} minutes</span
+                  >
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-gray-600">Catégorie</span>
+                  <span class="font-medium text-gray-900">{{ selectedService.category }}</span>
+                </div>
+                <div v-if="selectedService.subCategory" class="flex items-center justify-between">
+                  <span class="text-gray-600">Sous-catégorie</span>
+                  <span class="font-medium text-gray-900">{{ selectedService.subCategory }}</span>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                  <span class="text-gray-600">Format</span>
+                  <div class="text-right">
+                    <span
+                      v-if="selectedService.canBeSolo && selectedService.canBeGroup"
+                      class="font-medium text-gray-900"
+                    >
+                      Individuel & Groupe
+                    </span>
+                    <span v-else-if="selectedService.canBeSolo" class="font-medium text-gray-900">
+                      Cours particulier
+                    </span>
+                    <span v-else-if="selectedService.canBeGroup" class="font-medium text-gray-900">
+                      Cours en groupe
+                    </span>
+                  </div>
+                </div>
+                <div v-if="selectedService.hasFreeTrial" class="flex items-center justify-between">
+                  <span class="text-gray-600">Essai gratuit</span>
+                  <span
+                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                  >
+                    Disponible
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Location Options -->
+          <div>
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">Lieux disponibles</h4>
+            <div class="space-y-3">
+              <div v-if="selectedService.canBeAtHome" class="flex items-center">
+                <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span class="text-gray-700">À domicile</span>
+              </div>
+              <div v-if="selectedService.canBeOnline" class="flex items-center">
+                <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span class="text-gray-700">En ligne (visioconférence)</span>
+              </div>
+              <div v-if="selectedService.canBeInPublicSpaces" class="flex items-center">
+                <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span class="text-gray-700">Espaces publics (parcs, plages)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Free Trial Info -->
+          <div
+            v-if="selectedService.hasFreeTrial && selectedService.freeTrialModalities"
+            class="bg-green-50 border border-green-200 rounded-lg p-4"
+          >
+            <div class="flex items-start">
+              <svg
+                class="w-5 h-5 text-green-600 mr-3 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <div>
+                <p class="font-medium text-green-800 mb-1">Séance d'essai gratuite</p>
+                <p class="text-sm text-green-700">{{ selectedService.freeTrialModalities }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cancellation Policy -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <h5 class="font-medium text-gray-900 mb-2">Politique d'annulation</h5>
+            <p class="text-sm text-gray-600">{{ selectedService.cancellationPolicy }}</p>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="sticky bottom-0 bg-white border-t border-gray-200 p-6 rounded-b-2xl">
+          <div class="flex space-x-4">
+            <button
+              @click="contactCoachFromService"
+              class="flex-1 bg-gradient-to-r from-orange-500 to-blue-600 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+            >
+              Contacter {{ coach?.firstName }}
+            </button>
+            <button
+              @click="closeServiceModal"
+              class="px-6 py-3 bg-gray-100 text-gray-700 rounded-full font-medium hover:bg-gray-200 transition-colors"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -693,6 +1013,8 @@ const coachServices = ref<CoachService[]>([])
 const similarCoaches = ref<Coach[]>([])
 const showContactModal = ref(false)
 const showTrialModal = ref(false)
+const showServiceModal = ref(false)
+const selectedService = ref<CoachService | null>(null)
 const isLoading = ref(false)
 const isLoadingServices = ref(false)
 const isCoachCertified = ref<boolean>(false) // Track if current coach has active subscription
@@ -746,6 +1068,24 @@ const contactCoach = () => {
   showContactModal.value = true
 }
 
+const openServiceModal = (service: CoachService) => {
+  selectedService.value = service
+  showServiceModal.value = true
+}
+
+const closeServiceModal = () => {
+  showServiceModal.value = false
+  selectedService.value = null
+}
+
+const contactCoachFromService = () => {
+  // Close service modal and open contact modal
+  closeServiceModal()
+  setTimeout(() => {
+    showContactModal.value = true
+  }, 100)
+}
+
 const submitContact = (requestData: Partial<ClientRequest>) => {
   console.log('Contact submitted:', requestData)
   showContactModal.value = false
@@ -780,6 +1120,10 @@ const loadCoachServices = async (coachId: string) => {
   try {
     isLoadingServices.value = true
     console.log('📡 Loading services for coach:', coachId)
+
+    // Small delay to ensure skeleton is visible (can be removed in production)
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
     const services = await supabaseCoachServicesApi.getPublicCoachServices(coachId)
     coachServices.value = services
     console.log('✅ Loaded', services.length, 'services')
@@ -815,12 +1159,14 @@ onMounted(async () => {
   const coachId = route.params.id as string
   console.log('🔍 CoachPublicProfile: Loading coach profile for ID:', coachId)
 
+  // Set loading states immediately to show skeleton
+  isLoading.value = true
+  isLoadingServices.value = true
+
   // Add visibility change listener to refresh services when page becomes visible
   document.addEventListener('visibilitychange', handleVisibilityChange)
 
   try {
-    isLoading.value = true
-
     // Load coaches from API if not already loaded
     if (coachStore.coaches.length === 0) {
       console.log('📡 Loading coaches from API...')
@@ -862,9 +1208,13 @@ onMounted(async () => {
       }
     } else {
       console.log('❌ Coach not found with ID:', coachId)
+      // Stop services loading since no coach was found
+      isLoadingServices.value = false
     }
   } catch (error) {
     console.error('❌ Error loading coach profile:', error)
+    // Stop services loading on error
+    isLoadingServices.value = false
   } finally {
     isLoading.value = false
   }

@@ -8,6 +8,7 @@
             <!-- Profile Photo -->
             <div class="relative group">
               <img
+                :key="`profile-photo-${profileData?.updatedAt?.getTime() || 'default'}`"
                 :src="profileData?.photo || '/default-avatar.svg'"
                 :alt="`${profileData?.firstName || 'Coach'}`"
                 class="h-24 w-24 rounded-full object-cover bg-gray-200"

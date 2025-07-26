@@ -155,30 +155,45 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
       if (subscription) {
         currentSubscription.value = {
           id: subscription.id,
-          planId: subscription.plan_type === 'premium' ? 'pro_monthly' : undefined,
-          status: subscription.status === 'active' ? 'active' : 'inactive',
-          currentPeriodStart: new Date(subscription.current_period_start),
-          currentPeriodEnd: new Date(subscription.current_period_end),
+          planId: subscription.subscription_type === 'premium' ? 'pro_monthly' : undefined,
+          status: subscription.subscription_status === 'active' ? 'active' : 'inactive',
+          currentPeriodStart: subscription.current_period_start
+            ? new Date(subscription.current_period_start)
+            : undefined,
+          currentPeriodEnd: subscription.current_period_end
+            ? new Date(subscription.current_period_end)
+            : undefined,
           nextBillingDate: subscription.next_payment_at
             ? new Date(subscription.next_payment_at)
             : undefined,
-          autoRenew: subscription.auto_renew,
+          autoRenew: subscription.auto_renew || false,
           cancelAtPeriodEnd: false, // TODO: Add this field to database
-          isActive: subscription.is_active,
+          isActive: subscription.has_active_subscription,
         }
       }
 
       // Load billing history
       const history = await supabaseSubscriptionApi.getSubscriptionHistory(authStore.coach.id)
-      billingHistory.value = history.map((h) => ({
-        id: h.id,
-        amount: h.price,
-        currency: 'EUR',
-        status: 'paid', // Assuming paid for now
-        description: `Abonnement ${h.plan_type} - ${new Date(h.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`,
-        date: new Date(h.created_at),
-        paymentMethod: h.payment_method || undefined,
-      }))
+      billingHistory.value = history.map(
+        (h: {
+          id: string
+          price: number
+          created_at: string
+          payment_method?: string
+          subscription_plans: { name: string; plan_type: string }[]
+        }) => ({
+          id: h.id,
+          amount: h.price,
+          currency: 'EUR',
+          status: 'paid', // Assuming paid for now
+          description: `Abonnement ${h.subscription_plans?.[0]?.name || h.subscription_plans?.[0]?.plan_type || 'Premium'} - ${new Date(h.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`,
+          date: new Date(h.created_at),
+          paymentMethod: h.payment_method || undefined,
+        }),
+      )
+
+      // Sync auth store's subscription status after loading data
+      await authStore.refreshSubscriptionStatus()
     } catch (err) {
       console.error('Error loading subscription data:', err)
       setError("Erreur lors du chargement de l'abonnement")
@@ -208,8 +223,6 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
       await supabaseSubscriptionApi.createSubscription({
         coachId: authStore.coach.id,
         planType: 'premium', // Map to database enum
-        price: plan.price,
-        features: plan.features,
         currentPeriodStart: now.toISOString(),
         currentPeriodEnd: nextBilling.toISOString(),
       })
@@ -235,6 +248,9 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
         description: `Abonnement ${plan.name} - ${new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`,
         date: new Date(),
       })
+
+      // Refresh auth store's subscription status
+      await authStore.refreshSubscriptionStatus()
 
       return true
     } catch (err) {
@@ -267,6 +283,9 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
         currentSubscription.value.cancelAtPeriodEnd = true
       }
 
+      // Refresh auth store's subscription status
+      await authStore.refreshSubscriptionStatus()
+
       return true
     } catch (err) {
       console.error('Error canceling subscription:', err)
@@ -294,6 +313,9 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
       currentSubscription.value.status = 'active'
       currentSubscription.value.isActive = true
       currentSubscription.value.cancelAtPeriodEnd = false
+
+      // Refresh auth store's subscription status
+      await authStore.refreshSubscriptionStatus()
 
       return true
     } catch (err) {
