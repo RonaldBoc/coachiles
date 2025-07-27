@@ -252,12 +252,12 @@
                     :label="category.category"
                   >
                     <option
-                      v-for="subcategory in category.subcategories"
-                      :key="subcategory"
-                      :value="subcategory"
-                      :disabled="profileForm.specialties.includes(subcategory)"
+                      v-for="specialty in category.specialties"
+                      :key="specialty"
+                      :value="specialty"
+                      :disabled="profileForm.specialties.includes(specialty)"
                     >
-                      {{ subcategory }}
+                      {{ specialty }}
                     </option>
                   </optgroup>
                 </select>
@@ -289,14 +289,20 @@
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Ajouter une certification</option>
-                  <option
-                    v-for="cert in certificationOptions"
-                    :key="cert"
-                    :value="cert"
-                    :disabled="profileForm.certifications.includes(cert)"
+                  <optgroup
+                    v-for="group in CERTIFICATION_OPTIONS"
+                    :key="group.category"
+                    :label="group.category"
                   >
-                    {{ cert }}
-                  </option>
+                    <option
+                      v-for="cert in group.certifications"
+                      :key="cert"
+                      :value="cert"
+                      :disabled="profileForm.certifications.includes(cert)"
+                    >
+                      {{ cert }}
+                    </option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -437,7 +443,7 @@
                 >
                   <option value="">Ajouter une langue</option>
                   <option
-                    v-for="lang in languageOptions"
+                    v-for="lang in LANGUAGE_OPTIONS"
                     :key="lang"
                     :value="lang"
                     :disabled="profileForm.languages.includes(lang)"
@@ -472,7 +478,11 @@ import { CameraIcon, MapPinIcon, UserCircleIcon } from '@heroicons/vue/24/outlin
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getCitiesByCountry, type CountryType } from '@/constants/locations'
-import { COACH_SERVICES } from '@/constants/services'
+import {
+  CERTIFICATION_OPTIONS,
+  LANGUAGE_OPTIONS,
+  SPECIALTY_OPTIONS,
+} from '@/constants/coachOptions'
 import type { AvailabilityTemplate } from '@/types/availability'
 import { DAY_NAMES, TIME_SLOTS } from '@/types/availability'
 import { supabaseCoachApi } from '@/services/supabaseCoachApi'
@@ -729,42 +739,8 @@ const locationDisplay = computed(() => {
   return profileData.value?.location || 'Non spécifié'
 })
 
-// Specialty options from services
-const specialtyOptions = COACH_SERVICES
-
-// Certification options
-const certificationOptions = [
-  'BPJEPS',
-  'CQP',
-  'Licence STAPS',
-  'Préparateur Physique',
-  'Kinésithérapeute',
-  'Certification HIIT',
-  'Certification Yoga',
-  'RYT 200',
-  'RYT 500',
-  'Certification Pilates',
-  'Certification Sophrologie',
-  'Diplôme Sophrologue',
-  'Masseur-Kinésithérapeute',
-  'Certification Massage Sportif',
-  'Diététicien',
-  'Nutritionniste',
-  'Certification Nutrition',
-  'Certification Nutrition Sportive',
-  'Militaire',
-]
-
-// Language options
-const languageOptions = [
-  'Français',
-  'Créole',
-  'Anglais',
-  'Espagnol',
-  'Portugais',
-  'Italien',
-  'Allemand',
-]
+// Specialty options from centralized config
+const specialtyOptions = SPECIALTY_OPTIONS
 
 // Functions for managing arrays
 const addSpecialty = () => {

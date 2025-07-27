@@ -288,7 +288,7 @@
               <!-- Price and contact -->
               <div class="flex justify-between items-center pt-2 border-t border-gray-100">
                 <div class="text-left">
-                  <p class="text-lg font-bold text-gray-900">{{ getCoachPrice(coach) }}€</p>
+                  <p class="text-lg font-bold text-gray-900">{{ coach?.hourlyRate }}€</p>
                   <p class="text-xs text-gray-500">par séance</p>
                 </div>
                 <button
@@ -392,19 +392,19 @@ const coachCategories = [
   { name: 'Préparation physique', emoji: '🏆' },
 ]
 // Helper function to get coach pricing
-const getCoachPrice = (coach: Coach): number => {
-  // Base price calculation based on experience and rating
-  const basePrice = 35 // Base price in euros
-  const experienceMultiplier = Math.min(coach.experience * 2, 20) // Max 20€ bonus for experience
-  const ratingBonus = (coach.rating - 4.0) * 10 // Rating bonus
-  const specialtyBonus = coach.specialties.some((s) =>
-    ['Nutrition', 'Préparation physique', 'Powerlifting', 'Tennis'].includes(s),
-  )
-    ? 10
-    : 0 // Premium specialties
+// const getCoachPrice = (coach: Coach): number => {
+//   // Base price calculation based on experience and rating
+//   const basePrice = 35 // Base price in euros
+//   const experienceMultiplier = Math.min(coach.experience * 2, 20) // Max 20€ bonus for experience
+//   const ratingBonus = (coach.rating - 4.0) * 10 // Rating bonus
+//   const specialtyBonus = coach.specialties.some((s) =>
+//     ['Nutrition', 'Préparation physique', 'Powerlifting', 'Tennis'].includes(s),
+//   )
+//     ? 10
+//     : 0 // Premium specialties
 
-  return Math.round(basePrice + experienceMultiplier + ratingBonus + specialtyBonus)
-}
+//   return Math.round(basePrice + experienceMultiplier + ratingBonus + specialtyBonus)
+// }
 
 // Check subscription status for coaches
 const checkCoachSubscriptions = async (coachIds: string[]) => {

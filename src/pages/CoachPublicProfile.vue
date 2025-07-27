@@ -87,7 +87,7 @@
             <!-- Quick Stats (Mobile) -->
             <div class="grid grid-cols-2 gap-4 mb-6">
               <div class="text-center p-3 bg-orange-50 rounded-lg">
-                <p class="text-2xl font-bold text-orange-600">{{ getCoachPrice(coach) }}€</p>
+                <p class="text-2xl font-bold text-orange-600">{{ coach?.hourlyRate }}€</p>
                 <p class="text-sm text-gray-600">par séance</p>
               </div>
               <div class="text-center p-3 bg-blue-50 rounded-lg">
@@ -516,7 +516,7 @@
                   </div>
                   <div class="text-right">
                     <p class="text-lg font-bold text-gray-900">
-                      {{ getCoachPrice(similarCoach) }}€
+                      <!-- {{ getCoachPrice(similarCoach) }}€ -->
                     </p>
                     <p class="text-xs text-gray-500">par séance</p>
                   </div>
@@ -579,28 +579,26 @@
               <!-- Key Stats -->
               <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="text-center p-3 bg-orange-50 rounded-lg">
-                  <p class="text-2xl font-bold text-orange-600">
-                    {{ coach?.hourlyRate || getCoachPrice(coach) }}€
-                  </p>
+                  <p class="text-2xl font-bold text-orange-600">{{ coach?.hourlyRate }}€</p>
                   <p class="text-sm text-gray-600">par séance</p>
                 </div>
                 <div class="text-center p-3 bg-blue-50 rounded-lg">
                   <p class="text-2xl font-bold text-blue-600">{{ coach?.experience }}</p>
                   <p class="text-sm text-gray-600">ans d'expérience</p>
                 </div>
-                <div class="text-center p-3 bg-green-50 rounded-lg">
+                <!-- <div class="text-center p-3 bg-green-50 rounded-lg">
                   <p class="text-lg font-bold text-green-600">&lt; 2h</p>
                   <p class="text-sm text-gray-600">temps de réponse</p>
-                </div>
-                <div class="text-center p-3 bg-purple-50 rounded-lg">
+                </div> -->
+                <!-- <div class="text-center p-3 bg-purple-50 rounded-lg">
                   <p class="text-lg font-bold text-purple-600">GRATUIT</p>
                   <p class="text-sm text-gray-600">1er cours</p>
-                </div>
+                </div> -->
               </div>
 
               <!-- Primary Specialties -->
               <div class="mb-6">
-                <h3 class="text-sm font-semibold text-gray-900 mb-2">Spécialités principales</h3>
+                <h3 class="text-sm font-semibold text-gray-900 mb-2">Spécialités</h3>
                 <div class="flex flex-wrap gap-2">
                   <span
                     v-for="specialty in coach?.specialties?.slice(0, 4)"
@@ -1020,19 +1018,19 @@ const isLoadingServices = ref(false)
 const isCoachCertified = ref<boolean>(false) // Track if current coach has active subscription
 
 // Helper function to get coach pricing
-const getCoachPrice = (coach: Coach | null): number => {
-  if (!coach) return 0
-  const basePrice = 35
-  const experienceMultiplier = Math.min(coach.experience * 2, 20)
-  const ratingBonus = (coach.rating - 4.0) * 10
-  const specialtyBonus = coach.specialties.some((s) =>
-    ['Nutrition', 'Préparation physique', 'Powerlifting', 'Tennis'].includes(s),
-  )
-    ? 10
-    : 0
+// const getCoachPrice = (coach: Coach | null): number => {
+//   if (!coach) return 0
+//   const basePrice = 35
+//   const experienceMultiplier = Math.min(coach.experience * 2, 20)
+//   const ratingBonus = (coach.rating - 4.0) * 10
+//   const specialtyBonus = coach.specialties.some((s) =>
+//     ['Nutrition', 'Préparation physique', 'Powerlifting', 'Tennis'].includes(s),
+//   )
+//     ? 10
+//     : 0
 
-  return Math.round(basePrice + experienceMultiplier + ratingBonus + specialtyBonus)
-}
+//   return Math.round(basePrice + experienceMultiplier + ratingBonus + specialtyBonus)
+// }
 
 // Check if coach has active subscription (certified)
 const checkCoachCertification = async (coachId: string) => {
