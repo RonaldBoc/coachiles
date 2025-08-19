@@ -35,6 +35,11 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   updated_at timestamp with time zone DEFAULT now()
 );
 
+-- Ensure Stripe identifiers exist
+ALTER TABLE subscriptions
+  ADD COLUMN IF NOT EXISTS stripe_subscription_id text,
+  ADD COLUMN IF NOT EXISTS stripe_customer_id text;
+
 -- Step 3: Insert the €9 premium plan if it doesn't exist
 INSERT INTO subscription_plans (name, plan_type, price, features, limits)
 VALUES (
@@ -250,9 +255,87 @@ EXCEPTION
 END;
 $$;
 
+-- Secure RPC: cancel at end of period (turns off auto_renew for active subscription)
+CREATE OR REPLACE FUNCTION cancel_subscription_at_period_end(
+  coach_id_param uuid
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  updated_count integer;
+BEGIN
+  UPDATE subscriptions
+  SET 
+    auto_renew = false,
+    updated_at = NOW()
+  WHERE coach_id = coach_id_param
+    AND is_active = true
+    AND status = 'active';
+
+  GET DIAGNOSTICS updated_count = ROW_COUNT;
+
+  RETURN json_build_object(
+    'success', true,
+    'updated', updated_count,
+    'coach_id', coach_id_param
+  );
+
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN json_build_object(
+      'success', false,
+      'error', SQLERRM,
+      'error_code', SQLSTATE
+    );
+END;
+$$;
+
+-- Secure RPC: reactivate subscription (turn auto_renew back on)
+CREATE OR REPLACE FUNCTION reactivate_subscription(
+  coach_id_param uuid
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  updated_count integer;
+BEGIN
+  UPDATE subscriptions
+  SET 
+    auto_renew = true,
+    status = 'active',
+    is_active = true,
+    updated_at = NOW()
+  WHERE coach_id = coach_id_param
+    AND status = 'active'
+    AND is_active = true;
+
+  GET DIAGNOSTICS updated_count = ROW_COUNT;
+
+  RETURN json_build_object(
+    'success', true,
+    'updated', updated_count,
+    'coach_id', coach_id_param
+  );
+
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN json_build_object(
+      'success', false,
+      'error', SQLERRM,
+      'error_code', SQLSTATE
+    );
+END;
+$$;
+
 -- Step 7: Grant RPC permissions
 GRANT EXECUTE ON FUNCTION create_coach_subscription(uuid, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION cancel_coach_subscription(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION cancel_subscription_at_period_end(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION reactivate_subscription(uuid) TO authenticated;
 
 -- Step 8: Test everything
 SELECT 'Setup completed successfully! Testing view...' as status;

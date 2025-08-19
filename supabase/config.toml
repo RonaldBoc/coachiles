@@ -1,0 +1,8 @@
+[functions.create-stripe-session]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.create-billing-portal-session]
+verify_jwt = false

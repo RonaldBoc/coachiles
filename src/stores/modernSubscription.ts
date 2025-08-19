@@ -1,7 +1,10 @@
+import { loadStripe } from '@stripe/stripe-js'
+
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabaseSubscriptionApi } from '@/services/supabaseSubscriptionApi'
 import { useAuthStore } from './auth'
+import { supabase } from '@/utils/supabase'
 
 export interface ModernSubscriptionPlan {
   id: string
@@ -57,6 +60,51 @@ export interface PaymentMethod {
 
 export const useModernSubscriptionStore = defineStore('modernSubscription', () => {
   // State
+  // Stripe publishable key (for frontend redirect)
+  const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''
+
+  // Subscribe using Stripe Checkout
+  const subscribeWithStripe = async () => {
+    const authStore = useAuthStore()
+    if (!authStore.coach?.id) {
+      setError('Coach non connecté')
+      return false
+    }
+    try {
+      setLoading(true)
+      clearError()
+
+      // Call backend to create Stripe Checkout session (Supabase Edge Function URL)
+      const response = await fetch(
+        'https://hthdhkyyiymlrlvmpnhy.functions.supabase.co/create-stripe-session',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ coachId: authStore.coach.id }),
+        },
+      )
+      if (!response.ok) throw new Error('Erreur lors de la création de la session Stripe')
+      const { sessionId } = await response.json()
+      if (!sessionId) throw new Error('Session Stripe non reçue')
+
+      // Redirect to Stripe Checkout (frontend only)
+      const stripe = await loadStripe(STRIPE_PUBLISHABLE_KEY)
+      if (!stripe) throw new Error('Stripe non initialisé')
+      const { error } = await stripe.redirectToCheckout({ sessionId })
+      if (error) setError(error.message ?? '')
+      return true
+    } catch (err: unknown) {
+      console.error('Stripe subscribe error:', err)
+      if (typeof err === 'object' && err && 'message' in err) {
+        setError((err as { message?: string }).message || "Erreur lors de l'abonnement Stripe")
+      } else {
+        setError("Erreur lors de l'abonnement Stripe")
+      }
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -140,6 +188,83 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
     error.value = null
   }
 
+  // Load live details from Stripe via Edge Function
+  const loadStripeLiveDetails = async () => {
+    const authStore = useAuthStore()
+    if (!authStore.coach?.id) return
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('get-subscription-status', {
+        body: { coachId: authStore.coach.id },
+      })
+      if (fnError) throw fnError
+      if (!data) return
+
+      // Default payment method (card)
+      if (data.defaultPaymentMethod) {
+        const pm = data.defaultPaymentMethod as {
+          id: string
+          brand: string
+          last4: string
+          exp_month: number
+          exp_year: number
+        }
+        paymentMethods.value = [
+          {
+            id: pm.id,
+            type: 'card',
+            brand: pm.brand,
+            last4: pm.last4,
+            expiryMonth: pm.exp_month,
+            expiryYear: pm.exp_year,
+            isDefault: true,
+            holderName: '',
+          },
+        ]
+      } else {
+        paymentMethods.value = []
+      }
+
+      // Upcoming invoice → next billing date
+      if (data.upcomingInvoice?.date) {
+        currentSubscription.value.nextBillingDate = new Date(data.upcomingInvoice.date)
+      } else if (data.subscription?.current_period_end) {
+        currentSubscription.value.nextBillingDate = new Date(data.subscription.current_period_end)
+      }
+    } catch (e) {
+      console.warn('Failed to load live Stripe details:', e)
+    }
+  }
+
+  // Open Stripe Billing Portal for managing payment methods
+  const openBillingPortal = async () => {
+    const authStore = useAuthStore()
+    if (!authStore.coach?.id) {
+      setError('Coach non connecté')
+      return false
+    }
+    try {
+      setLoading(true)
+      clearError()
+      const returnUrl = window.location.href
+      const { data, error: fnError } = await supabase.functions.invoke(
+        'create-billing-portal-session',
+        {
+          body: { coachId: authStore.coach.id, returnUrl },
+        },
+      )
+      if (fnError) throw fnError
+      if (!data?.url) throw new Error('URL du portail Stripe non reçue')
+      window.location.href = data.url
+      return true
+    } catch (e) {
+      console.error('Failed to open billing portal:', e)
+      setError("Erreur lors de l'ouverture du portail de facturation")
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Load subscription data from database
   const loadSubscriptionData = async () => {
     const authStore = useAuthStore()
@@ -167,7 +292,9 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
             ? new Date(subscription.next_payment_at)
             : undefined,
           autoRenew: subscription.auto_renew || false,
-          cancelAtPeriodEnd: false, // TODO: Add this field to database
+          cancelAtPeriodEnd: subscription.has_active_subscription
+            ? !subscription.auto_renew
+            : false,
           isActive: subscription.has_active_subscription,
         }
       }
@@ -191,6 +318,13 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
           paymentMethod: h.payment_method || undefined,
         }),
       )
+
+      // Live Stripe details (default card, upcoming invoice)
+      if (currentSubscription.value.isActive) {
+        await loadStripeLiveDetails()
+      } else {
+        paymentMethods.value = []
+      }
 
       // Sync auth store's subscription status after loading data
       await authStore.refreshSubscriptionStatus()
@@ -265,7 +399,12 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
   // Cancel subscription
   const cancelSubscription = async (immediate = false) => {
     const authStore = useAuthStore()
-    if (!authStore.coach?.id || !currentSubscription.value.id) {
+    console.log('[modernSubscription] cancelSubscription called', {
+      immediate,
+      coachId: authStore.coach?.id,
+      subId: currentSubscription.value.id,
+    })
+    if (!authStore.coach?.id) {
       setError('Aucun abonnement à annuler')
       return false
     }
@@ -273,19 +412,30 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
     try {
       setLoading(true)
       clearError()
+      console.log('[modernSubscription] starting cancellation...')
 
-      await supabaseSubscriptionApi.cancelSubscription(currentSubscription.value.id)
-
+      // Always cancel at end of billing period by turning off auto_renew
       if (immediate) {
+        if (!currentSubscription.value.id) {
+          setError('Aucun abonnement actif trouvé')
+          console.warn('[modernSubscription] no subscription id for immediate cancel')
+          return false
+        }
+        await supabaseSubscriptionApi.cancelSubscription(currentSubscription.value.id)
         currentSubscription.value.status = 'canceled'
         currentSubscription.value.isActive = false
       } else {
+        const result = await supabaseSubscriptionApi.cancelAtPeriodEndForCoach(authStore.coach.id)
+        console.log('[modernSubscription] cancelAtPeriodEndForCoach result', result)
+        if (result.updated === 0) {
+          setError('Aucun abonnement actif à annuler')
+          return false
+        }
         currentSubscription.value.cancelAtPeriodEnd = true
       }
 
-      // Refresh auth store's subscription status
       await authStore.refreshSubscriptionStatus()
-
+      console.log('[modernSubscription] cancellation completed')
       return true
     } catch (err) {
       console.error('Error canceling subscription:', err)
@@ -299,7 +449,7 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
   // Reactivate subscription
   const reactivateSubscription = async () => {
     const authStore = useAuthStore()
-    if (!authStore.coach?.id || !currentSubscription.value.id) {
+    if (!authStore.coach?.id) {
       setError('Aucun abonnement à réactiver')
       return false
     }
@@ -308,13 +458,17 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
       setLoading(true)
       clearError()
 
-      await supabaseSubscriptionApi.reactivateSubscription(currentSubscription.value.id)
+      const result = await supabaseSubscriptionApi.reactivateByCoach(authStore.coach.id)
+      if (result.updated === 0) {
+        setError('Aucun abonnement à réactiver')
+        return false
+      }
 
       currentSubscription.value.status = 'active'
       currentSubscription.value.isActive = true
       currentSubscription.value.cancelAtPeriodEnd = false
+      currentSubscription.value.autoRenew = true
 
-      // Refresh auth store's subscription status
       await authStore.refreshSubscriptionStatus()
 
       return true
@@ -435,5 +589,7 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
     removePaymentMethod,
     updateUsage,
     clearError,
+    subscribeWithStripe,
+    openBillingPortal,
   }
 })

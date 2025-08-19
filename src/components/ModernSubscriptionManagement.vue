@@ -202,11 +202,10 @@
             <p class="text-sm text-gray-600 mt-1">Gérez vos méthodes de paiement</p>
           </div>
           <button
-            @click="showPaymentModal = true"
+            @click="openBillingPortal"
             class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-            <PlusIcon class="h-4 w-4 mr-1" />
-            Ajouter
+            Gérer mes cartes
           </button>
         </div>
 
@@ -235,12 +234,6 @@
               >
                 Défaut
               </span>
-              <button
-                @click="removePaymentMethod(method.id)"
-                class="text-red-600 hover:text-red-900 text-sm"
-              >
-                Supprimer
-              </button>
             </div>
           </div>
         </div>
@@ -322,7 +315,13 @@
     <CancelSubscriptionModal
       v-if="showCancelModal"
       :show="showCancelModal"
-      @close="showCancelModal = false"
+      :loading="subscriptionStore.loading"
+      @close="
+        () => {
+          console.log('[ModernSubscriptionManagement] close modal')
+          showCancelModal = false
+        }
+      "
       @confirm="handleCancel"
     />
 
@@ -332,6 +331,21 @@
       :show="showPaymentModal"
       @close="showPaymentModal = false"
       @add="handleAddPaymentMethod"
+    />
+
+    <!-- Reactivate Confirm Modal -->
+    <ReactivateConfirmModal
+      v-if="showReactivateModal"
+      :show="showReactivateModal"
+      :loading="subscriptionStore.loading"
+      :paymentMethod="subscriptionStore.defaultPaymentMethod || null"
+      :billingDate="
+        subscriptionStore.currentSubscription.nextBillingDate ||
+        subscriptionStore.currentSubscription.currentPeriodEnd ||
+        null
+      "
+      @close="showReactivateModal = false"
+      @confirm="confirmReactivate"
     />
 
     <!-- Error Alert -->
@@ -364,7 +378,6 @@ import {
   UserGroupIcon,
   CogIcon,
   ChatBubbleLeftRightIcon,
-  PlusIcon,
   DocumentIcon,
   ArrowDownTrayIcon,
   ExclamationTriangleIcon,
@@ -374,6 +387,10 @@ import { useModernSubscriptionStore, type PaymentMethod } from '@/stores/modernS
 import ModernSubscribeModal from '@/components/ModernSubscribeModal.vue'
 import CancelSubscriptionModal from '@/components/CancelSubscriptionModal.vue'
 import PaymentMethodModal from '@/components/PaymentMethodModal.vue'
+import ReactivateConfirmModal from '@/components/ReactivateConfirmModal.vue'
+import { useToast } from '@/composables/useToast'
+
+const { success: toastSuccess, error: toastError, info: toastInfo } = useToast()
 
 const subscriptionStore = useModernSubscriptionStore()
 
@@ -381,11 +398,20 @@ const subscriptionStore = useModernSubscriptionStore()
 const showSubscribeModal = ref(false)
 const showCancelModal = ref(false)
 const showPaymentModal = ref(false)
+const showReactivateModal = ref(false)
 
 // Load subscription data on mount
 onMounted(async () => {
   await subscriptionStore.loadSubscriptionData()
 })
+
+// Open Stripe billing portal
+const openBillingPortal = async () => {
+  const ok = await subscriptionStore.openBillingPortal()
+  if (!ok && subscriptionStore.error) {
+    toastError(subscriptionStore.error, { title: 'Paiement' })
+  }
+}
 
 // Helper functions
 const formatDate = (date: Date) => {
@@ -417,34 +443,53 @@ const downloadInvoice = (url: string) => {
 
 // Event handlers
 const handleSubscribe = async () => {
-  const success = await subscriptionStore.subscribe()
+  const success = await subscriptionStore.subscribeWithStripe()
   if (success) {
     showSubscribeModal.value = false
-    // Could show success notification here
+    toastInfo('Redirection vers le paiement sécurisé…')
+  } else if (subscriptionStore.error) {
+    toastError(subscriptionStore.error, { title: 'Abonnement' })
   }
 }
 
-const handleCancel = async (immediate: boolean) => {
+const handleCancel = async (immediate: boolean, feedback?: string) => {
+  console.log('[ModernSubscriptionManagement] handleCancel', { immediate, feedback })
   const success = await subscriptionStore.cancelSubscription(immediate)
+  console.log('[ModernSubscriptionManagement] cancel result', success)
   if (success) {
     showCancelModal.value = false
+    toastSuccess('Votre abonnement sera annulé à la fin de la période en cours.', {
+      title: 'Annulation programmée',
+    })
+  } else if (subscriptionStore.error) {
+    toastError(subscriptionStore.error, { title: 'Annulation' })
   }
 }
 
 const reactivateSubscription = async () => {
-  await subscriptionStore.reactivateSubscription()
+  // open confirm modal first
+  showReactivateModal.value = true
+}
+
+const confirmReactivate = async () => {
+  const ok = await subscriptionStore.reactivateSubscription()
+  if (ok) {
+    showReactivateModal.value = false
+    toastSuccess('Abonnement réactivé. La facturation reprendra à la prochaine échéance.', {
+      title: 'Réactivation réussie',
+    })
+  } else if (subscriptionStore.error) {
+    toastError(subscriptionStore.error, { title: 'Réactivation' })
+  }
 }
 
 const handleAddPaymentMethod = async (paymentMethodData: Omit<PaymentMethod, 'id'>) => {
   const success = await subscriptionStore.addPaymentMethod(paymentMethodData)
   if (success) {
     showPaymentModal.value = false
-  }
-}
-
-const removePaymentMethod = async (paymentMethodId: string) => {
-  if (confirm('Êtes-vous sûr de vouloir supprimer ce moyen de paiement ?')) {
-    await subscriptionStore.removePaymentMethod(paymentMethodId)
+    toastSuccess('Moyen de paiement ajouté avec succès.', { title: 'Paiement' })
+  } else if (subscriptionStore.error) {
+    toastError(subscriptionStore.error, { title: 'Paiement' })
   }
 }
 </script>

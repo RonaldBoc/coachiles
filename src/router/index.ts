@@ -20,6 +20,8 @@ import APITestPage from '@/pages/APITestPage.vue'
 import AuthForm from '@/components/AuthForm.vue'
 import { requireAuth, requireAuthOnly, redirectIfAuthenticated, requireOnboarding } from './guards'
 
+import SuccessPage from '@/pages/Success.vue'
+
 const routes = [
   { path: '/', redirect: '/coaches' },
   { path: '/coaches', component: CoachBrowser },
@@ -108,6 +110,7 @@ const routes = [
     component: AccountDeletionDemo,
   },
   { path: '/coach/leads', redirect: '/coach/proposals' },
+  { path: '/success', component: SuccessPage },
   // Legacy routes for backward compatibility
   { path: '/CoachProfile', redirect: '/coach/profile' },
   { path: '/CoachAccount', redirect: '/coach/account' },

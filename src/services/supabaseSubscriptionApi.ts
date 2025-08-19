@@ -278,6 +278,39 @@ export const supabaseSubscriptionApi = {
       return true
     }
   },
+
+  // Cancel at period end for a coach (secure RPC)
+  cancelAtPeriodEndForCoach: async (coachId: string): Promise<{ updated: number }> => {
+    try {
+      const { data, error } = await supabase.rpc('cancel_subscription_at_period_end', {
+        coach_id_param: coachId,
+      })
+
+      if (error) throw error
+      const result = (data ?? {}) as { success?: boolean; updated?: number }
+      if (!result.success) {
+        throw new Error('RPC cancel_subscription_at_period_end failed')
+      }
+      return { updated: result.updated ?? 0 }
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  // Reactivate by coach (secure RPC)
+  reactivateByCoach: async (coachId: string): Promise<{ updated: number }> => {
+    try {
+      const { data, error } = await supabase.rpc('reactivate_subscription', {
+        coach_id_param: coachId,
+      })
+      if (error) throw error
+      const result = (data ?? {}) as { success?: boolean; updated?: number }
+      if (!result.success) throw new Error('RPC reactivate_subscription failed')
+      return { updated: result.updated ?? 0 }
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
 }
 
 export default supabaseSubscriptionApi

@@ -263,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue'
 import {
@@ -277,20 +277,38 @@ import {
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
+import { useLeadStore } from '@/stores/leads'
 
 // Router
 const router = useRouter()
 
 // Auth Store
 const authStore = useAuthStore()
+const leadStore = useLeadStore()
 
 // Component State
 const showMobileMenu = ref(false)
 
 // Computed
 const coach = computed(() => authStore.coach)
-const newProposalsCount = ref(2) // TODO: Get from proposals store
+const newProposalsCount = computed(() => leadStore.newLeadsCount)
 const hasNotifications = computed(() => newProposalsCount.value > 0)
+
+// Ensure leads are loaded for the badge when coach is available
+watch(
+  () => authStore.coach?.id,
+  async (coachId) => {
+    if (!coachId) return
+    try {
+      if (leadStore.leads.length === 0) {
+        await leadStore.fetchLeads(coachId)
+      }
+    } catch (e) {
+      console.warn('Failed to fetch leads for header badge', e)
+    }
+  },
+  { immediate: true },
+)
 
 // Methods
 const handleSignOut = async () => {

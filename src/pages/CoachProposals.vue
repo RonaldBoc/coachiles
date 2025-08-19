@@ -14,7 +14,7 @@
           </div>
 
           <!-- TESTING: Subscription Toggle Button (REMOVE IN PRODUCTION) -->
-          <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <!-- <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-sm font-medium text-red-800">🧪 TESTING MODE</h3>
@@ -37,7 +37,7 @@
                 <span v-else>🔄 Updating...</span>
               </button>
             </div>
-          </div>
+          </div> -->
 
           <!-- Subscription Notice -->
           <div
