@@ -498,7 +498,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue'
 import { EllipsisVerticalIcon, EyeIcon, CheckIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
@@ -890,6 +890,18 @@ const toggleSubscriptionForTesting = async () => {
 
 // Lifecycle
 onMounted(() => {
-  loadLeads()
+  if (currentCoach.value?.id) {
+    loadLeads()
+  }
 })
+
+// Ensure leads load when auth store finishes initializing
+watch(
+  () => currentCoach.value?.id,
+  (id) => {
+    if (id && leads.value.length === 0 && !isLoading.value) {
+      loadLeads()
+    }
+  },
+)
 </script>
