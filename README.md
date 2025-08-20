@@ -50,6 +50,34 @@ A modern, responsive Vue.js application for coaching professionals to manage cli
 ### Development
 
 ```json
+
+## Superadmin page
+
+A minimal, read-only Superadmin dashboard is available at `/superadmin`.
+
+What it includes now:
+- Overview KPIs (coaches, active leads, pending deletions, recent reactivations)
+- Coaches list (name, email, status, subscription, created)
+- Leads list (basic info, status, assigned coach)
+- Account deletion logs (with coach names)
+
+Access control:
+- Frontend guard checks superadmin status via an RPC if available, otherwise via `VITE_SUPERADMINS` allowlist.
+- Backend SQL migration provides `admin_users` table and secure RPCs (SECURITY DEFINER) for read-only data.
+
+Setup steps:
+1) Add an allowlist in your env (quick local fallback):
+   - In `.env.local`, set `VITE_SUPERADMINS=email1@example.com,email2@example.com`
+2) Apply the admin SQL migration in Supabase (recommended for production):
+   - Open the SQL Editor and run `migrations/08_admin_roles_and_rpcs.sql`
+   - Optionally seed your email: `INSERT INTO public.admin_users(email) VALUES ('you@example.com') ON CONFLICT DO NOTHING;`
+
+Use:
+- Start dev server and visit `http://localhost:5173/superadmin` while logged in.
+
+Notes:
+- If your RLS policies block direct selects, the page will automatically use the secure RPCs created by the migration.
+- You can extend the RPCs or add write operations with proper safety rails in follow-ups.
 {
   "@tailwindcss/forms": "^0.5.7",
   "@tailwindcss/typography": "^0.5.10",

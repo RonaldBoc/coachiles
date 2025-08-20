@@ -1,5 +1,6 @@
 import type { NavigationGuard } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { AdminApi } from '@/services/supabaseAdminApi'
 
 // Route guard to protect coach-only routes
 export const requireAuth: NavigationGuard = async (to, from, next) => {
@@ -157,4 +158,29 @@ export const redirectIfAuthenticated: NavigationGuard = async (to, from, next) =
   } else {
     next()
   }
+}
+
+// Route guard to restrict to superadmin users.
+export const requireSuperadmin: NavigationGuard = async (to, from, next) => {
+  const authStore = useAuthStore()
+
+  // Ensure auth is initialized
+  let attempts = 0
+  while ((!authStore.isInitialized || authStore.loading) && attempts < 50) {
+    await new Promise((r) => setTimeout(r, 100))
+    attempts++
+  }
+
+  if (!authStore.isAuthenticated) {
+    return next({ path: '/auth', query: { redirect: to.fullPath } })
+  }
+
+  try {
+    const ok = await AdminApi.isSuperadmin()
+    if (ok) return next()
+  } catch (e) {
+    console.warn('Superadmin check failed:', e)
+  }
+
+  return next({ path: '/', query: { forbidden: 'superadmin' } })
 }

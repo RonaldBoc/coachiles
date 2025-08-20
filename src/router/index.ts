@@ -18,7 +18,14 @@ import AccountReactivation from '@/pages/AccountReactivation.vue'
 import AccountDeletionDemo from '@/pages/AccountDeletionDemo.vue'
 import APITestPage from '@/pages/APITestPage.vue'
 import AuthForm from '@/components/AuthForm.vue'
-import { requireAuth, requireAuthOnly, redirectIfAuthenticated, requireOnboarding } from './guards'
+import {
+  requireAuth,
+  requireAuthOnly,
+  redirectIfAuthenticated,
+  requireOnboarding,
+  requireSuperadmin,
+} from './guards'
+import Superadmin from '@/pages/Superadmin.vue'
 
 import SuccessPage from '@/pages/Success.vue'
 
@@ -104,6 +111,11 @@ const routes = [
   {
     path: '/test-api',
     component: APITestPage,
+  },
+  {
+    path: '/superadmin',
+    component: Superadmin,
+    beforeEnter: [requireAuthOnly, requireSuperadmin],
   },
   {
     path: '/demo/account-deletion',
