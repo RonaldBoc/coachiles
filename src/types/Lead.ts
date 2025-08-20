@@ -7,12 +7,12 @@ export interface ClientRequest {
   coachingGoals?: string
   preferredLocation?: string
   preferredCoaching?: string[]
-  budget?: string
   availabilityNotes?: string
   availability?: string
   experience?: string
   additionalInfo?: string
   specialtyPreferences?: string[]
+  startTimeframe?: string
   status: 'pending' | 'unlocked' | 'contacted'
   createdAt: Date
   targetCoaches: string[]
@@ -23,6 +23,7 @@ export interface ClientRequest {
   currentStep?: number
   completedSteps?: number[]
   isCompleted?: boolean
+  doNotContact?: boolean
 }
 
 export interface Lead {
@@ -38,6 +39,7 @@ export interface Lead {
   experience?: string
   availability?: string
   budget?: string
+  start_timeframe?: string
   additional_info?: string
   status: 'new' | 'assigned' | 'contacted' | 'converted' | 'closed'
   coach_id?: string
@@ -49,11 +51,13 @@ export interface Lead {
   converted_booking_id?: string
   estimated_value?: number
   actual_value?: number
+  do_not_contact?: boolean
 
   // Multistep tracking
   current_step: number
   completed_steps: readonly number[]
   is_completed: boolean
+  lead_score?: number
 }
 
 export interface LeadMetrics {

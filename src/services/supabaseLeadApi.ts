@@ -51,6 +51,20 @@ export const supabaseLeadApi = {
     }
   },
 
+  // Assign a lead to a coach (claim). Note: RLS may require a SECURITY DEFINER RPC for production.
+  assignLeadToCoach: async (leadId: string, coachId: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ coach_id: coachId, status: 'assigned', updated_at: new Date().toISOString() })
+        .eq('id', leadId)
+
+      if (error) throw error
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
   // Create new lead (client request)
   createLead: async (leadData: {
     clientName: string
@@ -60,8 +74,8 @@ export const supabaseLeadApi = {
     goals: string
     experience: string
     availability: string
-    budget: string
     location: string
+    startTimeframe?: string
     additionalInfo?: string
   }): Promise<Lead> => {
     try {
@@ -75,7 +89,7 @@ export const supabaseLeadApi = {
           goals: leadData.goals,
           experience: leadData.experience,
           availability: leadData.availability,
-          budget: leadData.budget,
+          start_timeframe: leadData.startTimeframe,
           location: leadData.location,
           additional_info: leadData.additionalInfo,
           status: 'new',
@@ -202,59 +216,11 @@ export const supabaseLeadApi = {
         query = query.gte('created_at', dateFilter)
       }
 
-      const { data: leads, error } = await query
+      const { data, error } = await query.order('created_at', { ascending: false })
 
       if (error) throw error
 
-      const totalLeads = leads?.length || 0
-      const newLeads = leads?.filter((lead) => lead.status === 'new').length || 0
-      const contactedLeads = leads?.filter((lead) => lead.contacted_at).length || 0
-      const convertedLeads = leads?.filter((lead) => lead.status === 'converted').length || 0
-
-      // Calculate average response time
-      const contactedWithTimes = leads?.filter((lead) => lead.contacted_at && lead.created_at) || []
-
-      const averageResponseTime =
-        contactedWithTimes.length > 0
-          ? contactedWithTimes.reduce((sum, lead) => {
-              const created = new Date(lead.created_at)
-              const contacted = new Date(lead.contacted_at!)
-              return sum + (contacted.getTime() - created.getTime())
-            }, 0) /
-            (contactedWithTimes.length * 1000 * 60 * 60) // Convert to hours
-          : 0
-
-      return {
-        totalLeads,
-        newLeads,
-        contactedLeads,
-        convertedLeads,
-        conversionRate: totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0,
-        averageResponseTime: Math.round(averageResponseTime * 100) / 100,
-      }
-    } catch (error) {
-      throw handleApiError(error)
-    }
-  },
-
-  // Assign lead to coach (for lead distribution)
-  assignLeadToCoach: async (leadId: string, coachId: string): Promise<Lead> => {
-    try {
-      const { data, error } = await supabase
-        .from('leads')
-        .update({
-          coach_id: coachId,
-          status: 'assigned',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', leadId)
-        .select()
-        .single()
-
-      if (error) throw error
-      if (!data) throw new Error('Lead not found')
-
-      return data
+      return data || []
     } catch (error) {
       throw handleApiError(error)
     }

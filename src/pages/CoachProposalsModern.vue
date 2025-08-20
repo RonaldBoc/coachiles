@@ -194,8 +194,8 @@
                           {{ lead.location || 'No especificado' }}
                         </p>
                         <p>
-                          <span class="font-medium">Presupuesto:</span>
-                          {{ lead.budget ? formatCurrency(lead.budget) : 'No especificado' }}
+                          <span class="font-medium">Inicio:</span>
+                          {{ lead.start_timeframe || 'No especificado' }}
                         </p>
                         <p>
                           <span class="font-medium">Disponibilidad:</span>
@@ -455,13 +455,6 @@ const formatDate = (date: Date | string | undefined) => {
     month: 'short',
     day: 'numeric',
   })
-}
-
-const formatCurrency = (amount: string) => {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP',
-  }).format(parseInt(amount))
 }
 
 const getStatusColor = (status: string) => {

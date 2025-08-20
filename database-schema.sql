@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
     goals TEXT NOT NULL,
     experience TEXT NOT NULL,
     availability TEXT NOT NULL,
-    budget TEXT NOT NULL,
+    start_timeframe TEXT,
     location TEXT NOT NULL,
     additional_info TEXT,
     
@@ -120,43 +120,55 @@ ALTER TABLE public.coaches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for coaches table
+-- RLS Policies for coaches table (idempotent)
+DROP POLICY IF EXISTS "Coaches can view all active coaches" ON public.coaches;
 CREATE POLICY "Coaches can view all active coaches" ON public.coaches
     FOR SELECT USING (is_active = true);
 
+DROP POLICY IF EXISTS "Coaches can update own profile" ON public.coaches;
 CREATE POLICY "Coaches can update own profile" ON public.coaches
     FOR UPDATE USING (auth.jwt() ->> 'email' = email);
 
+DROP POLICY IF EXISTS "Coaches can insert own profile" ON public.coaches;
 CREATE POLICY "Coaches can insert own profile" ON public.coaches
     FOR INSERT WITH CHECK (auth.jwt() ->> 'email' = email);
 
--- RLS Policies for leads table
+-- RLS Policies for leads table (idempotent)
+DROP POLICY IF EXISTS "Anyone can create leads" ON public.leads;
 CREATE POLICY "Anyone can create leads" ON public.leads
     FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Coaches can view assigned leads" ON public.leads;
 CREATE POLICY "Coaches can view assigned leads" ON public.leads
     FOR SELECT USING (coach_id::text = auth.uid()::text);
 
+DROP POLICY IF EXISTS "Coaches can update assigned leads" ON public.leads;
 CREATE POLICY "Coaches can update assigned leads" ON public.leads
     FOR UPDATE USING (coach_id::text = auth.uid()::text);
 
--- RLS Policies for subscriptions table
+-- RLS Policies for subscriptions table (idempotent)
+DROP POLICY IF EXISTS "Coaches can view own subscriptions" ON public.subscriptions;
 CREATE POLICY "Coaches can view own subscriptions" ON public.subscriptions
     FOR SELECT USING (coach_id::text = auth.uid()::text);
 
+DROP POLICY IF EXISTS "Coaches can update own subscriptions" ON public.subscriptions;
 CREATE POLICY "Coaches can update own subscriptions" ON public.subscriptions
     FOR UPDATE USING (coach_id::text = auth.uid()::text);
 
+DROP POLICY IF EXISTS "Coaches can insert own subscriptions" ON public.subscriptions;
 CREATE POLICY "Coaches can insert own subscriptions" ON public.subscriptions
     FOR INSERT WITH CHECK (coach_id::text = auth.uid()::text);
 
--- Storage policies for coach avatars
+-- Storage policies for coach avatars (idempotent)
+DROP POLICY IF EXISTS "Coaches can upload own avatars" ON storage.objects;
 CREATE POLICY "Coaches can upload own avatars" ON storage.objects
     FOR INSERT WITH CHECK (bucket_id = 'coach-avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 
+DROP POLICY IF EXISTS "Coaches can update own avatars" ON storage.objects;
 CREATE POLICY "Coaches can update own avatars" ON storage.objects
     FOR UPDATE USING (bucket_id = 'coach-avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 
+DROP POLICY IF EXISTS "Anyone can view avatars" ON storage.objects;
 CREATE POLICY "Anyone can view avatars" ON storage.objects
     FOR SELECT USING (bucket_id = 'coach-avatars');
 
@@ -170,14 +182,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create triggers for automatic timestamp updates
+DROP TRIGGER IF EXISTS handle_coaches_updated_at ON public.coaches;
 CREATE TRIGGER handle_coaches_updated_at
     BEFORE UPDATE ON public.coaches
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS handle_leads_updated_at ON public.leads;
 CREATE TRIGGER handle_leads_updated_at
     BEFORE UPDATE ON public.leads
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS handle_subscriptions_updated_at ON public.subscriptions;
 CREATE TRIGGER handle_subscriptions_updated_at
     BEFORE UPDATE ON public.subscriptions
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
@@ -235,28 +250,43 @@ INSERT INTO public.coaches (
     1.8
 );
 
--- Insert sample subscription
-INSERT INTO public.subscriptions (
-    coach_id,
-    plan_type,
-    status,
-    current_period_start,
-    current_period_end,
-    price,
-    features,
-    is_active,
-    auto_renew
-) VALUES (
-    '550e8400-e29b-41d4-a716-446655440001',
-    'premium',
-    'active',
-    '2024-01-01T00:00:00Z',
-    '2024-12-31T23:59:59Z',
-    299.00,
-    ARRAY['Profil premium', 'Leads illimités', 'Support prioritaire'],
-    true,
-    true
-);
+-- Insert sample subscription (conditional to avoid errors if schema differs)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'subscriptions' AND column_name = 'plan_type'
+  ) THEN
+    -- Insert only if a subscription for this coach doesn't already exist
+    IF NOT EXISTS (
+      SELECT 1 FROM public.subscriptions WHERE coach_id = '550e8400-e29b-41d4-a716-446655440001'
+    ) THEN
+      INSERT INTO public.subscriptions (
+          coach_id,
+          plan_type,
+          status,
+          current_period_start,
+          current_period_end,
+          price,
+          features,
+          is_active,
+          auto_renew
+      ) VALUES (
+          '550e8400-e29b-41d4-a716-446655440001',
+          'premium',
+          'active',
+          '2024-01-01T00:00:00Z',
+          '2024-12-31T23:59:59Z',
+          299.00,
+          ARRAY['Profil premium', 'Leads illimités', 'Support prioritaire'],
+          true,
+          true
+      );
+    END IF;
+  ELSE
+    RAISE NOTICE 'Skipping sample subscription insert: subscriptions.plan_type column not found';
+  END IF;
+END $$;
 
 -- Show completion message
 SELECT 'Database schema created successfully!' as status;

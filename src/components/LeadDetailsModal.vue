@@ -154,9 +154,9 @@
                   </span>
                 </div>
               </div>
-              <div v-if="lead.budget">
-                <label class="block text-sm font-medium text-gray-700">Budget</label>
-                <p class="mt-1 text-sm text-gray-900">{{ lead.budget }}</p>
+              <div v-if="lead.start_timeframe">
+                <label class="block text-sm font-medium text-gray-700">Quand commencer</label>
+                <p class="mt-1 text-sm text-gray-900">{{ lead.start_timeframe }}</p>
               </div>
               <div v-if="lead.availability">
                 <label class="block text-sm font-medium text-gray-700">Disponibilités</label>

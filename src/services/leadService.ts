@@ -7,6 +7,7 @@ export class LeadService {
     client_name: string
     client_email: string
     coach_id?: string
+    session_id?: string
   }): Promise<Lead | null> {
     try {
       const { data: lead, error } = await supabase
@@ -15,9 +16,7 @@ export class LeadService {
           client_name: data.client_name,
           client_email: data.client_email,
           coach_id: data.coach_id,
-          current_step: 1,
-          completed_steps: [1],
-          is_completed: false,
+          session_id: data.session_id,
           status: 'new',
           source: 'web',
           priority: 'medium',
@@ -30,14 +29,49 @@ export class LeadService {
         return null
       }
 
-      return lead
+      return lead as unknown as Lead
     } catch (error) {
       console.error('Error creating lead:', error)
       return null
     }
   }
 
-  // Update lead (for subsequent steps)
+  // Set the coach on a lead (after step 1) via RPC (only if unassigned)
+  static async setCoachPublic(leadId: string, coachId: string): Promise<Lead | null> {
+    try {
+      const { data, error } = await supabase.rpc('leads_set_coach_public', {
+        p_lead_id: leadId,
+        p_coach_id: coachId,
+      })
+      if (error) {
+        console.error('Error setting coach via RPC:', error)
+        return null
+      }
+      return data as unknown as Lead
+    } catch (error) {
+      console.error('Error setting coach via RPC:', error)
+      return null
+    }
+  }
+
+  // Force recompute lead score
+  static async recomputeLeadScore(leadId: string): Promise<Lead | null> {
+    try {
+      const { data, error } = await supabase.rpc('leads_recompute_score_public', {
+        p_lead_id: leadId,
+      })
+      if (error) {
+        console.error('Error recomputing lead score:', error)
+        return null
+      }
+      return data as unknown as Lead
+    } catch (error) {
+      console.error('Error recomputing lead score:', error)
+      return null
+    }
+  }
+
+  // Update lead (generic)
   static async updateLead(leadId: string, data: Partial<Lead>): Promise<Lead | null> {
     try {
       const { data: lead, error } = await supabase
@@ -55,60 +89,95 @@ export class LeadService {
         return null
       }
 
-      return lead
+      return lead as unknown as Lead
     } catch (error) {
       console.error('Error updating lead:', error)
       return null
     }
   }
 
-  // Update lead step
+  // Set contact preference (do_not_contact) while the lead is in-progress
+  static async setContactPreference(leadId: string, doNotContact: boolean): Promise<Lead | null> {
+    try {
+      const { data, error } = await supabase.rpc('leads_set_contact_preference_public', {
+        p_lead_id: leadId,
+        p_do_not_contact: doNotContact,
+      })
+      if (error) {
+        console.error('Error setting contact preference via RPC:', error)
+        return null
+      }
+      return data as unknown as Lead
+    } catch (error) {
+      console.error('Error setting contact preference via RPC:', error)
+      return null
+    }
+  }
+
+  // Update lead step using RPCs to avoid RLS issues for public flow
   static async updateLeadStep(
     leadId: string,
     step: number,
     data: Partial<Lead>,
   ): Promise<Lead | null> {
     try {
-      // Get current lead to update completed_steps
-      const { data: currentLead, error: fetchError } = await supabase
-        .from('leads')
-        .select('completed_steps')
-        .eq('id', leadId)
-        .single()
-
-      if (fetchError) {
-        console.error('Error fetching current lead:', fetchError)
-        return null
-      }
-
-      const completedSteps = currentLead.completed_steps || []
-      if (!completedSteps.includes(step)) {
-        completedSteps.push(step)
-      }
-
-      const updateData = {
+      const updateData: Partial<Lead> = {
         ...data,
-        current_step: step,
-        completed_steps: completedSteps,
-        is_completed: step === 3, // Mark as completed when reaching step 3
         updated_at: new Date().toISOString(),
       }
 
-      const { data: lead, error } = await supabase
-        .from('leads')
-        .update(updateData)
-        .eq('id', leadId)
-        .select()
-        .single()
+      if (step === 3) {
+        return await LeadService.finalizeLeadPublic(
+          leadId,
+          updateData as Partial<Lead> & { start_timeframe?: string | null },
+          null,
+        )
+      }
+
+      const { data: lead, error } = await supabase.rpc('leads_update_public', {
+        p_lead_id: leadId,
+        p_client_phone: updateData.client_phone ?? null,
+        p_location: updateData.location ?? null,
+      })
 
       if (error) {
         console.error('Error updating lead step:', error)
         return null
       }
 
-      return lead
+      return lead as unknown as Lead
     } catch (error) {
       console.error('Error updating lead step:', error)
+      return null
+    }
+  }
+
+  // Finalize lead via SECURITY DEFINER RPC to bypass RLS safely and set step tracking + coach
+  static async finalizeLeadPublic(
+    leadId: string,
+    data: Partial<Lead> & { start_timeframe?: string | null },
+    coachId?: string | null,
+  ): Promise<Lead | null> {
+    try {
+      const { data: finalized, error } = await supabase.rpc('leads_finalize_public', {
+        p_lead_id: leadId,
+        p_preferred_coaching: data.preferred_coaching ?? null,
+        p_experience: data.experience ?? null,
+        p_goals: data.goals ?? null,
+        p_availability: data.availability ?? null,
+        p_start_timeframe: data.start_timeframe ?? null,
+        p_additional_info: data.additional_info ?? null,
+        p_coach_id: coachId ?? null,
+      })
+
+      if (error) {
+        console.error('Error finalizing lead via RPC:', error)
+        return null
+      }
+
+      return finalized as unknown as Lead
+    } catch (error) {
+      console.error('Error finalizing lead via RPC:', error)
       return null
     }
   }
@@ -127,7 +196,7 @@ export class LeadService {
         return null
       }
 
-      return lead
+      return lead as unknown as Lead
     } catch (error) {
       console.error('Error fetching lead:', error)
       return null
@@ -162,7 +231,6 @@ export class LeadService {
     maxUnlockedLeads: number
   }> {
     try {
-      // Use the clean subscription view
       const { data: coachSubscription, error: subscriptionError } = await supabase
         .from('coaches_current_subscription')
         .select('subscription_type, max_leads, has_active_subscription, plan_limits')
@@ -182,8 +250,6 @@ export class LeadService {
       const maxUnlockedLeads =
         coachSubscription?.max_leads === -1 ? Infinity : coachSubscription?.max_leads || 2
 
-      // For free accounts, we could track unlocked leads in a separate table
-      // For now, we'll assume first 2 leads are auto-unlocked
       const unlockedLeadsCount = subscriptionType === 'free' ? 2 : Infinity
 
       return {

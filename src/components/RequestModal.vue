@@ -21,7 +21,7 @@
               <span class="text-sm text-gray-500 ml-2">{{ currentStep }}/3</span>
             </div>
           </div>
-          <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600">
+          <button @click="handleCloseClick" class="text-gray-400 hover:text-gray-600">
             <XMarkIcon class="w-6 h-6" />
           </button>
         </div>
@@ -84,7 +84,7 @@
             <div class="flex justify-end pt-4">
               <button
                 type="submit"
-                :disabled="!isStep1Valid"
+                :disabled="!isStep1Valid || isCreatingLead"
                 class="bg-orange-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Suivant
@@ -106,15 +106,31 @@
               />
             </div>
 
+            <!-- Country Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Pays *</label>
+              <select
+                v-model="form.country"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+              >
+                <option value="">Sélectionnez votre pays</option>
+                <option v-for="(label, key) in countryOptions" :key="key" :value="key">
+                  {{ label }}
+                </option>
+              </select>
+            </div>
+
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Ville *</label>
               <select
                 v-model="form.location"
+                :disabled="!form.country"
                 required
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
                 <option value="">Sélectionnez votre ville</option>
-                <option v-for="city in martiniqueCities" :key="city" :value="city">
+                <option v-for="city in availableCities" :key="city" :value="city">
                   {{ city }}
                 </option>
               </select>
@@ -208,20 +224,20 @@
               ></textarea>
             </div>
 
-            <!-- Budget -->
+            <!-- Start Timeframe -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Budget par séance</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Quand souhaitez-vous commencer ?</label
+              >
               <select
-                v-model="form.budget"
+                v-model="form.startTimeframe"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
               >
-                <option value="">Sélectionnez votre budget</option>
-                <option value="30-40">30-40€</option>
-                <option value="40-50">40-50€</option>
-                <option value="50-60">50-60€</option>
-                <option value="60-70">60-70€</option>
-                <option value="70+">70€+</option>
-                <option value="a_negocier">À négocier</option>
+                <option value="">Sélectionnez une option</option>
+                <option value="Immédiatement">Immédiatement</option>
+                <option value="Dans les prochains jours">Dans les prochains jours</option>
+                <option value="Dans les prochains mois">Dans les prochains mois</option>
+                <option value="Je ne sais pas">Je ne sais pas</option>
               </select>
             </div>
 
@@ -234,7 +250,7 @@
                 v-model="form.additionalInfo"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                placeholder="Partagez toute information supplémentaire..."
+                placeholder="Partagez toute information supplémentaire... (ne donnez pas vos informations personnelles ici)"
               ></textarea>
             </div>
 
@@ -258,19 +274,57 @@
           </div>
         </form>
       </div>
+      <!-- Exit confirmation dialog -->
+      <div
+        v-if="showExitConfirm"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      >
+        <div class="bg-white rounded-lg max-w-md w-full mx-4 p-6 shadow-xl">
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Avant de quitter</h3>
+          <p class="text-sm text-gray-700 mb-4">
+            Votre progression ne sera pas sauvegardée. Voulez-vous annuler votre demande ?
+          </p>
+          <label class="flex items-center space-x-2 mb-4 select-none">
+            <input
+              type="checkbox"
+              v-model="doNotContact"
+              class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+            />
+            <span class="text-sm text-gray-700">Je ne veux pas être contacté</span>
+          </label>
+          <div class="flex justify-end space-x-3">
+            <button
+              type="button"
+              @click="cancelExit"
+              class="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300"
+            >
+              Retour
+            </button>
+            <button
+              type="button"
+              @click="confirmExit"
+              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+            >
+              Quitter
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import type { Coach } from '@/types/coach'
 import type { CoachService } from '@/types/service'
 import type { ClientRequest } from '@/types/Lead'
-import { CITIES } from '@/constants/locations'
+import { COUNTRIES, getCitiesByCountry } from '@/constants/locations'
+import type { CountryType } from '@/constants/locations'
 import { supabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
 import LeadService from '@/services/leadService'
+import { v4 as uuidv4 } from 'uuid'
 
 // Lead data interface
 interface LeadData {
@@ -284,11 +338,12 @@ interface LeadData {
   experience?: string
   goals?: string
   availability?: string
-  budget?: string
+  start_timeframe?: string
   additional_info?: string
   current_step: number
   created_at: string
   updated_at: string
+  lead_score?: number
 }
 
 // Props & Emits
@@ -309,6 +364,11 @@ const currentStep = ref(1)
 const currentLead = ref<LeadData | null>(null)
 const coachServices = ref<CoachService[]>([])
 const isSubmitting = ref(false)
+const isCreatingLead = ref(false)
+const showExitConfirm = ref(false)
+const doNotContact = ref(false)
+const isFinalized = ref(false)
+const sessionId = ref<string>(uuidv4())
 
 // Form data
 const form = ref({
@@ -316,17 +376,29 @@ const form = ref({
   lastName: '',
   email: '',
   phone: '',
+  country: '' as '' | CountryType,
   location: '',
   preferredCoaching: [] as string[],
   experience: '',
   goals: '',
   availability: '',
-  budget: '',
+  startTimeframe: '',
   additionalInfo: '',
 })
 
 // Constants
-const martiniqueCities = CITIES.martinique
+const countryOptions = COUNTRIES
+const availableCities = computed(() => {
+  return form.value.country ? getCitiesByCountry(form.value.country as CountryType) : []
+})
+
+// Reset city when country changes
+watch(
+  () => form.value.country,
+  () => {
+    form.value.location = ''
+  },
+)
 
 // Computed
 const isStep1Valid = computed(() => {
@@ -338,7 +410,7 @@ const isStep1Valid = computed(() => {
 })
 
 const isStep2Valid = computed(() => {
-  return form.value.location !== ''
+  return form.value.country !== '' && form.value.location !== ''
 })
 
 const isStep3Valid = computed(() => {
@@ -358,10 +430,19 @@ const handleNext = async () => {
 
 const saveStep1 = async () => {
   try {
+    // If a lead already exists for this session, don't create a duplicate
+    if (currentLead.value) {
+      currentStep.value = 2
+      return
+    }
+
+    isCreatingLead.value = true
     const leadData = {
       client_name: `${form.value.firstName} ${form.value.lastName}`,
       client_email: form.value.email,
-      coach_id: props.selectedCoach?.id,
+      session_id: sessionId.value,
+      // Do not assign a coach at creation time to satisfy public RLS
+      // coach_id: props.selectedCoach?.id,
     }
 
     const lead = await LeadService.createLead(leadData)
@@ -378,12 +459,21 @@ const saveStep1 = async () => {
         experience: lead.experience,
         goals: lead.goals,
         availability: lead.availability,
-        budget: lead.budget,
+        start_timeframe: lead.start_timeframe,
         additional_info: lead.additional_info,
         current_step: lead.current_step,
         created_at: lead.created_at,
         updated_at: lead.updated_at,
       }
+      // If a coach was pre-selected, assign it now via RPC while the lead is still public
+      if (props.selectedCoach?.id) {
+        const withCoach = await LeadService.setCoachPublic(lead.id, props.selectedCoach.id)
+        if (withCoach) {
+          currentLead.value.coach_id = withCoach.coach_id
+          currentLead.value.lead_score = withCoach.lead_score
+        }
+      }
+
       currentStep.value = 2
       console.log('✅ Step 1 saved, lead created:', lead.id)
     } else {
@@ -391,6 +481,8 @@ const saveStep1 = async () => {
     }
   } catch (error) {
     console.error('❌ Error saving step 1:', error)
+  } finally {
+    isCreatingLead.value = false
   }
 }
 
@@ -420,11 +512,12 @@ const saveStep2 = async () => {
         experience: updatedLead.experience,
         goals: updatedLead.goals,
         availability: updatedLead.availability,
-        budget: updatedLead.budget,
+        start_timeframe: updatedLead.start_timeframe,
         additional_info: updatedLead.additional_info,
         current_step: updatedLead.current_step,
         created_at: updatedLead.created_at,
         updated_at: updatedLead.updated_at,
+        lead_score: updatedLead.lead_score,
       }
       currentStep.value = 3
       console.log('✅ Step 2 saved')
@@ -447,14 +540,20 @@ const saveStep3 = async () => {
       experience: form.value.experience,
       goals: form.value.goals,
       availability: form.value.availability,
-      budget: form.value.budget,
+      start_timeframe: form.value.startTimeframe,
       additional_info: form.value.additionalInfo,
     }
 
-    const finalLead = await LeadService.updateLeadStep(currentLead.value.id, 3, updateData)
+    // Use RPC finalize to mark steps complete and optionally assign the selected coach
+    const finalLead = await LeadService.finalizeLeadPublic(
+      currentLead.value.id,
+      updateData,
+      props.selectedCoach ? props.selectedCoach.id : null,
+    )
 
     if (finalLead) {
       console.log('✅ Lead completed successfully:', finalLead.id)
+      isFinalized.value = true
 
       // Emit the final data
       const requestData: Partial<ClientRequest> = {
@@ -469,7 +568,7 @@ const saveStep3 = async () => {
         experience: finalLead.experience,
         coachingGoals: finalLead.goals,
         availability: finalLead.availability,
-        budget: finalLead.budget,
+        startTimeframe: finalLead.start_timeframe || undefined,
         additionalInfo: finalLead.additional_info,
         targetCoaches: props.selectedCoach ? [props.selectedCoach.id] : [],
         status: 'pending',
@@ -477,6 +576,11 @@ const saveStep3 = async () => {
         source: 'web',
         createdAt: new Date(finalLead.created_at),
         isCompleted: true,
+      }
+
+      // Optionally keep latest lead_score
+      if (currentLead.value) {
+        currentLead.value.lead_score = finalLead.lead_score
       }
 
       emit('submit', requestData)
@@ -497,7 +601,35 @@ const goToPreviousStep = () => {
 }
 
 const handleBackdropClick = () => {
-  emit('close')
+  // If step 1 not completed yet, close directly
+  if (!currentLead.value || currentStep.value === 1 || isFinalized.value) {
+    emit('close')
+    return
+  }
+  showExitConfirm.value = true
+}
+
+const handleCloseClick = () => {
+  // Same logic as backdrop: ask confirm if progress exists
+  handleBackdropClick()
+}
+
+const cancelExit = () => {
+  showExitConfirm.value = false
+}
+
+const confirmExit = async () => {
+  try {
+    // If user opts out of contact and we have a lead created, set flag
+    if (doNotContact.value && currentLead.value) {
+      await LeadService.setContactPreference(currentLead.value.id, true)
+    }
+  } catch (e) {
+    console.error('Error setting contact preference:', e)
+  } finally {
+    showExitConfirm.value = false
+    emit('close')
+  }
 }
 
 // Load coach services when component mounts

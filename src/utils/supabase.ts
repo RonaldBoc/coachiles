@@ -119,7 +119,7 @@ export interface Database {
           goals: string
           experience: string
           availability: string
-          budget: string
+          start_timeframe: string | null
           location: string
           additional_info: string | null
           status: string
@@ -139,7 +139,7 @@ export interface Database {
           goals: string
           experience: string
           availability: string
-          budget: string
+          start_timeframe?: string | null
           location: string
           additional_info?: string | null
           status?: string
@@ -159,7 +159,7 @@ export interface Database {
           goals?: string
           experience?: string
           availability?: string
-          budget?: string
+          start_timeframe?: string | null
           location?: string
           additional_info?: string | null
           status?: string
