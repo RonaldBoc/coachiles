@@ -1,5 +1,11 @@
 import { supabase, type Tables } from '@/utils/supabase'
-import type { Review, CreateReviewData, UpdateReviewData, ReviewFilters, ReviewStats } from '@/types/review'
+import type {
+  Review,
+  CreateReviewData,
+  UpdateReviewData,
+  ReviewFilters,
+  ReviewStats,
+} from '@/types/review'
 import { handleApiError } from '@/utils/errors'
 
 // Helper function to map Supabase data to our Review interface
@@ -26,17 +32,15 @@ const mapSupabaseToReview = (supabaseData: Tables<'reviews'>): Review => {
     moderationStatus: supabaseData.moderation_status as 'pending' | 'approved' | 'rejected',
     moderationNotes: supabaseData.moderation_notes || undefined,
     coachResponse: supabaseData.coach_response || undefined,
-    coachRespondedAt: supabaseData.coach_responded_at ? new Date(supabaseData.coach_responded_at) : undefined,
+    coachRespondedAt: supabaseData.coach_responded_at
+      ? new Date(supabaseData.coach_responded_at)
+      : undefined,
   }
 }
 
 export const supabaseReviewApi = {
   // Get reviews with filtering
-  getReviews: async (params?: {
-    page?: number
-    limit?: number
-    filters?: ReviewFilters
-  }) => {
+  getReviews: async (params?: { page?: number; limit?: number; filters?: ReviewFilters }) => {
     try {
       let query = supabase.from('reviews').select(`
         *,
@@ -60,7 +64,7 @@ export const supabaseReviewApi = {
       // Apply filters
       if (params?.filters) {
         const { filters } = params
-        
+
         if (filters.coachId) {
           query = query.eq('coach_id', filters.coachId)
         }
@@ -122,24 +126,31 @@ export const supabaseReviewApi = {
       if (error) throw error
 
       return {
-        data: data?.map(item => ({
-          ...mapSupabaseToReview(item),
-          coach: item.coaches ? {
-            id: item.coaches.id,
-            firstName: item.coaches.first_name,
-            photo: item.coaches.avatar_url,
-          } : undefined,
-          service: item.services ? {
-            id: item.services.id,
-            name: item.services.name,
-            category: item.services.category,
-          } : undefined,
-          booking: item.bookings ? {
-            id: item.bookings.id,
-            scheduledAt: new Date(item.bookings.scheduled_at),
-            clientName: item.bookings.client_name || undefined,
-          } : undefined
-        })) || [],
+        data:
+          data?.map((item) => ({
+            ...mapSupabaseToReview(item),
+            coach: item.coaches
+              ? {
+                  id: item.coaches.id,
+                  firstName: item.coaches.first_name,
+                  photo: item.coaches.avatar_url,
+                }
+              : undefined,
+            service: item.services
+              ? {
+                  id: item.services.id,
+                  name: item.services.name,
+                  category: item.services.category,
+                }
+              : undefined,
+            booking: item.bookings
+              ? {
+                  id: item.bookings.id,
+                  scheduledAt: new Date(item.bookings.scheduled_at),
+                  clientName: item.bookings.client_name || undefined,
+                }
+              : undefined,
+          })) || [],
         total: count || 0,
         page,
         limit,
@@ -154,7 +165,8 @@ export const supabaseReviewApi = {
     try {
       const { data, error } = await supabase
         .from('reviews')
-        .select(`
+        .select(
+          `
           *,
           coaches(
             id,
@@ -171,7 +183,8 @@ export const supabaseReviewApi = {
             scheduled_at,
             client_name
           )
-        `)
+        `,
+        )
         .eq('id', id)
         .single()
 
@@ -180,21 +193,27 @@ export const supabaseReviewApi = {
 
       return {
         ...mapSupabaseToReview(data),
-        coach: data.coaches ? {
-          id: data.coaches.id,
-          firstName: data.coaches.first_name,
-          photo: data.coaches.avatar_url,
-        } : undefined,
-        service: data.services ? {
-          id: data.services.id,
-          name: data.services.name,
-          category: data.services.category,
-        } : undefined,
-        booking: data.bookings ? {
-          id: data.bookings.id,
-          scheduledAt: new Date(data.bookings.scheduled_at),
-          clientName: data.bookings.client_name,
-        } : undefined
+        coach: data.coaches
+          ? {
+              id: data.coaches.id,
+              firstName: data.coaches.first_name,
+              photo: data.coaches.avatar_url,
+            }
+          : undefined,
+        service: data.services
+          ? {
+              id: data.services.id,
+              name: data.services.name,
+              category: data.services.category,
+            }
+          : undefined,
+        booking: data.bookings
+          ? {
+              id: data.bookings.id,
+              scheduledAt: new Date(data.bookings.scheduled_at),
+              clientName: data.bookings.client_name,
+            }
+          : undefined,
       }
     } catch (error) {
       throw handleApiError(error)
@@ -202,15 +221,19 @@ export const supabaseReviewApi = {
   },
 
   // Get reviews for a specific coach
-  getCoachReviews: async (coachId: string, params?: {
-    page?: number
-    limit?: number
-    includeUnpublished?: boolean
-  }): Promise<Review[]> => {
+  getCoachReviews: async (
+    coachId: string,
+    params?: {
+      page?: number
+      limit?: number
+      includeUnpublished?: boolean
+    },
+  ): Promise<Review[]> => {
     try {
       let query = supabase
         .from('reviews')
-        .select(`
+        .select(
+          `
           *,
           services(
             id,
@@ -222,7 +245,8 @@ export const supabaseReviewApi = {
             scheduled_at,
             client_name
           )
-        `)
+        `,
+        )
         .eq('coach_id', coachId)
 
       // Only include published reviews unless specified otherwise
@@ -240,19 +264,25 @@ export const supabaseReviewApi = {
 
       if (error) throw error
 
-      return data?.map(item => ({
-        ...mapSupabaseToReview(item),
-        service: item.services ? {
-          id: item.services.id,
-          name: item.services.name,
-          category: item.services.category,
-        } : undefined,
-        booking: item.bookings ? {
-          id: item.bookings.id,
-          scheduledAt: new Date(item.bookings.scheduled_at),
-          clientName: item.bookings.client_name || undefined,
-        } : undefined
-      })) || []
+      return (
+        data?.map((item) => ({
+          ...mapSupabaseToReview(item),
+          service: item.services
+            ? {
+                id: item.services.id,
+                name: item.services.name,
+                category: item.services.category,
+              }
+            : undefined,
+          booking: item.bookings
+            ? {
+                id: item.bookings.id,
+                scheduledAt: new Date(item.bookings.scheduled_at),
+                clientName: item.bookings.client_name || undefined,
+              }
+            : undefined,
+        })) || []
+      )
     } catch (error) {
       throw handleApiError(error)
     }
@@ -261,35 +291,54 @@ export const supabaseReviewApi = {
   // Create new review
   createReview: async (reviewData: CreateReviewData): Promise<Review> => {
     try {
-      const { data, error } = await supabase
-        .from('reviews')
-        .insert({
-          booking_id: reviewData.bookingId,
-          coach_id: reviewData.coachId,
-          service_id: reviewData.serviceId,
-          client_name: reviewData.clientName,
-          client_email: reviewData.clientEmail,
-          rating: reviewData.rating,
-          title: reviewData.title,
-          comment: reviewData.comment,
-          communication_rating: reviewData.communicationRating,
-          professionalism_rating: reviewData.professionalismRating,
-          expertise_rating: reviewData.expertiseRating,
-          value_rating: reviewData.valueRating,
-          is_anonymous: reviewData.isAnonymous || false,
-          is_verified: false, // Reviews start unverified
-          is_published: true, // Auto-publish for now, can add moderation later
-          moderation_status: 'pending',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single()
+      // Insert with returning minimal to avoid PostgREST trying to refetch row (which would fail SELECT RLS because unpublished)
+      const { error } = await supabase.from('reviews').insert({
+        booking_id: reviewData.bookingId,
+        coach_id: reviewData.coachId,
+        service_id: reviewData.serviceId,
+        client_name: reviewData.clientName,
+        client_email: reviewData.clientEmail,
+        rating: reviewData.rating,
+        title: reviewData.title,
+        comment: reviewData.comment,
+        communication_rating: reviewData.communicationRating,
+        professionalism_rating: reviewData.professionalismRating,
+        expertise_rating: reviewData.expertiseRating,
+        value_rating: reviewData.valueRating,
+        is_anonymous: reviewData.isAnonymous || false,
+        is_verified: false,
+        is_published: false,
+        moderation_status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
 
       if (error) throw error
-      if (!data) throw new Error('Failed to create review')
 
-      return mapSupabaseToReview(data)
+      // Return a client-side stub (actual row not selectable until approved)
+      const now = new Date()
+      return {
+        id: crypto.randomUUID(), // placeholder (not the DB id)
+        createdAt: now,
+        updatedAt: now,
+        bookingId: reviewData.bookingId,
+        coachId: reviewData.coachId,
+        serviceId: reviewData.serviceId,
+        clientName: reviewData.clientName,
+        clientEmail: reviewData.clientEmail,
+        rating: reviewData.rating,
+        title: reviewData.title,
+        comment: reviewData.comment,
+        communicationRating: reviewData.communicationRating,
+        professionalismRating: reviewData.professionalismRating,
+        expertiseRating: reviewData.expertiseRating,
+        valueRating: reviewData.valueRating,
+        isVerified: false,
+        isPublished: false,
+        isAnonymous: reviewData.isAnonymous || false,
+        moderationStatus: 'pending',
+        coachResponse: undefined,
+      }
     } catch (error) {
       throw handleApiError(error)
     }
@@ -305,13 +354,18 @@ export const supabaseReviewApi = {
       if (updates.rating !== undefined) updateData.rating = updates.rating
       if (updates.title !== undefined) updateData.title = updates.title
       if (updates.comment !== undefined) updateData.comment = updates.comment
-      if (updates.communicationRating !== undefined) updateData.communication_rating = updates.communicationRating
-      if (updates.professionalismRating !== undefined) updateData.professionalism_rating = updates.professionalismRating
-      if (updates.expertiseRating !== undefined) updateData.expertise_rating = updates.expertiseRating
+      if (updates.communicationRating !== undefined)
+        updateData.communication_rating = updates.communicationRating
+      if (updates.professionalismRating !== undefined)
+        updateData.professionalism_rating = updates.professionalismRating
+      if (updates.expertiseRating !== undefined)
+        updateData.expertise_rating = updates.expertiseRating
       if (updates.valueRating !== undefined) updateData.value_rating = updates.valueRating
       if (updates.isPublished !== undefined) updateData.is_published = updates.isPublished
-      if (updates.moderationStatus !== undefined) updateData.moderation_status = updates.moderationStatus
-      if (updates.moderationNotes !== undefined) updateData.moderation_notes = updates.moderationNotes
+      if (updates.moderationStatus !== undefined)
+        updateData.moderation_status = updates.moderationStatus
+      if (updates.moderationNotes !== undefined)
+        updateData.moderation_notes = updates.moderationNotes
       if (updates.coachResponse !== undefined) {
         updateData.coach_response = updates.coachResponse
         updateData.coach_responded_at = new Date().toISOString()
@@ -359,10 +413,7 @@ export const supabaseReviewApi = {
   // Delete review
   deleteReview: async (id: string): Promise<void> => {
     try {
-      const { error } = await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', id)
+      const { error } = await supabase.from('reviews').delete().eq('id', id)
 
       if (error) throw error
     } catch (error) {
@@ -375,14 +426,16 @@ export const supabaseReviewApi = {
     try {
       const { data: reviews, error } = await supabase
         .from('reviews')
-        .select('rating, communication_rating, professionalism_rating, expertise_rating, value_rating, created_at')
+        .select(
+          'rating, communication_rating, professionalism_rating, expertise_rating, value_rating, created_at',
+        )
         .eq('coach_id', coachId)
         .eq('is_published', true)
 
       if (error) throw error
 
       const totalReviews = reviews?.length || 0
-      
+
       if (totalReviews === 0) {
         return {
           totalReviews: 0,
@@ -399,31 +452,42 @@ export const supabaseReviewApi = {
 
       // Rating distribution
       const ratingDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
-      reviews.forEach(review => {
+      reviews.forEach((review) => {
         ratingDistribution[review.rating as keyof typeof ratingDistribution]++
       })
 
       // Category averages
       const categoryRatings = {
-        communication: reviews.filter(r => r.communication_rating).map(r => r.communication_rating!),
-        professionalism: reviews.filter(r => r.professionalism_rating).map(r => r.professionalism_rating!),
-        expertise: reviews.filter(r => r.expertise_rating).map(r => r.expertise_rating!),
-        value: reviews.filter(r => r.value_rating).map(r => r.value_rating!),
+        communication: reviews
+          .filter((r) => r.communication_rating)
+          .map((r) => r.communication_rating!),
+        professionalism: reviews
+          .filter((r) => r.professionalism_rating)
+          .map((r) => r.professionalism_rating!),
+        expertise: reviews.filter((r) => r.expertise_rating).map((r) => r.expertise_rating!),
+        value: reviews.filter((r) => r.value_rating).map((r) => r.value_rating!),
       }
 
       const categoryAverages = {
-        communication: categoryRatings.communication.length > 0 
-          ? categoryRatings.communication.reduce((a, b) => a + b, 0) / categoryRatings.communication.length 
-          : 0,
-        professionalism: categoryRatings.professionalism.length > 0 
-          ? categoryRatings.professionalism.reduce((a, b) => a + b, 0) / categoryRatings.professionalism.length 
-          : 0,
-        expertise: categoryRatings.expertise.length > 0 
-          ? categoryRatings.expertise.reduce((a, b) => a + b, 0) / categoryRatings.expertise.length 
-          : 0,
-        value: categoryRatings.value.length > 0 
-          ? categoryRatings.value.reduce((a, b) => a + b, 0) / categoryRatings.value.length 
-          : 0,
+        communication:
+          categoryRatings.communication.length > 0
+            ? categoryRatings.communication.reduce((a, b) => a + b, 0) /
+              categoryRatings.communication.length
+            : 0,
+        professionalism:
+          categoryRatings.professionalism.length > 0
+            ? categoryRatings.professionalism.reduce((a, b) => a + b, 0) /
+              categoryRatings.professionalism.length
+            : 0,
+        expertise:
+          categoryRatings.expertise.length > 0
+            ? categoryRatings.expertise.reduce((a, b) => a + b, 0) /
+              categoryRatings.expertise.length
+            : 0,
+        value:
+          categoryRatings.value.length > 0
+            ? categoryRatings.value.reduce((a, b) => a + b, 0) / categoryRatings.value.length
+            : 0,
       }
 
       // Monthly stats
@@ -432,19 +496,21 @@ export const supabaseReviewApi = {
       const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
       const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
 
-      const thisMonthReviews = reviews.filter(r => new Date(r.created_at) >= firstDayThisMonth)
-      const lastMonthReviews = reviews.filter(r => {
+      const thisMonthReviews = reviews.filter((r) => new Date(r.created_at) >= firstDayThisMonth)
+      const lastMonthReviews = reviews.filter((r) => {
         const createdAt = new Date(r.created_at)
         return createdAt >= firstDayLastMonth && createdAt <= lastDayLastMonth
       })
 
-      const thisMonthAverage = thisMonthReviews.length > 0
-        ? thisMonthReviews.reduce((sum, r) => sum + r.rating, 0) / thisMonthReviews.length
-        : 0
+      const thisMonthAverage =
+        thisMonthReviews.length > 0
+          ? thisMonthReviews.reduce((sum, r) => sum + r.rating, 0) / thisMonthReviews.length
+          : 0
 
-      const lastMonthAverage = lastMonthReviews.length > 0
-        ? lastMonthReviews.reduce((sum, r) => sum + r.rating, 0) / lastMonthReviews.length
-        : 0
+      const lastMonthAverage =
+        lastMonthReviews.length > 0
+          ? lastMonthReviews.reduce((sum, r) => sum + r.rating, 0) / lastMonthReviews.length
+          : 0
 
       return {
         totalReviews,
@@ -475,7 +541,8 @@ export const supabaseReviewApi = {
     try {
       const { data, error } = await supabase
         .from('reviews')
-        .select(`
+        .select(
+          `
           *,
           coaches(
             id,
@@ -487,7 +554,8 @@ export const supabaseReviewApi = {
             name,
             category
           )
-        `)
+        `,
+        )
         .eq('is_published', true)
         .gte('rating', 4) // Only show good reviews on homepage
         .order('created_at', { ascending: false })
@@ -495,19 +563,25 @@ export const supabaseReviewApi = {
 
       if (error) throw error
 
-      return data?.map(item => ({
-        ...mapSupabaseToReview(item),
-        coach: item.coaches ? {
-          id: item.coaches.id,
-          firstName: item.coaches.first_name,
-          photo: item.coaches.avatar_url,
-        } : undefined,
-        service: item.services ? {
-          id: item.services.id,
-          name: item.services.name,
-          category: item.services.category,
-        } : undefined
-      })) || []
+      return (
+        data?.map((item) => ({
+          ...mapSupabaseToReview(item),
+          coach: item.coaches
+            ? {
+                id: item.coaches.id,
+                firstName: item.coaches.first_name,
+                photo: item.coaches.avatar_url,
+              }
+            : undefined,
+          service: item.services
+            ? {
+                id: item.services.id,
+                name: item.services.name,
+                category: item.services.category,
+              }
+            : undefined,
+        })) || []
+      )
     } catch (error) {
       throw handleApiError(error)
     }

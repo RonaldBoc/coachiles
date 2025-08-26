@@ -418,7 +418,7 @@
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="2"
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2M7 7h10"
                   />
                 </svg>
               </div>
@@ -1106,11 +1106,228 @@
         </div>
       </div>
     </div>
+
+    <!-- Reviews Section -->
+    <div class="bg-white rounded-2xl shadow-lg p-8" v-if="coach">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+          <StarIcon class="w-6 h-6 text-yellow-400 mr-2" /> Avis récents
+        </h2>
+        <button
+          @click="openReviewModal"
+          class="bg-gradient-to-r from-orange-500 to-blue-600 text-white px-5 py-2 rounded-full font-semibold text-sm hover:shadow-md transition disabled:opacity-50"
+          :disabled="creatingReview"
+        >
+          Laisser un avis
+        </button>
+      </div>
+      <div v-if="loadingReviews" class="space-y-4">
+        <div v-for="n in 3" :key="n" class="animate-pulse space-y-2">
+          <div class="h-4 bg-gray-200 rounded w-1/3" />
+          <div class="h-3 bg-gray-100 rounded w-full" />
+          <div class="h-3 bg-gray-100 rounded w-2/3" />
+        </div>
+      </div>
+      <div v-else>
+        <div v-if="reviews.length === 0" class="text-gray-500 text-sm italic">
+          Aucun avis pour le moment. Soyez le premier !
+        </div>
+        <ul class="divide-y divide-gray-100">
+          <li v-for="rev in reviews" :key="rev.id" class="py-5">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="font-semibold text-gray-900">{{ rev.clientName }}</p>
+                <div class="flex items-center text-yellow-400 mt-1">
+                  <StarIcon
+                    v-for="i in 5"
+                    :key="i"
+                    class="w-4 h-4"
+                    :class="i <= rev.rating ? 'fill-current' : 'text-gray-300'"
+                  />
+                  <span class="ml-2 text-xs text-gray-500">
+                    {{ formatDate(rev.createdAt) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p v-if="rev.comment" class="mt-2 text-gray-700 whitespace-pre-line">
+              {{ rev.comment }}
+            </p>
+            <div v-if="rev.coachResponse" class="mt-3 pl-4 border-l-4 border-blue-200">
+              <p class="text-sm text-blue-700 font-medium">Réponse du coach :</p>
+              <p class="text-sm text-gray-700 whitespace-pre-line mt-1">
+                {{ rev.coachResponse }}
+              </p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Leave Review Modal -->
+    <TransitionRoot as="template" :show="showReviewModal">
+      <Dialog as="div" class="relative z-50" @close="closeReviewModal">
+        <TransitionChild
+          as="template"
+          enter="ease-out duration-300"
+          enter-from="opacity-0"
+          enter-to="opacity-100"
+          leave="ease-in duration-200"
+          leave-from="opacity-100"
+          leave-to="opacity-0"
+        >
+          <div class="fixed inset-0 bg-black/30" />
+        </TransitionChild>
+        <div class="fixed inset-0 overflow-y-auto">
+          <div class="flex min-h-full items-center justify-center p-4">
+            <TransitionChild
+              as="template"
+              enter="ease-out duration-300"
+              enter-from="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enter-to="opacity-100 translate-y-0 sm:scale-100"
+              leave="ease-in duration-200"
+              leave-from="opacity-100 translate-y-0 sm:scale-100"
+              leave-to="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            >
+              <DialogPanel
+                class="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all"
+              >
+                <DialogTitle class="text-lg font-bold text-gray-900 mb-4">
+                  Laisser un avis pour {{ coach?.firstName }}
+                </DialogTitle>
+                <div v-if="!reviewSubmitted">
+                  <form @submit.prevent="submitReview" class="space-y-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1"
+                        >Votre prénom</label
+                      >
+                      <input
+                        v-model.trim="reviewForm.clientName"
+                        type="text"
+                        required
+                        maxlength="50"
+                        class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1"
+                        >Votre email
+                        <span class="text-gray-400 text-xs">(ne sera pas affiché)</span></label
+                      >
+                      <input
+                        v-model.trim="reviewForm.clientEmail"
+                        type="email"
+                        required
+                        maxlength="120"
+                        class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Note</label>
+                      <div class="flex items-center space-x-2">
+                        <button
+                          v-for="i in 5"
+                          :key="i"
+                          type="button"
+                          @click="reviewForm.rating = i"
+                          class="p-1"
+                          :aria-label="`Donner ${i} étoiles`"
+                        >
+                          <StarIcon
+                            class="w-7 h-7"
+                            :class="
+                              i <= reviewForm.rating
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                            "
+                          />
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1"
+                        >Votre avis (optionnel)</label
+                      >
+                      <textarea
+                        v-model.trim="reviewForm.comment"
+                        rows="4"
+                        maxlength="1000"
+                        class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Partagez votre expérience (facultatif)"
+                      ></textarea>
+                    </div>
+                    <p class="text-xs text-gray-500">
+                      Merci pour votre avis. Il apparaîtra une fois approuvé par notre équipe.
+                    </p>
+                    <div class="pt-2 flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        @click="closeReviewModal"
+                        class="px-4 py-2 rounded-md border text-gray-600 hover:bg-gray-50"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="submit"
+                        :disabled="creatingReview || !reviewForm.rating"
+                        class="px-5 py-2 rounded-md bg-gradient-to-r from-orange-500 to-blue-600 text-white font-semibold disabled:opacity-50 flex items-center"
+                      >
+                        <span v-if="!creatingReview">Envoyer</span>
+                        <span v-else class="flex items-center">
+                          <svg
+                            class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              class="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              stroke-width="4"
+                            ></circle>
+                            <path
+                              class="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                            ></path>
+                          </svg>
+                          Envoi...
+                        </span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+                <div v-else class="text-center py-8">
+                  <div
+                    class="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4"
+                  >
+                    <CheckIcon class="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-2">Merci beaucoup !</h3>
+                  <p class="text-gray-600">
+                    Votre avis a été reçu. Il sera publié après validation.
+                  </p>
+                  <button
+                    @click="closeReviewModal"
+                    class="mt-6 px-5 py-2 rounded-full bg-gradient-to-r from-orange-500 to-blue-600 text-white font-semibold"
+                  >
+                    Fermer
+                  </button>
+                </div>
+              </DialogPanel>
+            </TransitionChild>
+          </div>
+        </div>
+      </Dialog>
+    </TransitionRoot>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed, nextTick, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { StarIcon, UserCircleIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
@@ -1121,6 +1338,10 @@ import { useCoachStore } from '@/stores/coach'
 import { useAuthStore } from '@/stores/auth'
 import { supabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
 import { supabase } from '@/utils/supabase'
+import { reviewApi } from '@/services'
+import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue'
+import { CheckIcon } from '@heroicons/vue/24/outline'
+import type { Review } from '@/types/review'
 
 // Router
 const route = useRoute()
@@ -1484,6 +1705,75 @@ onUnmounted(() => {
   // Clean up visibility change listener
   document.removeEventListener('visibilitychange', handleVisibilityChange)
   stopScrollEnforcement()
+})
+
+// Reviews
+const reviews = ref<Review[]>([])
+const loadingReviews = ref(false)
+const showReviewModal = ref(false)
+const creatingReview = ref(false)
+const reviewSubmitted = ref(false)
+
+interface ReviewForm {
+  clientName: string
+  clientEmail: string
+  rating: number
+  comment: string
+}
+const reviewForm = reactive<ReviewForm>({ clientName: '', clientEmail: '', rating: 0, comment: '' })
+
+const loadReviews = async () => {
+  if (!coach.value) return
+  loadingReviews.value = true
+  try {
+    reviews.value = await reviewApi.getCoachReviews(coach.value.id)
+  } catch (e) {
+    console.error('Failed to load reviews', e)
+  } finally {
+    loadingReviews.value = false
+  }
+}
+
+const openReviewModal = () => {
+  showReviewModal.value = true
+  reviewSubmitted.value = false
+  reviewForm.clientName = ''
+  reviewForm.clientEmail = ''
+  reviewForm.rating = 0
+  reviewForm.comment = ''
+}
+const closeReviewModal = () => {
+  showReviewModal.value = false
+}
+
+const sanitize = (text: string) => text.replace(/<[^>]*>/g, '')
+
+const submitReview = async () => {
+  if (!coach.value) return
+  if (!reviewForm.clientName || !reviewForm.clientEmail || !reviewForm.rating) return
+  creatingReview.value = true
+  try {
+    await reviewApi.createReview({
+      coachId: coach.value.id,
+      clientName: sanitize(reviewForm.clientName).substring(0, 50),
+      clientEmail: sanitize(reviewForm.clientEmail).substring(0, 120),
+      rating: reviewForm.rating,
+      comment: reviewForm.comment ? sanitize(reviewForm.comment).substring(0, 1000) : undefined,
+    })
+    reviewSubmitted.value = true
+    // reload list (will still be empty until approved, but attempt fetch)
+    await loadReviews()
+  } catch (e) {
+    console.error('Create review failed', e)
+  } finally {
+    creatingReview.value = false
+  }
+}
+
+const formatDate = (d: Date) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(d)
+
+watch(coach, async (c) => {
+  if (c) await loadReviews()
 })
 </script>
 
