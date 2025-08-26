@@ -214,7 +214,16 @@
                     </span>
                   </td>
                   <td class="px-3 py-2 text-sm text-gray-500">
-                    {{ coachSubs.get(c.id)?.subscription_type || c.subscription_type || '—' }}
+                    <span v-if="coachSubs.get(c.id)">
+                      {{ coachSubs.get(c.id)?.subscription_type || '—' }}
+                      <span
+                        v-if="showDaysRemaining(coachSubs.get(c.id))"
+                        class="ml-1 text-xs text-amber-600 dark:text-amber-400"
+                      >
+                        ({{ daysRemaining(coachSubs.get(c.id)) }}d left)
+                      </span>
+                    </span>
+                    <span v-else>{{ c.subscription_type || '—' }}</span>
                   </td>
                   <td class="px-3 py-2 text-sm text-gray-500">{{ formatDate(c.created_at) }}</td>
                   <td class="px-3 py-2 text-right">
@@ -376,6 +385,12 @@
             <div class="text-gray-500 dark:text-gray-400">Current Plan</div>
             <div class="font-medium text-gray-900 dark:text-gray-100">
               {{ coachDetails.subscription?.subscription_type || 'free' }}
+              <span
+                v-if="showDaysRemaining(coachDetails.subscription)"
+                class="ml-1 text-xs text-amber-600 dark:text-amber-400"
+              >
+                ({{ daysRemaining(coachDetails.subscription) }}d left)
+              </span>
             </div>
           </div>
           <div>
@@ -640,6 +655,27 @@ const disabledReason = computed(() => {
   const c = coaches.value.find((x) => x.id === activeCoachId.value)
   return c?.disabled_reason ?? null
 })
+
+function showDaysRemaining(sub?: CoachSubscriptionSummary | null) {
+  if (!sub) return false
+  if (sub.subscription_type !== 'premium') return false
+  if (!sub.current_period_end) return false
+  const end = new Date(sub.current_period_end).getTime()
+  if (isNaN(end) || end < Date.now()) return false
+  // show if auto_renew is false OR status indicates cancelled/ending
+  const status = (sub.subscription_status || '').toLowerCase()
+  const endingStatuses = ['canceled', 'cancelled', 'past_due', 'incomplete_expired']
+  const autoRenewing = sub.auto_renew !== false && !endingStatuses.includes(status)
+  return !autoRenewing
+}
+
+function daysRemaining(sub?: CoachSubscriptionSummary | null) {
+  if (!sub?.current_period_end) return 0
+  const end = new Date(sub.current_period_end).getTime()
+  if (isNaN(end)) return 0
+  const diff = end - Date.now()
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+}
 
 function formatDate(d?: string | null) {
   if (!d) return '—'

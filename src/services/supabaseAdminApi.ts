@@ -37,6 +37,7 @@ export type CoachSubscriptionSummary = {
   current_period_start?: string | null
   current_period_end?: string | null
   subscription_status?: string | null
+  auto_renew?: boolean | null
 }
 
 export type PaymentRow = {
@@ -209,7 +210,7 @@ export const AdminApi = {
       const { data, error } = await supabase
         .from('coaches_current_subscription')
         .select(
-          'id, subscription_type, plan_name, current_period_start, current_period_end, subscription_status',
+          'id, subscription_type, plan_name, current_period_start, current_period_end, subscription_status, auto_renew',
         )
         .limit(2000)
 
