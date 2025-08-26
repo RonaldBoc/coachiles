@@ -71,10 +71,10 @@
                       <span class="ml-1 font-medium">{{ profileData?.rating || '0.0' }}</span>
                     </div>
                   </div>
-                  <div class="text-right">
+                  <!-- <div class="text-right">
                     <div class="text-sm text-gray-500">Clients</div>
                     <div class="font-medium">{{ profileData?.totalClients || 0 }}</div>
-                  </div>
+                  </div> -->
                 </div>
               </div>
 

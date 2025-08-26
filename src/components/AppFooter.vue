@@ -46,28 +46,17 @@
           </h3>
           <ul class="space-y-2 text-sm">
             <li>
-              <a
-                href="#"
-                class="hover:text-orange-600 transition-colors"
-                @click.prevent="$emit('open-contact')"
-                >Contact</a
+              <RouterLink to="/contact" class="hover:text-orange-600 transition-colors"
+                >Contact</RouterLink
               >
             </li>
             <li>
-              <a
-                href="#"
-                class="hover:text-orange-600 transition-colors"
-                @click.prevent="$emit('open-about')"
-                >À propos</a
+              <RouterLink to="/a-propos" class="hover:text-orange-600 transition-colors"
+                >À propos</RouterLink
               >
             </li>
             <li>
-              <a
-                href="#"
-                class="hover:text-orange-600 transition-colors"
-                @click.prevent="$emit('open-faq')"
-                >FAQ</a
-              >
+              <RouterLink to="/faq" class="hover:text-orange-600 transition-colors">FAQ</RouterLink>
             </li>
           </ul>
         </div>
@@ -104,25 +93,18 @@
       >
         <p class="text-xs text-gray-500">© {{ year }} Coachiles. Tous droits réservés.</p>
         <div class="flex items-center gap-4 text-xs text-gray-500">
-          <a
-            href="#"
+          <RouterLink
+            to="/a-propos#mentions-legales"
             class="hover:text-orange-600 transition-colors"
-            @click.prevent="$emit('open-legal')"
-            >Mentions légales</a
+            >Mentions légales</RouterLink
           >
           <span class="hidden sm:inline text-gray-300">•</span>
-          <a
-            href="#"
-            class="hover:text-orange-600 transition-colors"
-            @click.prevent="$emit('open-privacy')"
-            >Confidentialité</a
+          <RouterLink to="/a-propos#confidentialite" class="hover:text-orange-600 transition-colors"
+            >Confidentialité</RouterLink
           >
           <span class="hidden sm:inline text-gray-300">•</span>
-          <a
-            href="#"
-            class="hover:text-orange-600 transition-colors"
-            @click.prevent="$emit('open-cookies')"
-            >Cookies</a
+          <RouterLink to="/a-propos#cookies" class="hover:text-orange-600 transition-colors"
+            >Cookies</RouterLink
           >
         </div>
       </div>

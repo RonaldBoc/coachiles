@@ -29,6 +29,9 @@ import Superadmin from '@/pages/Superadmin.vue'
 
 import SuccessPage from '@/pages/Success.vue'
 import CoachDisabled from '@/pages/CoachDisabled.vue'
+import ContactPage from '@/pages/ContactPage.vue'
+import AboutPage from '@/pages/AboutPage.vue'
+import FAQPage from '@/pages/FAQPage.vue'
 
 const routes = [
   { path: '/', redirect: '/coaches' },
@@ -129,6 +132,9 @@ const routes = [
   },
   { path: '/coach/leads', redirect: '/coach/proposals' },
   { path: '/success', component: SuccessPage },
+  { path: '/contact', component: ContactPage },
+  { path: '/a-propos', component: AboutPage },
+  { path: '/faq', component: FAQPage },
   // Legacy routes for backward compatibility
   { path: '/CoachProfile', redirect: '/coach/profile' },
   { path: '/CoachAccount', redirect: '/coach/account' },
