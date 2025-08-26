@@ -320,7 +320,7 @@
                   <td class="px-3 py-2 text-sm text-gray-500">{{ l.client_email }}</td>
                   <td class="px-3 py-2 text-sm">
                     <span
-                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800"
+                      class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                       >{{ l.status }}</span
                     >
                   </td>
@@ -332,6 +332,122 @@
           </div>
         </div>
         <p v-if="leadsError" class="text-sm text-red-600">{{ leadsError }}</p>
+      </section>
+
+      <!-- Reviews -->
+      <section v-if="activeTab === 'reviews'" class="space-y-4">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex flex-wrap gap-4 items-end">
+          <label class="text-sm">
+            <span class="mr-2">Status</span>
+            <select
+              v-model="reviewStatusFilter"
+              class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
+            >
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </label>
+          <label class="text-sm">
+            <span class="mr-2">Coach</span>
+            <select
+              v-model="reviewCoachFilter"
+              class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm min-w-[160px]"
+            >
+              <option value="">All</option>
+              <option v-for="c in coaches" :key="c.id" :value="c.id">
+                {{ getCoachName(c.id) || c.email }}
+              </option>
+            </select>
+          </label>
+          <div class="text-xs text-gray-500">Showing {{ reviews.length }}</div>
+          <div class="flex-1"></div>
+          <div class="flex items-center gap-2 text-xs">
+            <input
+              v-model="reviewNote"
+              placeholder="Optional note for approve/reject"
+              class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-xs px-2 py-1 w-64"
+            />
+          </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div v-if="reviewsLoading" class="p-6 text-sm text-gray-500">Loading reviews...</div>
+          <div v-else-if="reviewsError" class="p-6 text-sm text-red-600">{{ reviewsError }}</div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Coach
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Client
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Rating
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Comment
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr v-for="r in reviews" :key="r.id" class="text-sm">
+                  <td class="px-4 py-2 whitespace-nowrap">{{ formatDate(r.created_at) }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap">{{ getCoachName(r.coach_id) }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap">{{ r.client_name }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap font-medium">{{ r.rating }}★</td>
+                  <td class="px-4 py-2 max-w-xs">{{ r.comment || '—' }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap">
+                    <span
+                      :class="[
+                        'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium',
+                        r.moderation_status === 'pending' &&
+                          'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
+                        r.moderation_status === 'approved' &&
+                          'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-300',
+                        r.moderation_status === 'rejected' &&
+                          'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300',
+                      ]"
+                      >{{ r.moderation_status }}</span
+                    >
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap space-x-2">
+                    <button
+                      v-if="r.moderation_status === 'pending'"
+                      @click="approveReview(r.id)"
+                      class="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      v-if="r.moderation_status === 'pending'"
+                      @click="rejectReview(r.id)"
+                      class="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+                    >
+                      Reject
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="!reviews.length">
+                  <td colspan="7" class="px-4 py-6 text-center text-xs text-gray-500">
+                    No reviews match filters
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <!-- Deletion Logs -->
@@ -779,12 +895,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import {
   AdminApi,
   type CoachSubscriptionSummary,
   type PaymentRow,
   type AdminLead, // added
+  type AdminReview,
 } from '../services/supabaseAdminApi'
 defineOptions({ name: 'SuperadminPage' })
 
@@ -820,11 +937,12 @@ type DeletionLogRow = {
   reactivated_at: string | null
   coach_name?: string | null
 }
-const activeTab = ref<'overview' | 'coaches' | 'leads' | 'deletion'>('overview')
+const activeTab = ref<'overview' | 'coaches' | 'leads' | 'deletion' | 'reviews'>('overview')
 const tabs = [
   { key: 'overview', label: 'Overview' },
   { key: 'coaches', label: 'Coaches' },
   { key: 'leads', label: 'Leads' },
+  { key: 'reviews', label: 'Reviews' },
   { key: 'deletion', label: 'Deletion Logs' },
 ] as const
 
@@ -869,6 +987,13 @@ const coachSubs = ref<Map<string, CoachSubscriptionSummary>>(new Map())
 
 const deletionLogs = ref<DeletionLogRow[]>([])
 const deletionLogsError = ref<string | null>(null)
+
+const reviewStatusFilter = ref<'pending' | 'approved' | 'rejected' | ''>('')
+const reviewCoachFilter = ref('')
+const reviews = ref<AdminReview[]>([])
+const reviewsLoading = ref(false)
+const reviewsError = ref<string | null>(null)
+const reviewNote = ref('')
 
 // Details modal state
 const showCoachModal = ref(false)
@@ -1169,6 +1294,44 @@ async function deleteLead(leadId: string) {
     coachLeadsError.value = res.error || 'Failed to delete lead'
   }
 }
+
+async function loadReviews() {
+  reviewsLoading.value = true
+  reviewsError.value = null
+  const { data, error } = await AdminApi.listReviews({
+    status: reviewStatusFilter.value || undefined,
+    coachId: reviewCoachFilter.value || undefined,
+    limit: 500,
+  })
+  if (error) reviewsError.value = error
+  reviews.value = data as AdminReview[]
+  reviewsLoading.value = false
+}
+
+async function approveReview(id: string) {
+  const note = reviewNote.value.trim() || undefined
+  const res = await AdminApi.approveReview(id, note)
+  if (!res.ok) {
+    alert(res.error || 'Failed to approve')
+  }
+  reviewNote.value = ''
+  await loadReviews()
+}
+async function rejectReview(id: string) {
+  const note = reviewNote.value.trim() || undefined
+  const res = await AdminApi.rejectReview(id, note)
+  if (!res.ok) {
+    alert(res.error || 'Failed to reject')
+  }
+  reviewNote.value = ''
+  await loadReviews()
+}
+watch([reviewStatusFilter, reviewCoachFilter], () => {
+  if (activeTab.value === 'reviews') loadReviews()
+})
+watch(activeTab, (t) => {
+  if (t === 'reviews') loadReviews()
+})
 </script>
 
 <style scoped></style>

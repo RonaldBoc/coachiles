@@ -1,5 +1,6 @@
 import { supabase } from '@/utils/supabase'
 
+// Clean restored file
 export type AdminCoach = {
   id: string
   email: string
@@ -7,9 +8,9 @@ export type AdminCoach = {
   last_name?: string | null
   created_at?: string | null
   is_active?: boolean | null
+  disabled_reason?: string | null
   subscription_type?: string | null
 }
-
 export type AdminLead = {
   id: string
   client_name: string
@@ -19,7 +20,6 @@ export type AdminLead = {
   created_at: string
   is_hidden?: boolean
 }
-
 export type AdminDeletionLog = {
   id: string
   coach_id: string | null
@@ -30,7 +30,6 @@ export type AdminDeletionLog = {
   reactivated_at: string | null
   coach_name?: string | null
 }
-
 export type CoachSubscriptionSummary = {
   id: string
   subscription_type: 'free' | 'premium' | string
@@ -40,7 +39,6 @@ export type CoachSubscriptionSummary = {
   subscription_status?: string | null
   auto_renew?: boolean | null
 }
-
 export type PaymentRow = {
   id: string
   created_at: string
@@ -52,118 +50,109 @@ export type PaymentRow = {
   description: string | null
   coach_earnings: number
 }
+export type AdminReview = {
+  id: string
+  created_at: string
+  updated_at: string
+  coach_id: string
+  client_name: string
+  client_email: string
+  rating: number
+  comment?: string | null
+  moderation_status: string
+  is_published: boolean
+  is_verified: boolean
+  coach_response?: string | null
+}
 
-type RowsLike = { rows?: unknown[] }
+interface RowsLike {
+  rows?: unknown[]
+}
 function parseAdminList(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
-  if (value && typeof value === 'object' && Array.isArray((value as RowsLike).rows)) {
+  if (value && typeof value === 'object' && Array.isArray((value as RowsLike).rows))
     return (value as RowsLike).rows as unknown[]
-  }
   return []
 }
 
 export const AdminApi = {
-  // cache to avoid redundant RPCs & prevent noisy 400s when not superadmin
   _superadminCache: null as boolean | null,
   async isSuperadmin(): Promise<boolean> {
     try {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email
       if (!email) return false
-
-      // Try secure RPC if present
       try {
         const { data, error } = await supabase.rpc('is_superadmin', { p_email: email })
-        if (!error && typeof data === 'boolean') {
-          this._superadminCache = data
-          return data
-        }
+        if (error) throw error
+        const ok = data === true
+        this._superadminCache = ok
+        return ok
       } catch {
-        // ignore and fallback
+        const envAdminsRaw = import.meta.env.VITE_SUPERADMINS || ''
+        const list = envAdminsRaw
+          .split(/[;,\s]+/)
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+        const ok = list.includes((email || '').toLowerCase())
+        this._superadminCache = ok
+        return ok
       }
-
-      // Fallback: allowlist from env
-      const allowlist = (import.meta.env.VITE_SUPERADMINS as string | undefined)
-        ?.split(',')
-        .map((e) => e.trim().toLowerCase())
-        .filter(Boolean)
-      const allowed = !!allowlist?.includes(email.toLowerCase())
-      this._superadminCache = allowed
-      return allowed
     } catch {
+      this._superadminCache = false
       return false
     }
   },
-
   async listCoaches(): Promise<{ data: AdminCoach[]; error?: string }> {
     try {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
-
-      // Avoid RPC if not superadmin (prevents 400s in console)
       if (this._superadminCache === null) await this.isSuperadmin()
-      const canUseAdminRpc = this._superadminCache === true
-
-      // Prefer RPC
-      if (canUseAdminRpc) {
+      if (this._superadminCache) {
         try {
           const { data, error } = await supabase.rpc('admin_list_coaches', { p_email: email })
           if (!error && data) return { data: parseAdminList(data) as AdminCoach[] }
-        } catch {
-          // fall through
-        }
+        } catch {}
       }
-
-      // Fallback direct query
       const { data, error } = await supabase
         .from('coaches')
         .select('id,email,first_name,last_name,created_at,is_active,disabled_reason')
         .order('created_at', { ascending: false })
         .limit(500)
-
       if (error) throw error
       return { data: (data || []) as AdminCoach[] }
     } catch (err) {
       return { data: [], error: err instanceof Error ? err.message : 'Failed to load coaches' }
     }
   },
-
   async listLeads(): Promise<{ data: AdminLead[]; error?: string }> {
     try {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
-
       if (this._superadminCache === null) await this.isSuperadmin()
-      const canUseAdminRpc = this._superadminCache === true
-
-      if (canUseAdminRpc) {
+      if (this._superadminCache) {
         try {
           const { data, error } = await supabase.rpc('admin_list_leads', { p_email: email })
           if (!error && data) return { data: parseAdminList(data) as AdminLead[] }
-        } catch {
-          // fall through
-        }
+        } catch {}
       }
-
       const { data, error } = await supabase
         .from('leads')
         .select('id, client_name, client_email, status, coach_id, created_at, is_hidden')
         .order('created_at', { ascending: false })
         .limit(500)
-
       if (error) throw error
       return { data: (data || []) as AdminLead[] }
     } catch (err) {
       return { data: [], error: err instanceof Error ? err.message : 'Failed to load leads' }
     }
   },
-
   async listLeadsForCoach(coachId: string): Promise<{ data: AdminLead[]; error?: string }> {
     try {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
       if (this._superadminCache === null) await this.isSuperadmin()
-      if (this._superadminCache !== true) throw new Error('forbidden')
+      if (!this._superadminCache) throw new Error('forbidden')
       const { data, error } = await supabase.rpc('admin_list_leads_for_coach', {
         p_email: email,
         p_coach_id: coachId,
@@ -174,7 +163,6 @@ export const AdminApi = {
       return { data: [], error: err instanceof Error ? err.message : 'Failed to load coach leads' }
     }
   },
-
   async setLeadHidden(
     leadId: string,
     hidden: boolean,
@@ -183,7 +171,7 @@ export const AdminApi = {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
       if (this._superadminCache === null) await this.isSuperadmin()
-      if (this._superadminCache !== true) throw new Error('forbidden')
+      if (!this._superadminCache) throw new Error('forbidden')
       const { data, error } = await supabase.rpc('admin_set_lead_hidden', {
         p_email: email,
         p_lead_id: leadId,
@@ -196,13 +184,12 @@ export const AdminApi = {
       return { ok: false, error: err instanceof Error ? err.message : 'Failed to update lead' }
     }
   },
-
   async deleteLead(leadId: string): Promise<{ ok: boolean; error?: string }> {
     try {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
       if (this._superadminCache === null) await this.isSuperadmin()
-      if (this._superadminCache !== true) throw new Error('forbidden')
+      if (!this._superadminCache) throw new Error('forbidden')
       const { data, error } = await supabase.rpc('admin_delete_lead', {
         p_email: email,
         p_lead_id: leadId,
@@ -214,7 +201,6 @@ export const AdminApi = {
       return { ok: false, error: err instanceof Error ? err.message : 'Failed to delete lead' }
     }
   },
-
   async getLeadDetails(leadId: string): Promise<{
     data: { lead: Record<string, unknown> | null; coach_ids: string[] }
     error?: string
@@ -223,7 +209,7 @@ export const AdminApi = {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
       if (this._superadminCache === null) await this.isSuperadmin()
-      if (this._superadminCache !== true) throw new Error('forbidden')
+      if (!this._superadminCache) throw new Error('forbidden')
       const { data, error } = await supabase.rpc('admin_get_lead_details', {
         p_email: email,
         p_lead_id: leadId,
@@ -238,7 +224,6 @@ export const AdminApi = {
       }
     }
   },
-
   async duplicateLead(
     leadId: string,
     targetCoachIds: string[],
@@ -247,7 +232,7 @@ export const AdminApi = {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
       if (this._superadminCache === null) await this.isSuperadmin()
-      if (this._superadminCache !== true) throw new Error('forbidden')
+      if (!this._superadminCache) throw new Error('forbidden')
       const { data, error } = await supabase.rpc('admin_duplicate_lead', {
         p_email: email,
         p_lead_id: leadId,
@@ -260,26 +245,17 @@ export const AdminApi = {
       return { ok: false, error: err instanceof Error ? err.message : 'Failed to duplicate lead' }
     }
   },
-
   async listDeletionLogs(): Promise<{ data: AdminDeletionLog[]; error?: string }> {
     try {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
-
       if (this._superadminCache === null) await this.isSuperadmin()
-      const canUseAdminRpc = this._superadminCache === true
-
-      if (canUseAdminRpc) {
+      if (this._superadminCache) {
         try {
-          const { data, error } = await supabase.rpc('admin_list_deletion_logs', {
-            p_email: email,
-          })
+          const { data, error } = await supabase.rpc('admin_list_deletion_logs', { p_email: email })
           if (!error && data) return { data: parseAdminList(data) as AdminDeletionLog[] }
-        } catch {
-          // fall through
-        }
+        } catch {}
       }
-
       const { data, error } = await supabase
         .from('coach_deletion_log')
         .select(
@@ -287,9 +263,7 @@ export const AdminApi = {
         )
         .order('deletion_requested_at', { ascending: false })
         .limit(500)
-
       if (error) throw error
-      // Map deletion_reason -> reason for UI compatibility
       const mapped = (
         (data || []) as Array<AdminDeletionLog & { deletion_reason?: string | null }>
       ).map((row) => ({
@@ -304,8 +278,6 @@ export const AdminApi = {
       }
     }
   },
-
-  // Fetch subscription types for all coaches via the public view (granted to authenticated)
   async getCoachSubscriptionMap(): Promise<{
     data: Record<string, CoachSubscriptionSummary>
     error?: string
@@ -317,7 +289,6 @@ export const AdminApi = {
           'id, subscription_type, plan_name, current_period_start, current_period_end, subscription_status, auto_renew',
         )
         .limit(2000)
-
       if (error) throw error
       const map: Record<string, CoachSubscriptionSummary> = {}
       ;(data || []).forEach((row) => {
@@ -332,7 +303,6 @@ export const AdminApi = {
       }
     }
   },
-
   async getCoachDetails(coachId: string): Promise<{
     data: {
       coach: Record<string, unknown> | null
@@ -344,12 +314,8 @@ export const AdminApi = {
     try {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
-
       if (this._superadminCache === null) await this.isSuperadmin()
-      const canUseAdminRpc = this._superadminCache === true
-
-      if (!canUseAdminRpc) throw new Error('forbidden')
-
+      if (!this._superadminCache) throw new Error('forbidden')
       const { data, error } = await supabase.rpc('admin_get_coach_details', {
         p_email: email,
         p_coach_id: coachId,
@@ -370,7 +336,6 @@ export const AdminApi = {
       }
     }
   },
-
   async setCoachSubscription(
     coachId: string,
     planType: 'free' | 'premium',
@@ -380,11 +345,8 @@ export const AdminApi = {
     try {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
-
       if (this._superadminCache === null) await this.isSuperadmin()
-      const canUseAdminRpc = this._superadminCache === true
-      if (!canUseAdminRpc) throw new Error('forbidden')
-
+      if (!this._superadminCache) throw new Error('forbidden')
       const { data, error } = await supabase.rpc('admin_set_coach_subscription', {
         p_email: email,
         p_coach_id: coachId,
@@ -394,13 +356,11 @@ export const AdminApi = {
       })
       if (error) throw error
       const out = (data || {}) as { success?: boolean }
-      const ok = out.success === true
-      return { ok }
+      return { ok: out.success === true }
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : 'Failed to set subscription' }
     }
   },
-
   async cancelCoachSubscription(
     coachId: string,
     mode: 'at_period_end' | 'at_date' | 'immediate',
@@ -419,8 +379,7 @@ export const AdminApi = {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
       if (this._superadminCache === null) await this.isSuperadmin()
-      if (this._superadminCache !== true) throw new Error('forbidden')
-
+      if (!this._superadminCache) throw new Error('forbidden')
       const { data, error } = await supabase.rpc('admin_cancel_subscription', {
         p_email: email,
         p_coach_id: coachId,
@@ -439,16 +398,12 @@ export const AdminApi = {
       return { ok: false, error: err instanceof Error ? err.message : 'Failed to cancel' }
     }
   },
-
   async listPaymentsForCoach(coachId: string): Promise<{ data: PaymentRow[]; error?: string }> {
     try {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
-
       if (this._superadminCache === null) await this.isSuperadmin()
-      const canUseAdminRpc = this._superadminCache === true
-      if (!canUseAdminRpc) throw new Error('forbidden')
-
+      if (!this._superadminCache) throw new Error('forbidden')
       const { data, error } = await supabase.rpc('admin_list_payments_for_coach', {
         p_email: email,
         p_coach_id: coachId,
@@ -460,7 +415,6 @@ export const AdminApi = {
       return { data: [], error: err instanceof Error ? err.message : 'Failed to load payments' }
     }
   },
-
   async setCoachActive(
     coachId: string,
     active: boolean,
@@ -469,11 +423,8 @@ export const AdminApi = {
     try {
       const { data: userRes } = await supabase.auth.getUser()
       const email = userRes.user?.email || ''
-
       if (this._superadminCache === null) await this.isSuperadmin()
-      const canUseAdminRpc = this._superadminCache === true
-      if (!canUseAdminRpc) throw new Error('forbidden')
-
+      if (!this._superadminCache) throw new Error('forbidden')
       const { data, error } = await supabase.rpc('admin_set_coach_active', {
         p_email: email,
         p_coach_id: coachId,
@@ -485,6 +436,62 @@ export const AdminApi = {
       return { ok: out.success === true }
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : 'Failed to update status' }
+    }
+  },
+  async listReviews(options?: {
+    status?: string
+    coachId?: string
+    limit?: number
+  }): Promise<{ data: AdminReview[]; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (!this._superadminCache) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('admin_list_reviews', {
+        p_email: email,
+        p_status: options?.status ?? null,
+        p_coach_id: options?.coachId ?? null,
+        p_limit: options?.limit ?? 500,
+      })
+      if (error) throw error
+      return { data: (data || []) as AdminReview[] }
+    } catch (err) {
+      return { data: [], error: err instanceof Error ? err.message : 'Failed to load reviews' }
+    }
+  },
+  async approveReview(reviewId: string, note?: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (!this._superadminCache) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('approve_review', {
+        p_review_id: reviewId,
+        p_admin_email: email,
+        p_notes: note ?? null,
+      })
+      if (error) throw error
+      return { ok: !!data }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Failed to approve review' }
+    }
+  },
+  async rejectReview(reviewId: string, note?: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (!this._superadminCache) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('reject_review', {
+        p_review_id: reviewId,
+        p_admin_email: email,
+        p_notes: note ?? null,
+      })
+      if (error) throw error
+      return { ok: !!data }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Failed to reject review' }
     }
   },
 }
