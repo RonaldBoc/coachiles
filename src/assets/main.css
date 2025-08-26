@@ -6,12 +6,15 @@
 html,
 body {
   height: 100%;
-  overflow-x: hidden;
 }
 
 #app {
   font-weight: normal;
   height: 100vh;
+}
+
+/* Use this class inside pages instead of globally to prevent interfering with router scroll restoration */
+.no-horizontal-overflow {
   overflow-x: hidden;
 }
 

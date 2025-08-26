@@ -334,7 +334,7 @@ interface LeadData {
   client_phone?: string
   coach_id?: string
   location?: string
-  preferred_coaching?: string[]
+  chosen_services?: string[]
   experience?: string
   goals?: string
   availability?: string
@@ -455,7 +455,9 @@ const saveStep1 = async () => {
         client_phone: lead.client_phone,
         coach_id: lead.coach_id,
         location: lead.location,
-        preferred_coaching: lead.preferred_coaching ? [...lead.preferred_coaching] : undefined,
+        chosen_services: (lead as unknown as { chosen_services?: string[] }).chosen_services
+          ? [...(lead as unknown as { chosen_services?: string[] }).chosen_services!]
+          : undefined,
         experience: lead.experience,
         goals: lead.goals,
         availability: lead.availability,
@@ -506,8 +508,8 @@ const saveStep2 = async () => {
         client_phone: updatedLead.client_phone,
         coach_id: updatedLead.coach_id,
         location: updatedLead.location,
-        preferred_coaching: updatedLead.preferred_coaching
-          ? [...updatedLead.preferred_coaching]
+        chosen_services: (updatedLead as unknown as { chosen_services?: string[] }).chosen_services
+          ? [...(updatedLead as unknown as { chosen_services?: string[] }).chosen_services!]
           : undefined,
         experience: updatedLead.experience,
         goals: updatedLead.goals,
@@ -536,7 +538,7 @@ const saveStep3 = async () => {
     isSubmitting.value = true
 
     const updateData = {
-      preferred_coaching: form.value.preferredCoaching,
+      chosen_services: form.value.preferredCoaching,
       experience: form.value.experience,
       goals: form.value.goals,
       availability: form.value.availability,
@@ -562,8 +564,8 @@ const saveStep3 = async () => {
         email: finalLead.client_email,
         phone: finalLead.client_phone,
         location: finalLead.location,
-        preferredCoaching: finalLead.preferred_coaching
-          ? [...finalLead.preferred_coaching]
+        chosenServices: (finalLead as unknown as { chosen_services?: string[] }).chosen_services
+          ? [...(finalLead as unknown as { chosen_services?: string[] }).chosen_services!]
           : undefined,
         experience: finalLead.experience,
         coachingGoals: finalLead.goals,

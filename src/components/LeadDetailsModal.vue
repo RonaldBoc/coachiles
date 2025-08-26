@@ -142,11 +142,11 @@
                 <label class="block text-sm font-medium text-gray-700">Objectifs</label>
                 <p class="mt-1 text-sm text-gray-900">{{ lead.goals }}</p>
               </div>
-              <div v-if="lead.preferred_coaching?.length">
+              <div v-if="lead.chosen_services?.length">
                 <label class="block text-sm font-medium text-gray-700">Services d'intérêt</label>
                 <div class="mt-1 flex flex-wrap gap-2">
                   <span
-                    v-for="service in lead.preferred_coaching"
+                    v-for="service in lead.chosen_services"
                     :key="service"
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
                   >

@@ -11,13 +11,14 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'CheckoutSuccessPage' })
 import { onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useModernSubscriptionStore } from '@/stores/modernSubscription'
 
-const route = useRoute()
 const router = useRouter()
-const sessionId = route.query.session_id as string | undefined
+// session_id from Stripe checkout could be read here if verification is implemented later:
+// const sessionId = route.query.session_id as string | undefined
 const subscriptionStore = useModernSubscriptionStore()
 
 onMounted(async () => {

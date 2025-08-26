@@ -161,7 +161,13 @@ export class LeadService {
     try {
       const { data: finalized, error } = await supabase.rpc('leads_finalize_public', {
         p_lead_id: leadId,
-        p_preferred_coaching: data.preferred_coaching ?? null,
+        // NOTE: Backend RPC still expects p_preferred_coaching; mapping chosen_services -> p_preferred_coaching until RPC is renamed
+        p_preferred_coaching:
+          (data as unknown as { chosen_services?: string[]; preferred_coaching?: string[] })
+            .chosen_services ??
+          (data as unknown as { chosen_services?: string[]; preferred_coaching?: string[] })
+            .preferred_coaching ??
+          null,
         p_experience: data.experience ?? null,
         p_goals: data.goals ?? null,
         p_availability: data.availability ?? null,

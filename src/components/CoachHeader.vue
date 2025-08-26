@@ -55,7 +55,7 @@
             >
               Marketplace
             </router-link>
-            <router-link
+            <!-- <router-link
               to="/coach/bookings"
               :class="[
                 'px-3 py-2 rounded-md text-sm font-medium transition-colors',
@@ -65,7 +65,7 @@
               ]"
             >
               Réservations
-            </router-link>
+            </router-link> -->
             <router-link
               to="/coach/account"
               :class="[
@@ -83,17 +83,59 @@
         <!-- User Menu -->
         <div class="flex items-center space-x-4">
           <!-- Notifications -->
-          <button
-            type="button"
-            class="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-          >
-            <BellIcon class="h-6 w-6" />
-            <!-- Notification dot -->
-            <span
-              v-if="hasNotifications"
-              class="absolute top-0 right-0 block h-2 w-2 bg-red-400 rounded-full"
-            ></span>
-          </button>
+          <div class="relative" ref="notificationsContainer" @keyup.esc="showNotifications = false">
+            <button
+              type="button"
+              @click="toggleNotifications"
+              class="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+            >
+              <BellIcon class="h-6 w-6" />
+              <!-- Notification dot -->
+              <span
+                v-if="hasNotifications"
+                class="absolute top-0 right-0 block h-2 w-2 bg-red-500 rounded-full"
+              ></span>
+            </button>
+            <!-- Notifications dropdown -->
+            <div
+              v-if="showNotifications"
+              class="absolute right-0 mt-2 w-80 z-20 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 overflow-hidden"
+            >
+              <div class="px-4 py-2 border-b flex items-center justify-between">
+                <h3 class="text-sm font-medium text-gray-700">Notifications</h3>
+                <button
+                  v-if="notifications.length"
+                  @click="markAllRead"
+                  class="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  Marquer tout lu
+                </button>
+              </div>
+              <ul class="max-h-96 divide-y divide-gray-100">
+                <li
+                  v-if="!recentNotifications.length"
+                  class="p-4 text-sm text-gray-500 text-center"
+                >
+                  Aucune notification
+                </li>
+                <li
+                  v-for="n in recentNotifications"
+                  :key="n.id"
+                  @click="goToNotification(n)"
+                  class="p-3 cursor-pointer hover:bg-gray-50 flex items-start gap-3"
+                >
+                  <span
+                    class="mt-1 h-2 w-2 rounded-full"
+                    :class="n.read ? 'bg-gray-300' : 'bg-red-500'"
+                  ></span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs text-gray-700" v-html="n.message" />
+                    <p class="mt-1 text-[10px] text-gray-400">{{ timeAgo(n.createdAt) }}</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
 
           <!-- Profile Dropdown -->
           <Menu as="div" class="relative">
@@ -263,7 +305,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue'
 import {
@@ -292,7 +334,157 @@ const showMobileMenu = ref(false)
 // Computed
 const coach = computed(() => authStore.coach)
 const newProposalsCount = computed(() => leadStore.newLeadsCount)
-const hasNotifications = computed(() => newProposalsCount.value > 0)
+// Notifications logic
+interface NotificationItem {
+  id: string
+  type: 'lead:new'
+  leadId?: string
+  message: string
+  createdAt: Date
+  read: boolean
+}
+
+const notifications = ref<NotificationItem[]>([])
+const showNotifications = ref(false)
+const previousLeadIds = ref<Set<string>>(new Set())
+const notificationsContainer = ref<HTMLElement | null>(null)
+
+// Persistence keys
+const LS_NOTIFS_KEY = 'coach_notifications_v1'
+const LS_KNOWN_LEADS_KEY = 'coach_known_leads_v1'
+
+const saveNotifications = () => {
+  try {
+    const raw = notifications.value.map((n) => ({ ...n, createdAt: n.createdAt.toISOString() }))
+    localStorage.setItem(LS_NOTIFS_KEY, JSON.stringify(raw))
+  } catch (e) {
+    console.warn('Failed to persist notifications', e)
+  }
+}
+
+const saveKnownLeadIds = () => {
+  try {
+    localStorage.setItem(LS_KNOWN_LEADS_KEY, JSON.stringify(Array.from(previousLeadIds.value)))
+  } catch (e) {
+    console.warn('Failed to persist known lead IDs', e)
+  }
+}
+
+const loadFromStorage = () => {
+  try {
+    const stored = localStorage.getItem(LS_NOTIFS_KEY)
+    if (stored) {
+      const parsed: Array<{
+        id: string
+        type: 'lead:new'
+        leadId?: string
+        message: string
+        createdAt: string
+        read: boolean
+      }> = JSON.parse(stored)
+      notifications.value = parsed.map((n) => ({ ...n, createdAt: new Date(n.createdAt) }))
+    }
+    const storedIds = localStorage.getItem(LS_KNOWN_LEADS_KEY)
+    if (storedIds) {
+      previousLeadIds.value = new Set<string>(JSON.parse(storedIds))
+    }
+  } catch (e) {
+    console.warn('Failed to load notifications from storage', e)
+  }
+}
+
+const addNotification = (n: Omit<NotificationItem, 'id' | 'read'> & { createdAt?: Date }) => {
+  const item: NotificationItem = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    createdAt: n.createdAt || new Date(),
+    read: false,
+    type: n.type,
+    leadId: n.leadId,
+    message: n.message,
+  }
+  notifications.value.push(item)
+  // Keep only last 50 (after sort later)
+  if (notifications.value.length > 50)
+    notifications.value.splice(0, notifications.value.length - 50)
+  saveNotifications()
+}
+
+const markAllRead = () => {
+  notifications.value.forEach((n) => (n.read = true))
+  saveNotifications()
+}
+
+const recentNotifications = computed(() =>
+  [...notifications.value]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 5),
+)
+const hasNotifications = computed(() => notifications.value.some((n) => !n.read))
+
+const toggleNotifications = () => {
+  showNotifications.value = !showNotifications.value
+  if (!showNotifications.value) markAllRead()
+}
+
+const timeAgo = (date: Date) => {
+  const diff = (Date.now() - date.getTime()) / 1000
+  if (diff < 60) return 'Il y a quelques sec.'
+  const mins = Math.floor(diff / 60)
+  if (mins < 60) return `Il y a ${mins} min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `Il y a ${hours} h`
+  const days = Math.floor(hours / 24)
+  return `Il y a ${days} j`
+}
+
+const goToNotification = (n: NotificationItem) => {
+  n.read = true
+  showNotifications.value = false
+  if (n.type === 'lead:new' && n.leadId) {
+    router.push({ path: '/coach/proposals', query: { leadId: n.leadId } })
+  }
+}
+
+// Outside click handler
+const handleClickOutside = (e: MouseEvent) => {
+  if (!showNotifications.value) return
+  const el = notificationsContainer.value
+  if (el && !el.contains(e.target as Node)) {
+    showNotifications.value = false
+    markAllRead()
+  }
+}
+
+onMounted(() => {
+  loadFromStorage()
+  // If we have leads already and no known IDs persisted, seed them (without generating unread spam)
+  if (previousLeadIds.value.size === 0 && leadStore.leads.length) {
+    leadStore.leads.forEach((l) => previousLeadIds.value.add(l.id))
+    saveKnownLeadIds()
+    if (notifications.value.length === 0) {
+      const snapshot = [...leadStore.leads]
+        .filter((l) => l.status === 'new')
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5)
+      snapshot.forEach((l) =>
+        notifications.value.push({
+          id: `init-${l.id}`,
+          type: 'lead:new',
+          leadId: l.id,
+          message: `Nouveau lead: <strong>${l.client_name || 'Client'}</strong>`,
+          createdAt: new Date(l.created_at || Date.now()),
+          read: true,
+        }),
+      )
+      saveNotifications()
+    }
+  }
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 // Ensure leads are loaded for the badge when coach is available
 watch(
@@ -308,6 +500,28 @@ watch(
     }
   },
   { immediate: true },
+)
+
+// Watch for new leads to create notifications
+watch(
+  () => leadStore.leads,
+  (leads) => {
+    const currentIds = new Set<string>()
+    leads.forEach((l) => {
+      currentIds.add(l.id)
+      if (!previousLeadIds.value.has(l.id) && l.status === 'new') {
+        addNotification({
+          type: 'lead:new',
+          leadId: l.id,
+          message: `Nouveau lead: <strong>${l.client_name || 'Client'}</strong>`,
+          createdAt: new Date(l.created_at || Date.now()),
+        })
+      }
+    })
+    previousLeadIds.value = currentIds
+    saveKnownLeadIds()
+  },
+  { deep: true },
 )
 
 // Methods

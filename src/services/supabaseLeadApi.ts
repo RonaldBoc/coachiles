@@ -70,7 +70,7 @@ export const supabaseLeadApi = {
     clientName: string
     clientEmail: string
     clientPhone: string
-    preferredCoaching: string[]
+    chosenServices: string[]
     goals: string
     experience: string
     availability: string
@@ -85,7 +85,7 @@ export const supabaseLeadApi = {
           client_name: leadData.clientName,
           client_email: leadData.clientEmail,
           client_phone: leadData.clientPhone,
-          preferred_coaching: leadData.preferredCoaching,
+          chosen_services: leadData.chosenServices,
           goals: leadData.goals,
           experience: leadData.experience,
           availability: leadData.availability,

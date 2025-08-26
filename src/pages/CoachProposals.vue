@@ -149,32 +149,32 @@
               <thead class="bg-gray-50">
                 <tr>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Client
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Status
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    class="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Objectifs
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Lieu
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Créé le
                   </th>
                   <th
-                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    class="px-3 py-2 sm:px-6 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Actions
                   </th>
@@ -183,22 +183,24 @@
               <tbody class="bg-white divide-y divide-gray-200">
                 <tr v-for="lead in filteredLeads" :key="lead.id" class="hover:bg-gray-50">
                   <!-- Client -->
-                  <td class="px-6 py-4 whitespace-nowrap">
+                  <td class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
                     <div class="flex items-center">
-                      <div class="flex-shrink-0 h-10 w-10">
+                      <div class="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
                         <div
-                          class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center"
+                          class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-500 flex items-center justify-center"
                         >
                           <span class="text-sm font-medium text-white">
                             {{ getLeadInitial(lead) }}
                           </span>
                         </div>
                       </div>
-                      <div class="ml-4">
-                        <div class="text-sm font-medium text-gray-900">
+                      <div class="ml-3 sm:ml-4">
+                        <div class="text-xs sm:text-sm font-medium text-gray-900 leading-tight">
                           {{ getLeadName(lead) }}
                         </div>
-                        <div class="text-sm text-gray-500">
+                        <div
+                          class="text-[11px] sm:text-sm text-gray-500 truncate max-w-[120px] sm:max-w-none"
+                        >
                           {{ getLeadEmail(lead) }}
                         </div>
                       </div>
@@ -213,7 +215,7 @@
                   </td>
 
                   <!-- Status -->
-                  <td class="px-6 py-4 whitespace-nowrap">
+                  <td class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
                     <span
                       :class="[
                         'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
@@ -224,32 +226,38 @@
                     </span>
                   </td>
 
-                  <!-- Objectifs -->
-                  <td class="px-6 py-4">
+                  <!-- Objectifs (hidden on mobile) -->
+                  <td class="hidden sm:table-cell px-6 py-4">
                     <div class="text-sm text-gray-900">
                       {{ getLeadGoals(lead) }}
                     </div>
-                    <div v-if="lead.preferred_coaching?.length" class="text-sm text-gray-500">
-                      {{ lead.preferred_coaching.slice(0, 2).join(', ') }}
-                      <span v-if="lead.preferred_coaching.length > 2">
-                        +{{ lead.preferred_coaching.length - 2 }}
+                    <div v-if="lead.chosen_services?.length" class="text-sm text-gray-500">
+                      {{ lead.chosen_services.slice(0, 2).join(', ') }}
+                      <span v-if="lead.chosen_services.length > 2">
+                        +{{ lead.chosen_services.length - 2 }}
                       </span>
                     </div>
                   </td>
 
                   <!-- Lieu -->
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ lead.location || '-' }}
+                  <td
+                    class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900"
+                  >
+                    {{ formatLocation(lead.location) }}
                   </td>
 
                   <!-- Créé le -->
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div>{{ formatDate(lead.created_at) }}</div>
-                    <div class="text-xs">{{ getTimeAgo(lead.created_at) }}</div>
+                  <td
+                    class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-[11px] sm:text-sm text-gray-500"
+                  >
+                    <div class="leading-tight">{{ formatDate(lead.created_at) }}</div>
+                    <div class="text-[10px] sm:text-xs">{{ getTimeAgo(lead.created_at) }}</div>
                   </td>
 
                   <!-- Actions -->
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td
+                    class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium"
+                  >
                     <Menu as="div" class="relative inline-block text-left">
                       <div>
                         <MenuButton
@@ -287,53 +295,7 @@
                             </button>
                           </MenuItem>
 
-                          <!-- Status change actions only available for unlocked leads -->
-                          <template v-if="canAccessLeadDetails(lead)">
-                            <MenuItem
-                              v-if="lead.status === 'new' || lead.status === 'assigned'"
-                              v-slot="{ active }"
-                            >
-                              <button
-                                @click="markAsContacted(lead)"
-                                :class="[
-                                  active ? 'bg-gray-100' : '',
-                                  'flex w-full items-center px-4 py-2 text-sm text-gray-700',
-                                ]"
-                              >
-                                <CheckIcon class="mr-3 h-4 w-4" />
-                                Marquer comme contacté
-                              </button>
-                            </MenuItem>
-
-                            <MenuItem v-if="lead.status === 'contacted'" v-slot="{ active }">
-                              <button
-                                @click="markAsConverted(lead)"
-                                :class="[
-                                  active ? 'bg-gray-100' : '',
-                                  'flex w-full items-center px-4 py-2 text-sm text-green-700',
-                                ]"
-                              >
-                                <CheckIcon class="mr-3 h-4 w-4" />
-                                Marquer comme converti
-                              </button>
-                            </MenuItem>
-
-                            <MenuItem
-                              v-if="lead.status !== 'closed' && lead.status !== 'converted'"
-                              v-slot="{ active }"
-                            >
-                              <button
-                                @click="markAsClosed(lead)"
-                                :class="[
-                                  active ? 'bg-gray-100' : '',
-                                  'flex w-full items-center px-4 py-2 text-sm text-red-700',
-                                ]"
-                              >
-                                <XMarkIcon class="mr-3 h-4 w-4" />
-                                Marquer comme fermé
-                              </button>
-                            </MenuItem>
-                          </template>
+                          <!-- (Additional status actions could be added here) -->
                         </MenuItems>
                       </transition>
                     </Menu>
@@ -344,151 +306,118 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Lead Details Modal -->
-    <div
-      v-if="selectedLead"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      @click="selectedLead = null"
-    >
+      <!-- Lead Details Modal -->
       <div
-        class="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
-        @click.stop
+        v-if="selectedLead"
+        class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
+        @click.self="selectedLead = null"
       >
-        <div class="p-6">
-          <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold text-gray-900">Détails du Lead</h2>
-            <button @click="selectedLead = null" class="text-gray-400 hover:text-gray-600">
-              <XMarkIcon class="w-6 h-6" />
+        <div class="w-full max-w-lg bg-white rounded-lg shadow-lg overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 border-b">
+            <h2 class="text-lg font-semibold text-gray-900">Détails du Lead</h2>
+            <button @click="selectedLead = null" class="text-gray-500 hover:text-gray-700">
+              ✕
             </button>
           </div>
-
-          <!-- Premium Notice for Free Accounts -->
-          <div
-            v-if="!canAccessLeadDetails(selectedLead)"
-            class="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg"
-          >
-            <div class="flex items-start">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <h3 class="text-sm font-medium text-yellow-800">Accès Premium Requis</h3>
-                <div class="mt-2 text-sm text-yellow-700">
-                  <p>
-                    Ce lead contient des informations personnelles qui nécessitent un compte
-                    premium.
-                  </p>
-                </div>
-                <div class="mt-4">
-                  <button
-                    @click="unlockLead()"
-                    class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:from-yellow-500 hover:to-orange-600"
-                  >
-                    Débloquer ce Lead
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Lead Details -->
-          <div class="space-y-6">
+          <div class="p-4 space-y-4 text-sm">
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700">Statut</label>
-                <span
-                  :class="[
-                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1',
-                    getStatusColor(selectedLead.status),
-                  ]"
-                >
-                  {{ getStatusLabel(selectedLead.status) }}
-                </span>
+                <div class="text-gray-500">Nom</div>
+                <div class="font-medium text-gray-900">{{ getLeadName(selectedLead!) }}</div>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700">Créé le</label>
-                <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedLead.created_at) }}</p>
+                <div class="text-gray-500">Email</div>
+                <div class="font-medium text-gray-900">{{ getLeadEmail(selectedLead!) }}</div>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700">Lieu</label>
-                <p class="mt-1 text-sm text-gray-900">
-                  {{ selectedLead.location || 'Non spécifié' }}
-                </p>
+                <div class="text-gray-500">Lieu</div>
+                <div class="font-medium text-gray-900">{{ selectedLead!.location || '—' }}</div>
+              </div>
+              <div v-if="selectedLead?.chosen_services?.length">
+                <div class="text-gray-500">Services choisis</div>
+                <div class="font-medium text-gray-900 text-xs">
+                  {{ selectedLead!.chosen_services.join(', ') }}
+                </div>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700">Étape</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedLead.current_step }}/3</p>
+                <div class="text-gray-500">Créé le</div>
+                <div class="font-medium text-gray-900">
+                  {{ formatDate(selectedLead!.created_at) }}
+                </div>
               </div>
             </div>
+            <div>
+              <div class="text-gray-500 mb-1">Objectifs</div>
+              <div class="text-gray-900 whitespace-pre-wrap">{{ getLeadGoals(selectedLead!) }}</div>
+            </div>
+            <div v-if="canAccessLeadDetails(selectedLead!)">
+              <div class="text-gray-500 mb-1">Données complètes</div>
+              <div class="space-y-1">
+                <div v-if="selectedLead!.client_phone">
+                  <span class="font-medium">Téléphone:</span> {{ selectedLead!.client_phone }}
+                </div>
+                <div v-if="selectedLead!.goals">
+                  <span class="font-medium">Objectifs:</span> {{ selectedLead!.goals }}
+                </div>
+                <div v-if="selectedLead!.additional_info">
+                  <span class="font-medium">Infos sup.:</span> {{ selectedLead!.additional_info }}
+                </div>
+              </div>
+              <!-- Chosen services already shown above; removed coach offered services block -->
 
-            <!-- Client Info (Premium Required) -->
-            <div v-if="canAccessLeadDetails(selectedLead)" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Nom</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedLead.client_name }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Email</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedLead.client_email }}</p>
-              </div>
-              <div v-if="selectedLead.client_phone">
-                <label class="block text-sm font-medium text-gray-700">Téléphone</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedLead.client_phone }}</p>
-              </div>
-              <div v-if="selectedLead.goals">
-                <label class="block text-sm font-medium text-gray-700">Objectifs</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedLead.goals }}</p>
-              </div>
-              <div v-if="selectedLead.additional_info">
-                <label class="block text-sm font-medium text-gray-700"
-                  >Informations supplémentaires</label
-                >
-                <p class="mt-1 text-sm text-gray-900">{{ selectedLead.additional_info }}</p>
+              <!-- Coach Note -->
+              <div class="mt-4">
+                <label class="text-gray-500 mb-1 block text-sm">Note coach (privée)</label>
+                <textarea
+                  v-model="coachNoteDraft"
+                  rows="3"
+                  class="w-full text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 resize-y"
+                  placeholder="Vos notes sur ce lead..."
+                />
+                <div class="mt-2 flex items-center gap-2">
+                  <button
+                    @click="saveCoachNote"
+                    :disabled="isSavingNote"
+                    class="px-3 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {{ isSavingNote ? 'Sauvegarde...' : 'Sauvegarder' }}
+                  </button>
+                  <span v-if="noteError" class="text-xs text-red-600">{{ noteError }}</span>
+                </div>
               </div>
             </div>
-
-            <!-- Action Buttons -->
-            <div
-              v-if="canAccessLeadDetails(selectedLead)"
-              class="flex justify-between items-center pt-4 border-t border-gray-200"
-            >
-              <div class="flex space-x-3">
-                <button
-                  v-if="selectedLead.status === 'new' || selectedLead.status === 'assigned'"
-                  @click="markAsContactedAndClose(selectedLead)"
-                  class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-                >
-                  Marquer comme contacté
-                </button>
-                <button
-                  v-if="selectedLead.status === 'contacted'"
-                  @click="markAsConvertedAndClose(selectedLead)"
-                  class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700"
-                >
-                  Marquer comme converti
-                </button>
-                <button
-                  v-if="selectedLead.status !== 'closed' && selectedLead.status !== 'converted'"
-                  @click="markAsClosedAndClose(selectedLead)"
-                  class="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
-                >
-                  Fermer le lead
-                </button>
-              </div>
+            <div v-else class="p-3 rounded bg-yellow-50 text-yellow-800 text-xs">
+              Plus de détails disponibles avec un compte Premium.
+            </div>
+            <div class="pt-2 flex justify-end">
               <button
                 @click="selectedLead = null"
-                class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-400"
+                class="px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300"
               >
                 Fermer
               </button>
+            </div>
+            <div class="pt-4 border-t">
+              <h3 class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+                Mettre à jour le statut
+              </h3>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="status in availableStatusUpdates"
+                  :key="status.value"
+                  @click="changeLeadStatus(status.value)"
+                  :disabled="isUpdatingStatus || status.value === selectedLead!.status"
+                  :class="[
+                    'px-3 py-1 rounded text-xs font-medium border transition',
+                    status.value === selectedLead!.status
+                      ? 'bg-gray-200 text-gray-600 cursor-default'
+                      : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300',
+                  ]"
+                >
+                  {{ status.label }}
+                </button>
+              </div>
+              <div v-if="statusError" class="mt-2 text-xs text-red-600">{{ statusError }}</div>
             </div>
           </div>
         </div>
@@ -499,13 +428,20 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue'
-import { EllipsisVerticalIcon, EyeIcon, CheckIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { EllipsisVerticalIcon, EyeIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 import type { Lead } from '@/types/Lead'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import LeadService from '@/services/leadService'
-import { supabase } from '@/utils/supabase'
+import supabaseLeadApi from '@/services/supabaseLeadApi'
+import { supabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
+import type { CoachService } from '@/types/service'
+
+// Router
+const route = useRoute()
+const router = useRouter()
 
 // Stores
 const authStore = useAuthStore()
@@ -514,6 +450,11 @@ const authStore = useAuthStore()
 const leads = ref<Lead[]>([])
 const isLoading = ref(false)
 const selectedLead = ref<Lead | null>(null)
+const coachServices = ref<CoachService[]>([])
+const isLoadingServices = ref(false)
+const coachNoteDraft = ref('')
+const isSavingNote = ref(false)
+const noteError = ref<string | null>(null)
 const selectedStatus = ref('all')
 const searchQuery = ref('')
 const coachSubscriptionType = ref<string>('free') // Track actual subscription status
@@ -526,13 +467,12 @@ const maxUnlockedLeads = computed(() => (isSubscriptionLimited.value ? 2 : Infin
 // Reactive unlocked leads based on subscription
 const unlockedLeads = computed(() => {
   const unlockedSet = new Set<string>()
-
+  // consider only non-hidden leads
+  const visibleLeads = leads.value.filter((l) => !l.is_hidden)
   if (coachSubscriptionType.value !== 'free') {
-    // Premium users can access all leads
-    leads.value.forEach((lead) => unlockedSet.add(lead.id))
+    visibleLeads.forEach((lead) => unlockedSet.add(lead.id))
   } else {
-    // Free users can only access first 2 leads (sorted by creation date)
-    const sortedLeads = [...leads.value].sort(
+    const sortedLeads = [...visibleLeads].sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     )
     sortedLeads.slice(0, 2).forEach((lead) => unlockedSet.add(lead.id))
@@ -545,7 +485,7 @@ const unlockedLeadsCount = computed(() => unlockedLeads.value.size)
 
 // Filtered leads
 const filteredLeads = computed(() => {
-  let filtered = leads.value
+  let filtered = leads.value.filter((l) => !l.is_hidden)
 
   // Filter by status
   if (selectedStatus.value !== 'all') {
@@ -614,8 +554,9 @@ const getLeadGoals = (lead: Lead): string => {
 }
 
 const getStatusCount = (status: string): number => {
-  if (status === 'all') return leads.value.length
-  return leads.value.filter((lead) => lead.status === status).length
+  const visible = leads.value.filter((l) => !l.is_hidden)
+  if (status === 'all') return visible.length
+  return visible.filter((lead) => lead.status === status).length
 }
 
 const isNewLead = (lead: Lead): boolean => {
@@ -672,6 +613,136 @@ const getStatusLabel = (status: string): string => {
   return labels[status as keyof typeof labels] || status
 }
 
+// Normalization helper (lowercase, remove diacritics & apostrophes, compress whitespace)
+const normalizeCity = (raw: string) =>
+  raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/'/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+// Complete commune lists for MQ (Martinique, 34), GP (Guadeloupe incl. dependencies, 32), GY (Guyane, 22)
+// Source: INSEE commune lists (normalized at runtime)
+const CITY_ISLAND_CODE: Record<string, string> = (() => {
+  const groups: Record<string, string[]> = {
+    MQ: [
+      'Fort-de-France',
+      'Le Lamentin',
+      'Le Robert',
+      'Le François',
+      'Ducos',
+      'Saint-Joseph',
+      'La Trinité',
+      'Le Marin',
+      'Sainte-Anne',
+      'Le Vauclin',
+      'Le Diamant',
+      'Sainte-Luce',
+      'Rivière-Salée',
+      'Les Trois-Îlets',
+      'Le Carbet',
+      'Case-Pilote',
+      'Bellefontaine',
+      'Prêcheur',
+      'Saint-Pierre',
+      'Morne-Rouge',
+      'Le Morne-Vert',
+      'Fonds-Saint-Denis',
+      'Schoelcher',
+      'Gros-Morne',
+      'Saint-Esprit',
+      "Anses-d'Arlet",
+      'Marigot',
+      'Lorrain',
+      'Ajoupa-Bouillon',
+      'Macouba',
+      "Grand'Rivière",
+      'Basse-Pointe',
+      'Sainte-Marie',
+    ],
+    GP: [
+      'Basse-Terre',
+      'Saint-Claude',
+      'Baillif',
+      'Vieux-Habitants',
+      'Bouillante',
+      'Pointe-Noire',
+      'Deshaies',
+      'Sainte-Rose',
+      'Lamentin',
+      'Petit-Bourg',
+      'Goyave',
+      'Capesterre-Belle-Eau',
+      'Trois-Rivières',
+      'Vieux-Fort',
+      'Gourbeyre',
+      'Baie-Mahault',
+      'Les Abymes',
+      'Pointe-à-Pitre',
+      'Le Gosier',
+      'Sainte-Anne',
+      'Saint-François',
+      'Petit-Canal',
+      'Port-Louis',
+      'Anse-Bertrand',
+      "Morne-à-l'Eau",
+      'Le Moule',
+      'Saint-Louis',
+      'Grand-Bourg',
+      'Capesterre-de-Marie-Galante',
+      'Terre-de-Bas',
+      'Terre-de-Haut',
+      'La Désirade',
+    ],
+    GY: [
+      'Cayenne',
+      'Matoury',
+      'Remire-Montjoly',
+      'Macouria',
+      'Montsinéry-Tonnegrande',
+      'Roura',
+      'Kourou',
+      'Sinnamary',
+      'Iracoubo',
+      'Saint-Laurent-du-Maroni',
+      'Mana',
+      'Awala-Yalimapo',
+      'Saint-Georges', // Saint-Georges-de-l'Oyapock (short form)
+      'Ouanary',
+      'Régina',
+      'Camopi',
+      'Saul',
+      'Maripasoula',
+      'Papaïchton',
+      'Grand-Santi',
+      'Apatou',
+      'Saint-Élie',
+    ],
+  }
+  const map: Record<string, string> = {}
+  Object.entries(groups).forEach(([code, cities]) => {
+    cities.forEach((c) => {
+      map[normalizeCity(c)] = code
+    })
+  })
+  return map
+})()
+
+const getIslandCodeByCity = (city?: string | null): string | null => {
+  if (!city) return null
+  const norm = normalizeCity(city)
+  return CITY_ISLAND_CODE[norm] || null
+}
+
+const formatLocation = (location?: string | null): string => {
+  if (!location) return '-'
+  const code = getIslandCodeByCity(location)
+  if (code && !location.toUpperCase().includes(`, ${code}`)) return `${location}, ${code}`
+  return location
+}
+
 // Actions
 const loadLeads = async () => {
   if (!currentCoach.value?.id) return
@@ -717,175 +788,79 @@ const viewLead = (lead: Lead) => {
   }
 
   selectedLead.value = lead
-}
-
-const unlockLead = () => {
-  // For free accounts, we can't unlock more leads - redirect to upgrade
-  if (coachSubscriptionType.value === 'free') {
-    upgradeAccount()
-    return
+  // Initialize note draft
+  coachNoteDraft.value = lead.coach_note || ''
+  // Lazy-load services if not already
+  if (!coachServices.value.length) {
+    loadCoachServices()
   }
-
-  // For premium accounts, leads are already unlocked via computed property
-  // This function mainly handles the upgrade redirect for free accounts
 }
 
-const updateLeadStatus = async (leadId: string, status: Lead['status']) => {
+// Status update logic
+const isUpdatingStatus = ref(false)
+const statusError = ref<string | null>(null)
+const availableStatusUpdates = [
+  { value: 'new', label: 'Nouvelle' },
+  { value: 'assigned', label: 'Assignée' },
+  { value: 'contacted', label: 'Contactée' },
+  { value: 'converted', label: 'Convertie' },
+  { value: 'closed', label: 'Fermée' },
+]
+
+const changeLeadStatus = async (newStatus: string) => {
+  if (!selectedLead.value) return
+  if (selectedLead.value.status === newStatus) return
+  statusError.value = null
   try {
-    await LeadService.updateLead(leadId, { status })
-    const leadIndex = leads.value.findIndex((l) => l.id === leadId)
-    if (leadIndex !== -1) {
-      leads.value[leadIndex].status = status
+    isUpdatingStatus.value = true
+    const updated = await supabaseLeadApi.updateLeadStatus(selectedLead.value.id, newStatus)
+    // Update local leads array
+    const idx = leads.value.findIndex((l) => l.id === updated.id)
+    if (idx !== -1) {
+      leads.value[idx] = { ...leads.value[idx], ...updated }
     }
-  } catch (error) {
-    console.error('Failed to update lead status:', error)
+    selectedLead.value = { ...selectedLead.value, ...updated }
+  } catch (e: unknown) {
+    console.error('Failed to update status', e)
+    statusError.value =
+      e && typeof e === 'object' && 'message' in e
+        ? String((e as { message?: unknown }).message || 'Erreur lors de la mise à jour.')
+        : 'Erreur lors de la mise à jour.'
+  } finally {
+    isUpdatingStatus.value = false
   }
 }
 
-const markAsContacted = (lead: Lead) => {
-  updateLeadStatus(lead.id, 'contacted')
+const loadCoachServices = async () => {
+  try {
+    isLoadingServices.value = true
+    coachServices.value = await supabaseCoachServicesApi.getCoachServices()
+  } catch (e) {
+    console.error('Failed to load coach services', e)
+  } finally {
+    isLoadingServices.value = false
+  }
 }
 
-const markAsConverted = (lead: Lead) => {
-  updateLeadStatus(lead.id, 'converted')
-}
-
-const markAsClosed = (lead: Lead) => {
-  updateLeadStatus(lead.id, 'closed')
-}
-
-const markAsContactedAndClose = (lead: Lead) => {
-  updateLeadStatus(lead.id, 'contacted')
-  selectedLead.value = null
-}
-
-const markAsConvertedAndClose = (lead: Lead) => {
-  updateLeadStatus(lead.id, 'converted')
-  selectedLead.value = null
-}
-
-const markAsClosedAndClose = (lead: Lead) => {
-  updateLeadStatus(lead.id, 'closed')
-  selectedLead.value = null
+const saveCoachNote = async () => {
+  if (!selectedLead.value) return
+  noteError.value = null
+  try {
+    isSavingNote.value = true
+    const updated = await supabaseLeadApi.addNote(selectedLead.value.id, coachNoteDraft.value)
+    const idx = leads.value.findIndex((l) => l.id === updated.id)
+    if (idx !== -1) leads.value[idx] = { ...leads.value[idx], ...updated }
+    selectedLead.value = { ...selectedLead.value, ...updated }
+  } catch {
+    noteError.value = 'Erreur lors de la sauvegarde.'
+  } finally {
+    isSavingNote.value = false
+  }
 }
 
 const upgradeAccount = () => {
   // Navigate to subscription upgrade page
   console.log('Navigate to upgrade page')
-}
-
-// TESTING FUNCTION - Actually updates database (REMOVE IN PRODUCTION)
-const toggleSubscriptionForTesting = async () => {
-  const authStore = useAuthStore()
-  if (!authStore.coach?.id) {
-    console.error('No coach logged in for testing')
-    return
-  }
-
-  console.log('🧪 TESTING: Function called - Starting subscription toggle')
-  console.log('🧪 TESTING: Coach ID:', authStore.coach.id)
-
-  try {
-    console.log('🧪 TESTING: Checking current database state...')
-
-    // First test if the RPC functions exist
-    console.log('🧪 TESTING: Testing RPC function availability...')
-    const { error: testRpcError } = await supabase.rpc('cancel_coach_subscription', {
-      coach_id_param: '00000000-0000-0000-0000-000000000000', // dummy UUID for testing
-    })
-
-    if (testRpcError && testRpcError.code === '42883') {
-      console.error('❌ RPC functions not found! Please execute the SQL in Supabase:', testRpcError)
-      alert(
-        '⚠️ Database functions not created yet!\n\nPlease execute the SQL file "create-subscription-functions.sql" in your Supabase SQL Editor first.',
-      )
-      return
-    }
-
-    console.log('✅ RPC functions are available')
-
-    // Check ACTUAL database state using the same method as page load
-    console.log('🧪 TESTING: Getting current subscription status from view...')
-    const subscriptionInfo = await LeadService.getCoachSubscriptionInfo(authStore.coach.id)
-    const hasActivePremium = subscriptionInfo.subscriptionType === 'premium'
-
-    console.log('📊 Current database state:', {
-      subscriptionType: subscriptionInfo.subscriptionType,
-      maxUnlockedLeads: subscriptionInfo.maxUnlockedLeads,
-      unlockedLeadsCount: subscriptionInfo.unlockedLeadsCount,
-      hasActivePremium,
-    })
-
-    if (hasActivePremium) {
-      // Cancel the existing premium subscription
-      console.log('🧪 TESTING: Cancelling premium subscription in database...')
-
-      const { data: cancelResult, error: cancelError } = await supabase.rpc(
-        'cancel_coach_subscription',
-        {
-          coach_id_param: authStore.coach.id,
-        },
-      )
-
-      if (cancelError) {
-        console.error('❌ Error cancelling subscription:', cancelError)
-        throw new Error(`Failed to cancel subscription: ${cancelError.message}`)
-      }
-
-      console.log('✅ Cancellation result:', cancelResult)
-
-      // Update local state to reflect change
-      coachSubscriptionType.value = 'free'
-      console.log('🧪 TESTING: Switched to FREE - Database updated')
-    } else {
-      // Create a new premium subscription using secure function
-      console.log('🧪 TESTING: Creating premium subscription in database...')
-
-      const { data: createResult, error: createError } = await supabase.rpc(
-        'create_coach_subscription',
-        {
-          coach_id_param: authStore.coach.id,
-          plan_type_param: 'premium',
-        },
-      )
-
-      if (createError) {
-        console.error('❌ Error creating subscription:', createError)
-        throw new Error(`Failed to create subscription: ${createError.message}`)
-      }
-
-      if (!createResult.success) {
-        console.error('❌ Function returned error:', createResult)
-        throw new Error(`Subscription creation failed: ${createResult.error}`)
-      }
-
-      console.log('✅ Premium subscription created:', createResult)
-
-      // Update local state to reflect change
-      coachSubscriptionType.value = 'premium'
-      console.log('🧪 TESTING: Switched to PREMIUM - Database updated')
-    }
-
-    // Reload data to reflect database changes
-    console.log('🔄 Reloading leads to reflect subscription changes...')
-    await loadLeads()
-    console.log('✅ Leads reloaded successfully')
-  } catch (error) {
-    console.error('❌ Error updating subscription in database:', error)
-
-    // Try to reload current state from database
-    try {
-      console.log('🔄 Attempting to reload current subscription state...')
-      const subscription = await LeadService.getCoachSubscriptionInfo(authStore.coach.id)
-      coachSubscriptionType.value = subscription?.subscriptionType || 'free'
-      console.log('✅ Restored state from database:', coachSubscriptionType.value)
-    } catch (reloadError) {
-      console.error('❌ Could not reload subscription state:', reloadError)
-    }
-
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-    alert(`Error updating subscription: ${errorMessage}\nCheck console for details.`)
-  }
 }
 
 // Lifecycle
@@ -901,6 +876,35 @@ watch(
   (id) => {
     if (id && leads.value.length === 0 && !isLoading.value) {
       loadLeads()
+    }
+  },
+)
+
+// After leads load, auto-open if query leadId matches
+watch(
+  () => leads.value.length,
+  () => {
+    const leadId = route.query.leadId as string | undefined
+    if (leadId) {
+      const lead = leads.value.find((l) => l.id === leadId)
+      if (lead) {
+        viewLead(lead)
+        // remove the query param silently
+        router.replace({ query: { ...route.query, leadId: undefined } })
+      }
+    }
+  },
+)
+
+// React immediately to route query changes (navigation from notification)
+watch(
+  () => route.query.leadId,
+  (leadId) => {
+    if (!leadId) return
+    const lead = leads.value.find((l) => l.id === leadId)
+    if (lead) {
+      viewLead(lead)
+      router.replace({ query: { ...route.query, leadId: undefined } })
     }
   },
 )

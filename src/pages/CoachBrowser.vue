@@ -1,13 +1,21 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
     <!-- Header -->
-    <header class="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-40">
+    <header
+      ref="headerRef"
+      class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm shadow-sm z-40 transition-all duration-300"
+      :class="isCondensedHeader ? 'shadow-md' : 'shadow-sm'"
+    >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-4">
+        <div
+          class="flex justify-between items-center transition-all duration-300"
+          :class="isCondensedHeader ? 'py-2' : 'py-4'"
+        >
           <!-- Logo -->
           <div class="flex items-center">
             <h1
-              class="text-3xl font-black text-transparent bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text"
+              class="font-black text-transparent bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text tracking-tight transition-all duration-300"
+              :class="isCondensedHeader ? 'text-2xl' : 'text-3xl md:text-4xl'"
             >
               Coachiles
             </h1>
@@ -15,13 +23,17 @@
           <!-- Become Coach Button -->
           <router-link
             to="/auth"
-            class="bg-gradient-to-r from-orange-500 to-blue-600 text-white px-6 py-3 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+            class="bg-gradient-to-r from-orange-500 to-blue-600 text-white rounded-full font-bold hover:shadow-lg transition-all duration-300"
+            :class="isCondensedHeader ? 'px-4 py-2 text-sm' : 'px-6 py-3'"
           >
             Espace Coach
           </router-link>
         </div>
       </div>
     </header>
+
+    <!-- Spacer for fixed header -->
+    <div aria-hidden="true" :style="{ height: headerHeight + 'px' }"></div>
 
     <!-- Hero Section -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -349,7 +361,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { StarIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
@@ -363,6 +375,14 @@ const router = useRouter()
 const coachStore = useCoachStore()
 
 // State
+// Header condensation & size
+const isCondensedHeader = ref(false)
+const headerRef = ref<HTMLElement | null>(null)
+const headerHeight = ref(0)
+const measureHeader = () => {
+  if (headerRef.value) headerHeight.value = headerRef.value.offsetHeight
+}
+
 const coaches = ref<Coach[]>([])
 const searchQuery = ref('')
 const selectedSpecialty = ref('')
@@ -551,6 +571,13 @@ const clearFilters = () => {
   selectedSpecialty.value = ''
 }
 
+// Scroll handler to toggle condensed header
+const handleScroll = () => {
+  const y = window.scrollY || document.documentElement.scrollTop
+  isCondensedHeader.value = y > 40
+  requestAnimationFrame(measureHeader)
+}
+
 // Watchers
 watch([searchQuery, selectedSpecialty, sortBy], ([query, specialty, sort]) => {
   debouncedSearch(query, specialty, sort)
@@ -567,6 +594,20 @@ onMounted(async () => {
 
   // Initialize with the first load of coaches
   await searchCoaches(searchQuery.value, selectedSpecialty.value, sortBy.value, 1)
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  window.addEventListener('resize', measureHeader, { passive: true })
+  handleScroll()
+  nextTick(measureHeader)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('resize', measureHeader)
+})
+
+watch(isCondensedHeader, async () => {
+  await nextTick()
+  measureHeader()
 })
 </script>
 

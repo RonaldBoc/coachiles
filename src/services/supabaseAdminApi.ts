@@ -17,6 +17,7 @@ export type AdminLead = {
   status: string
   coach_id: string | null
   created_at: string
+  is_hidden?: boolean
 }
 
 export type AdminDeletionLog = {
@@ -146,7 +147,7 @@ export const AdminApi = {
 
       const { data, error } = await supabase
         .from('leads')
-        .select('id, client_name, client_email, status, coach_id, created_at')
+        .select('id, client_name, client_email, status, coach_id, created_at, is_hidden')
         .order('created_at', { ascending: false })
         .limit(500)
 
@@ -154,6 +155,109 @@ export const AdminApi = {
       return { data: (data || []) as AdminLead[] }
     } catch (err) {
       return { data: [], error: err instanceof Error ? err.message : 'Failed to load leads' }
+    }
+  },
+
+  async listLeadsForCoach(coachId: string): Promise<{ data: AdminLead[]; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (this._superadminCache !== true) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('admin_list_leads_for_coach', {
+        p_email: email,
+        p_coach_id: coachId,
+      })
+      if (error) throw error
+      return { data: (data || []) as AdminLead[] }
+    } catch (err) {
+      return { data: [], error: err instanceof Error ? err.message : 'Failed to load coach leads' }
+    }
+  },
+
+  async setLeadHidden(
+    leadId: string,
+    hidden: boolean,
+  ): Promise<{ ok: boolean; error?: string; hidden?: boolean }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (this._superadminCache !== true) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('admin_set_lead_hidden', {
+        p_email: email,
+        p_lead_id: leadId,
+        p_hidden: hidden,
+      })
+      if (error) throw error
+      const out = (data || {}) as { success?: boolean; is_hidden?: boolean }
+      return { ok: out.success === true, hidden: out.is_hidden }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Failed to update lead' }
+    }
+  },
+
+  async deleteLead(leadId: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (this._superadminCache !== true) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('admin_delete_lead', {
+        p_email: email,
+        p_lead_id: leadId,
+      })
+      if (error) throw error
+      const out = (data || {}) as { success?: boolean }
+      return { ok: out.success === true }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Failed to delete lead' }
+    }
+  },
+
+  async getLeadDetails(leadId: string): Promise<{
+    data: { lead: Record<string, unknown> | null; coach_ids: string[] }
+    error?: string
+  }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (this._superadminCache !== true) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('admin_get_lead_details', {
+        p_email: email,
+        p_lead_id: leadId,
+      })
+      if (error) throw error
+      const out = (data || {}) as { lead?: Record<string, unknown> | null; coach_ids?: string[] }
+      return { data: { lead: out.lead ?? null, coach_ids: out.coach_ids ?? [] } }
+    } catch (err) {
+      return {
+        data: { lead: null, coach_ids: [] },
+        error: err instanceof Error ? err.message : 'Failed to get lead',
+      }
+    }
+  },
+
+  async duplicateLead(
+    leadId: string,
+    targetCoachIds: string[],
+  ): Promise<{ ok: boolean; error?: string; created?: string[] }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (this._superadminCache !== true) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('admin_duplicate_lead', {
+        p_email: email,
+        p_lead_id: leadId,
+        p_target_coach_ids: targetCoachIds,
+      })
+      if (error) throw error
+      const out = (data || {}) as { success?: boolean; created_ids?: string[] }
+      return { ok: out.success === true, created: out.created_ids }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Failed to duplicate lead' }
     }
   },
 
@@ -294,6 +398,45 @@ export const AdminApi = {
       return { ok }
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : 'Failed to set subscription' }
+    }
+  },
+
+  async cancelCoachSubscription(
+    coachId: string,
+    mode: 'at_period_end' | 'at_date' | 'immediate',
+    endDate?: string,
+  ): Promise<{
+    ok: boolean
+    error?: string
+    data?: {
+      success?: boolean
+      mode?: string
+      current_period_end?: string | null
+      effective_date?: string | null
+    }
+  }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (this._superadminCache !== true) throw new Error('forbidden')
+
+      const { data, error } = await supabase.rpc('admin_cancel_subscription', {
+        p_email: email,
+        p_coach_id: coachId,
+        p_mode: mode,
+        p_end_date: endDate ?? null,
+      })
+      if (error) throw error
+      const out = (data || {}) as {
+        success?: boolean
+        mode?: string
+        current_period_end?: string | null
+        effective_date?: string | null
+      }
+      return { ok: out.success === true, data: out }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Failed to cancel' }
     }
   },
 

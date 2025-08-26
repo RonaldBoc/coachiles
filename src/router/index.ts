@@ -140,6 +140,24 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    // Preserve browser back/forward saved position
+    if (savedPosition) return savedPosition
+    // Always scroll to top on normal navigation
+    return { left: 0, top: 0 }
+  },
+})
+
+// Force scroll-to-top for dynamic public coach profile navigations (SPA transitions)
+router.afterEach((to) => {
+  if (to.path.match(/^\/coach\/[0-9a-fA-F-]{10,}$/)) {
+    // Defer to next frame to avoid layout shifts pushing scroll
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0)
+      // Extra safety after potential async content injection
+      setTimeout(() => window.scrollTo(0, 0), 50)
+    })
+  }
 })
 
 export default router

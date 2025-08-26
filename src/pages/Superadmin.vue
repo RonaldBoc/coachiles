@@ -244,6 +244,37 @@
 
       <!-- Leads -->
       <section v-if="activeTab === 'leads'" class="space-y-4">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex flex-wrap gap-4 items-end">
+          <label class="text-sm">
+            <span class="mr-2">Status</span>
+            <select
+              v-model="leadStatusFilter"
+              class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
+            >
+              <option value="">All</option>
+              <option value="new">New</option>
+              <option value="assigned">Assigned</option>
+              <option value="contacted">Contacted</option>
+              <option value="converted">Converted</option>
+              <option value="closed">Closed</option>
+            </select>
+          </label>
+          <label class="text-sm">
+            <span class="mr-2">Coach</span>
+            <select
+              v-model="leadCoachFilter"
+              class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm min-w-[160px]"
+            >
+              <option value="">All</option>
+              <option v-for="c in coaches" :key="c.id" :value="c.id">
+                {{ getCoachName(c.id) || c.email }}
+              </option>
+            </select>
+          </label>
+          <div class="text-xs text-gray-500">
+            Showing {{ filteredLeads.length }} of {{ leads.length }}
+          </div>
+        </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -279,7 +310,12 @@
               <tbody
                 class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
               >
-                <tr v-for="l in leads" :key="l.id">
+                <tr
+                  v-for="l in filteredLeads"
+                  :key="l.id"
+                  class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                  @click="openLead(l.id)"
+                >
                   <td class="px-3 py-2 text-sm text-gray-500">{{ l.client_name }}</td>
                   <td class="px-3 py-2 text-sm text-gray-500">{{ l.client_email }}</td>
                   <td class="px-3 py-2 text-sm">
@@ -425,7 +461,7 @@
           <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
             Set Subscription
           </h4>
-          <div class="flex flex-wrap items-end gap-3">
+          <div class="flex flex-wrap items-end gap-3 mb-3">
             <label class="text-sm">
               <span class="mr-2">Plan</span>
               <select
@@ -459,61 +495,147 @@
               Save
             </button>
           </div>
+          <div
+            v-if="coachDetails.subscription?.subscription_type === 'premium'"
+            class="mt-2 space-y-2"
+          >
+            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              Cancel Premium Subscription
+            </div>
+            <div class="flex flex-col gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  class="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-500"
+                  @click="cancelSub('at_period_end')"
+                >
+                  End at Period End ({{ formatDate(coachDetails.subscription.current_period_end) }})
+                </button>
+                <div class="flex items-center gap-1 text-xs">
+                  <input
+                    type="datetime-local"
+                    v-model="cancelDate"
+                    class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-xs"
+                  />
+                  <button
+                    class="inline-flex items-center rounded-md bg-amber-500 px-2 py-1 text-[10px] font-semibold text-white shadow-sm hover:bg-amber-400"
+                    @click="cancelSub('at_date')"
+                    :disabled="!cancelDate"
+                  >
+                    End At Date
+                  </button>
+                </div>
+                <button
+                  class="inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-500"
+                  @click="cancelSub('immediate')"
+                >
+                  End Now
+                </button>
+              </div>
+              <p v-if="cancelError" class="text-xs text-red-600">{{ cancelError }}</p>
+              <p v-if="cancelSuccess" class="text-xs text-green-600">{{ cancelSuccess }}</p>
+            </div>
+          </div>
         </div>
 
+        <!-- Coach Leads Section -->
         <div class="mt-4 border-t pt-4">
-          <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Recent Payments
-          </h4>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead class="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th
-                    class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Date
-                  </th>
-                  <th
-                    class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Amount
-                  </th>
-                  <th
-                    class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Type
-                  </th>
-                  <th
-                    class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                  <th
-                    class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Txn
-                  </th>
-                </tr>
-              </thead>
-              <tbody
-                class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
-              >
-                <tr v-for="p in coachDetails.payments" :key="p.id">
-                  <td class="px-3 py-2 text-sm text-gray-500">{{ formatDate(p.created_at) }}</td>
-                  <td class="px-3 py-2 text-sm text-gray-900">{{ p.amount }} {{ p.currency }}</td>
-                  <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                    {{ p.payment_type }}
-                  </td>
-                  <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{{ p.status }}</td>
-                  <td
-                    class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 truncate max-w-[120px]"
-                  >
-                    {{ p.transaction_id || '—' }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Coach Leads</h4>
+          <div v-if="coachLeadsLoading" class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            Loading leads…
+          </div>
+          <div v-else>
+            <div v-if="coachLeadsError" class="text-xs text-red-600 mb-2">
+              {{ coachLeadsError }}
+            </div>
+            <div class="overflow-x-auto max-h-64">
+              <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th
+                      class="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Client
+                    </th>
+                    <th
+                      class="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Email
+                    </th>
+                    <th
+                      class="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Status
+                    </th>
+                    <th
+                      class="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Created
+                    </th>
+                    <th
+                      class="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Hidden
+                    </th>
+                    <th class="px-2 py-1"></th>
+                    <th class="px-2 py-1"></th>
+                  </tr>
+                </thead>
+                <tbody
+                  class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                >
+                  <tr v-for="lead in coachLeads" :key="lead.id">
+                    <td class="px-2 py-1 text-gray-700 dark:text-gray-300">
+                      {{ lead.client_name }}
+                    </td>
+                    <td class="px-2 py-1 text-gray-500 dark:text-gray-400 truncate max-w-[140px]">
+                      {{ lead.client_email }}
+                    </td>
+                    <td class="px-2 py-1">
+                      <span
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                      >
+                        {{ lead.status }}
+                      </span>
+                    </td>
+                    <td class="px-2 py-1 text-gray-500 dark:text-gray-400">
+                      {{ formatDate(lead.created_at) }}
+                    </td>
+                    <td class="px-2 py-1">
+                      <span
+                        :class="
+                          lead.is_hidden
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-green-600 dark:text-green-400'
+                        "
+                      >
+                        {{ lead.is_hidden ? 'Yes' : 'No' }}
+                      </span>
+                    </td>
+                    <td class="px-2 py-1 text-right">
+                      <button
+                        class="inline-flex items-center rounded bg-gray-200 dark:bg-gray-700 px-2 py-0.5 text-[10px] font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
+                        @click="toggleLeadHidden(lead.id, lead.is_hidden)"
+                      >
+                        {{ lead.is_hidden ? 'Unhide' : 'Hide' }}
+                      </button>
+                    </td>
+                    <td class="px-2 py-1 text-right">
+                      <button
+                        class="inline-flex items-center rounded bg-red-600 text-white px-2 py-0.5 text-[10px] font-medium hover:bg-red-500"
+                        @click="deleteLead(lead.id)"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                  <tr v-if="!coachLeads.length">
+                    <td colspan="7" class="px-2 py-3 text-center text-gray-500 dark:text-gray-400">
+                      No leads
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -551,6 +673,109 @@
       <div v-else class="p-6 text-sm text-gray-500">Loading…</div>
     </div>
   </div>
+  <!-- Lead details modal -->
+  <div
+    v-if="showLeadModal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+  >
+    <div class="w-full max-w-xl rounded-lg bg-white dark:bg-gray-800 shadow">
+      <div class="flex items-center justify-between border-b px-4 py-3">
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <span>Lead Details</span>
+          <span
+            v-if="leadDetails.lead?.original_lead_id"
+            class="inline-flex items-center rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-600/20 dark:text-indigo-300 px-2 py-0.5 text-[11px] font-medium"
+            title="This lead is a duplicated copy of another lead"
+            >Copy</span
+          >
+        </h3>
+        <button class="text-gray-500 hover:text-gray-700" @click="showLeadModal = false">✕</button>
+      </div>
+      <div class="p-4 space-y-4 text-sm" v-if="leadDetails.lead">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="text-gray-500 dark:text-gray-400">Client</div>
+            <div class="font-medium text-gray-900 dark:text-gray-100">
+              {{ leadDetails.lead.client_name as string }}
+            </div>
+          </div>
+          <div>
+            <div class="text-gray-500 dark:text-gray-400">Email</div>
+            <div class="font-medium text-gray-900 dark:text-gray-100">
+              {{ leadDetails.lead.client_email as string }}
+            </div>
+          </div>
+          <div>
+            <div class="text-gray-500 dark:text-gray-400">Status</div>
+            <div class="font-medium text-gray-900 dark:text-gray-100">
+              {{ leadDetails.lead.status as string }}
+            </div>
+          </div>
+          <div>
+            <div class="text-gray-500 dark:text-gray-400">Created</div>
+            <div class="font-medium text-gray-900 dark:text-gray-100">
+              {{ formatDate(leadDetails.lead.created_at as string) }}
+            </div>
+          </div>
+          <div v-if="leadDetails.lead.original_lead_id">
+            <div class="text-gray-500 dark:text-gray-400">Original Lead ID</div>
+            <div class="font-mono text-[11px] break-all text-gray-800 dark:text-gray-200">
+              {{ leadDetails.lead.original_lead_id as string }}
+            </div>
+          </div>
+          <div v-if="leadDetails.lead.original_coach_id">
+            <div class="text-gray-500 dark:text-gray-400">Original Coach ID</div>
+            <div class="font-mono text-[11px] break-all text-gray-800 dark:text-gray-200">
+              {{ leadDetails.lead.original_coach_id as string }}
+            </div>
+          </div>
+        </div>
+        <div class="border-t pt-4">
+          <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Duplicate Lead To Other Coaches
+          </h4>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            Select one or more coaches to create a new copy of this lead assigned to them. The
+            duplicated leads will start in status "new". The original lead stays unchanged.
+          </p>
+          <div class="space-y-2">
+            <div class="flex flex-wrap gap-2 max-h-40 overflow-auto pr-1">
+              <label
+                v-for="c in coaches.filter((c) => c.id !== (leadDetails.lead?.coach_id as string))"
+                :key="c.id"
+                class="flex items-center gap-1 text-xs"
+              >
+                <input
+                  type="checkbox"
+                  :value="c.id"
+                  v-model="leadCoachSelection"
+                  class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                />
+                <span>{{ getCoachName(c.id) || c.email }}</span>
+              </label>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                @click="duplicateLeadToCoaches"
+                :disabled="!leadCoachSelection.length || duplicatingLead"
+                class="inline-flex items-center rounded-md bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500"
+              >
+                <span v-if="!duplicatingLead">Duplicate To Selected Coaches</span>
+                <span v-else>Duplicating…</span>
+              </button>
+              <span
+                v-if="leadSaveMessage"
+                class="text-xs"
+                :class="leadSaveMessage.startsWith('Created') ? 'text-green-600' : 'text-red-600'"
+                >{{ leadSaveMessage }}</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="p-6 text-sm text-gray-500">Loading…</div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -559,6 +784,7 @@ import {
   AdminApi,
   type CoachSubscriptionSummary,
   type PaymentRow,
+  type AdminLead, // added
 } from '../services/supabaseAdminApi'
 defineOptions({ name: 'SuperadminPage' })
 
@@ -626,6 +852,18 @@ const filteredCoaches = computed(() => {
 
 const leads = ref<LeadRow[]>([])
 const leadsError = ref<string | null>(null)
+const leadStatusFilter = ref('')
+const leadCoachFilter = ref('')
+// Multi-access removed; we now duplicate a lead per coach. Access map no longer used.
+const showLeadModal = ref(false)
+const activeLeadId = ref<string | null>(null)
+const leadDetails = ref<{ lead: Record<string, unknown> | null; coach_ids: string[] }>({
+  lead: null,
+  coach_ids: [],
+})
+const leadCoachSelection = ref<string[]>([])
+const leadSaveMessage = ref('')
+const duplicatingLead = ref(false)
 const coachMap = ref<Map<string, string>>(new Map())
 const coachSubs = ref<Map<string, CoachSubscriptionSummary>>(new Map())
 
@@ -640,11 +878,17 @@ const coachDetails = ref<{
   subscription: CoachSubscriptionSummary | null
   payments: PaymentRow[]
 }>({ coach: null, subscription: null, payments: [] })
+const coachLeads = ref<AdminLead[]>([]) // added
+const coachLeadsLoading = ref(false) // added
+const coachLeadsError = ref<string | null>(null) // added
 const detailsLoading = ref(false)
 const subPlanType = ref<'free' | 'premium'>('free')
 const subStart = ref<string>('')
 const subEnd = ref<string>('')
 const disabledReasonInput = ref<string>('')
+const cancelDate = ref<string>('')
+const cancelError = ref<string>('')
+const cancelSuccess = ref<string>('')
 const coachIsActive = computed(() => {
   if (!activeCoachId.value) return true
   const c = coaches.value.find((x) => x.id === activeCoachId.value)
@@ -690,6 +934,14 @@ function getCoachName(id: string | null): string {
   if (!id) return '—'
   return coachMap.value.get(id) || '—'
 }
+
+const filteredLeads = computed(() => {
+  return leads.value.filter((l) => {
+    const statusOk = !leadStatusFilter.value || l.status === leadStatusFilter.value
+    const coachOk = !leadCoachFilter.value || l.coach_id === leadCoachFilter.value
+    return statusOk && coachOk
+  })
+})
 
 onMounted(async () => {
   // Verify superadmin (RPC if available, fallback to env list)
@@ -765,6 +1017,8 @@ onMounted(async () => {
       ),
     },
   ]
+
+  // Multi-access removed; duplication strategy requires no extra mapping load.
 })
 
 function daysDiff(dateStr: string) {
@@ -791,6 +1045,17 @@ async function openCoach(coachId: string) {
     }
   }
   detailsLoading.value = false
+  // Load leads for coach
+  coachLeadsLoading.value = true
+  coachLeadsError.value = null
+  const leadsRes = await AdminApi.listLeadsForCoach(coachId)
+  if (leadsRes.error) {
+    coachLeadsError.value = leadsRes.error
+    coachLeads.value = []
+  } else {
+    coachLeads.value = leadsRes.data
+  }
+  coachLeadsLoading.value = false
 }
 
 async function saveSubscription() {
@@ -824,6 +1089,84 @@ async function toggleActive(active: boolean) {
     if (!det.error) coachDetails.value = det.data
     // Clear input on success
     if (active) disabledReasonInput.value = ''
+  }
+}
+
+async function cancelSub(mode: 'at_period_end' | 'at_date' | 'immediate') {
+  cancelError.value = ''
+  cancelSuccess.value = ''
+  if (!activeCoachId.value) return
+  let endDate: string | undefined
+  if (mode === 'at_date') {
+    if (!cancelDate.value) {
+      cancelError.value = 'Select a date'
+      return
+    }
+    endDate = cancelDate.value
+  }
+  const res = await AdminApi.cancelCoachSubscription(activeCoachId.value, mode, endDate)
+  if (!res.ok) {
+    cancelError.value = res.error || 'Failed'
+  } else {
+    cancelSuccess.value = 'Subscription updated'
+    // Refresh subscription info
+    const det = await AdminApi.getCoachDetails(activeCoachId.value)
+    if (!det.error) coachDetails.value = det.data
+    // refresh map
+    const subsMap = await AdminApi.getCoachSubscriptionMap()
+    if (!subsMap.error) coachSubs.value = new Map(Object.entries(subsMap.data))
+  }
+}
+
+async function openLead(id: string) {
+  activeLeadId.value = id
+  leadSaveMessage.value = ''
+  const res = await AdminApi.getLeadDetails(id)
+  if (!res.error) {
+    leadDetails.value = res.data
+    leadCoachSelection.value = [] // start empty for duplication selection
+  }
+  showLeadModal.value = true
+}
+
+async function duplicateLeadToCoaches() {
+  if (!activeLeadId.value || !leadCoachSelection.value.length) return
+  duplicatingLead.value = true
+  leadSaveMessage.value = ''
+  const res = await AdminApi.duplicateLead(activeLeadId.value, leadCoachSelection.value)
+  if (!res.ok) {
+    leadSaveMessage.value = res.error || 'Failed'
+    duplicatingLead.value = false
+    return
+  }
+  leadSaveMessage.value = `Created ${res.created?.length || 0} copies`
+  // Refresh leads list to include new duplicated rows
+  const list = await AdminApi.listLeads()
+  if (!list.error) leads.value = list.data as LeadRow[]
+  // Reset selection
+  leadCoachSelection.value = []
+  duplicatingLead.value = false
+}
+
+async function toggleLeadHidden(leadId: string, current: boolean | undefined) {
+  // added
+  const res = await AdminApi.setLeadHidden(leadId, !current)
+  if (res.ok) {
+    const idx = coachLeads.value.findIndex((l: AdminLead) => l.id === leadId)
+    if (idx !== -1) coachLeads.value[idx] = { ...coachLeads.value[idx], is_hidden: res.hidden }
+  } else {
+    coachLeadsError.value = res.error || 'Failed to update lead'
+  }
+}
+
+async function deleteLead(leadId: string) {
+  if (!confirm('Delete this lead permanently? This cannot be undone.')) return
+  const res = await AdminApi.deleteLead(leadId)
+  if (res.ok) {
+    coachLeads.value = coachLeads.value.filter((l) => l.id !== leadId)
+    leads.value = leads.value.filter((l) => l.id !== leadId)
+  } else {
+    coachLeadsError.value = res.error || 'Failed to delete lead'
   }
 }
 </script>

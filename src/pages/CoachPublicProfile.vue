@@ -1,17 +1,28 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
+  <div
+    class="coach-public-profile no-horizontal-overflow min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50"
+  >
     <!-- Header -->
-    <header class="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-40">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-4">
-          <!-- Logo -->
-          <div class="flex items-center">
+    <header
+      ref="headerRef"
+      class="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300"
+      :class="isCondensedHeader ? 'shadow-md' : 'shadow-sm'"
+    >
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-300">
+        <div
+          class="flex justify-between items-center transition-all duration-300"
+          :class="isCondensedHeader ? 'py-2' : 'py-4'"
+        >
+          <!-- Logo / Brand -->
+          <div class="flex items-center min-w-0">
             <button
               @click="$router.go(-1)"
-              class="mr-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+              class="mr-3 p-2 rounded-full hover:bg-gray-100 transition-colors"
+              :class="isCondensedHeader ? 'mr-2' : 'mr-3'"
             >
               <svg
-                class="w-5 h-5 text-gray-600"
+                class="text-gray-600 transition-all duration-300"
+                :class="isCondensedHeader ? 'w-4 h-4' : 'w-5 h-5'"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -25,20 +36,60 @@
               </svg>
             </button>
             <h1
-              class="text-3xl font-black text-transparent bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text"
+              class="font-black text-transparent bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text tracking-tight transition-all duration-300"
+              :class="isCondensedHeader ? 'text-xl' : 'text-3xl'"
             >
               Coachiles
             </h1>
           </div>
-          <!-- Become Coach Button -->
-          <button
-            class="bg-gradient-to-r from-orange-500 to-blue-600 text-white px-6 py-3 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
-          >
-            Devenir Coach
-          </button>
+          <!-- Header Action (dynamic shrink) -->
+          <div class="flex items-center">
+            <!-- Coach logged in: large button -> icon on scroll -->
+            <template v-if="authStore.isAuthenticated && authStore.isCoach">
+              <button
+                v-if="!isCondensedHeader"
+                @click="router.push('/coach/profile')"
+                class="bg-white text-orange-600 px-6 py-3 rounded-full font-semibold border-2 border-orange-400 hover:bg-orange-50 hover:shadow-md transition-all duration-300"
+              >
+                Mon espace coach
+              </button>
+              <button
+                v-else
+                @click="router.push('/coach/profile')"
+                class="relative inline-flex items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-blue-600 text-white shadow-md hover:shadow-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                aria-label="Espace coach"
+                :class="isCondensedHeader ? 'w-10 h-10' : 'w-12 h-12'"
+              >
+                <UserCircleIcon class="w-6 h-6" />
+              </button>
+            </template>
+            <!-- Authenticated but not coach -->
+            <template v-else-if="authStore.isAuthenticated && !authStore.isCoach">
+              <button
+                @click="router.push('/coach/registration')"
+                class="bg-gradient-to-r from-orange-500 to-blue-600 text-white rounded-full font-bold hover:shadow-lg transition-all duration-300"
+                :class="isCondensedHeader ? 'px-4 py-2 text-sm' : 'px-6 py-3'"
+              >
+                Devenir Coach
+              </button>
+            </template>
+            <!-- Guest user -->
+            <template v-else>
+              <button
+                @click="router.push('/signup')"
+                class="bg-gradient-to-r from-orange-500 to-blue-600 text-white rounded-full font-bold hover:shadow-lg transition-all duration-300"
+                :class="isCondensedHeader ? 'px-4 py-2 text-sm' : 'px-6 py-3'"
+              >
+                Devenir Coach
+              </button>
+            </template>
+          </div>
         </div>
       </div>
     </header>
+
+    <!-- Spacer to offset fixed header height -->
+    <div aria-hidden="true" :style="{ height: headerHeight + 'px' }"></div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -98,12 +149,12 @@
 
             <!-- Primary CTA (Mobile) -->
             <div class="space-y-3">
-              <button
+              <!-- <button
                 @click="bookFreeTrial"
                 class="w-full bg-gradient-to-r from-orange-500 to-blue-600 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
               >
                 Réserver le 1er cours gratuit
-              </button>
+              </button> -->
               <button
                 @click="contactCoach"
                 class="w-full bg-white border-2 border-orange-400 text-orange-600 py-3 px-6 rounded-full font-semibold hover:bg-orange-50 transition-all duration-200"
@@ -184,9 +235,9 @@
           </div>
 
           <!-- Services Offered -->
-          <div class="bg-white rounded-2xl shadow-lg p-8">
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-2xl font-bold text-gray-900">Services proposés</h2>
+          <div class="bg-white rounded-2xl shadow-lg p-4 sm:p-8">
+            <div class="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Services proposés</h2>
               <button
                 @click="coach && loadCoachServices(coach.id)"
                 :disabled="isLoadingServices"
@@ -240,18 +291,20 @@
             </div>
 
             <!-- Actual Services (shown after loading if services exist) -->
-            <div v-else-if="coachServices.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div
+              v-else-if="coachServices.length > 0"
+              class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+            >
               <div
                 v-for="service in coachServices"
                 :key="service.id"
-                class="border border-gray-200 rounded-xl p-6 hover:border-orange-300 hover:shadow-md transition-all duration-200 cursor-pointer transform hover:scale-[1.02]"
+                class="border border-gray-200 rounded-xl p-4 md:p-6 hover:border-orange-300 hover:shadow-md transition-colors md:transition-all duration-200 cursor-pointer md:transform md:hover:scale-[1.02]"
                 @click="openServiceModal(service)"
               >
-                <div class="flex items-center mb-4">
+                <div class="flex items-start md:items-center mb-2 md:mb-4">
                   <div
-                    class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4"
+                    class="w-10 h-10 md:w-12 md:h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-3 md:mr-4"
                   >
-                    <!-- Service icon based on category -->
                     <svg
                       v-if="service.canBeSolo && !service.canBeGroup"
                       class="w-6 h-6 text-orange-600"
@@ -295,28 +348,32 @@
                       />
                     </svg>
                   </div>
-                  <div>
-                    <h3 class="text-lg font-semibold text-gray-900">{{ service.title }}</h3>
-                    <div class="space-y-1">
+                  <div class="flex-1 min-w-0">
+                    <h3
+                      class="text-base md:text-lg font-semibold text-gray-900 leading-snug line-clamp-2"
+                    >
+                      {{ service.title }}
+                    </h3>
+                    <div class="mt-1 space-y-0.5">
                       <p
                         v-if="service.canBeSolo && service.soloPrice"
-                        class="text-orange-600 font-medium"
+                        class="text-xs md:text-sm text-orange-600 font-medium"
                       >
                         Individuel: {{ service.soloPrice }}€/séance
                       </p>
                       <p
                         v-if="service.canBeGroup && service.groupPrice"
-                        class="text-blue-600 font-medium"
+                        class="text-xs md:text-sm text-blue-600 font-medium"
                       >
                         Groupe: {{ service.groupPrice }}€/séance
                       </p>
                     </div>
                   </div>
                 </div>
-                <p class="text-gray-600 mb-4">
+                <p class="hidden md:block text-gray-600 mb-3">
                   {{ service.description || 'Service personnalisé selon vos besoins.' }}
                 </p>
-                <ul class="text-sm text-gray-500 space-y-1 mb-4">
+                <ul class="hidden md:block text-sm text-gray-500 space-y-1 mb-3">
                   <li>• Durée: {{ service.duration }} minutes</li>
                   <li v-if="service.canBeSolo && service.canBeGroup">
                     • Disponible en individuel et en groupe
@@ -325,9 +382,10 @@
                   <li v-else-if="service.canBeGroup">• Cours en groupe uniquement</li>
                   <li>• Catégorie: {{ service.category }}</li>
                 </ul>
-                <!-- Click indicator -->
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-400 italic">Cliquez pour plus de détails</span>
+                <div class="flex items-center justify-between mt-1 md:mt-0">
+                  <span class="text-[10px] md:text-xs text-gray-400 italic"
+                    >Cliquer pour détails</span
+                  >
                   <svg
                     class="w-4 h-4 text-gray-400"
                     fill="none"
@@ -372,114 +430,179 @@
           </div>
 
           <!-- Location & Delivery -->
-          <div class="bg-white rounded-2xl shadow-lg p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Modalités des cours</h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Lieux de cours</h3>
-                <div class="space-y-4">
-                  <div class="flex items-start">
-                    <svg
-                      class="w-5 h-5 text-green-500 mr-3 mt-0.5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <div>
-                      <p class="font-medium text-gray-900">À domicile</p>
-                      <p class="text-sm text-gray-600">
-                        Je me déplace chez vous dans un rayon de 20km autour de
-                        {{ coach?.location }}
-                      </p>
-                    </div>
-                  </div>
-                  <div class="flex items-start">
-                    <svg
-                      class="w-5 h-5 text-green-500 mr-3 mt-0.5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <div>
-                      <p class="font-medium text-gray-900">Espaces publics</p>
-                      <p class="text-sm text-gray-600">
-                        Parcs, plages, terrains de sport publics selon vos préférences
-                      </p>
-                    </div>
-                  </div>
-                  <div class="flex items-start">
-                    <svg
-                      class="w-5 h-5 text-green-500 mr-3 mt-0.5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <div>
-                      <p class="font-medium text-gray-900">Salle de sport</p>
-                      <p class="text-sm text-gray-600">
-                        Accès à ma salle partenaire (supplément possible)
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Informations pratiques</h3>
-                <div class="space-y-4">
-                  <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div class="flex items-center mb-2">
+          <div class="bg-white rounded-2xl shadow-lg p-4 sm:p-8">
+            <button
+              type="button"
+              class="w-full flex items-center justify-between sm:cursor-default group"
+              @click="mobileModalitesOpen = !mobileModalitesOpen"
+            >
+              <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-0">Modalités des cours</h2>
+              <span
+                class="sm:hidden inline-flex items-center justify-center w-8 h-8 rounded-full border border-gray-200 text-gray-500 group-active:scale-95 transition"
+              >
+                <svg
+                  :class="{ 'rotate-180': mobileModalitesOpen }"
+                  class="w-4 h-4 transform transition-transform duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </span>
+            </button>
+            <div class="mt-4 sm:mt-6" :class="{ 'hidden sm:block': !mobileModalitesOpen }">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4">Lieux de cours</h3>
+                  <div class="space-y-4">
+                    <div class="flex items-start">
                       <svg
-                        class="w-5 h-5 text-green-600 mr-2"
+                        class="w-5 h-5 text-green-500 mr-3 mt-0.5"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
                         <path
                           fill-rule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                           clip-rule="evenodd"
                         />
                       </svg>
-                      <span class="font-semibold text-green-800">Premier cours gratuit</span>
+                      <div>
+                        <p class="font-medium text-gray-900">À domicile</p>
+                        <p class="text-sm text-gray-600">
+                          Je me déplace chez vous dans un rayon de 20km autour de
+                          {{ coach?.location }}
+                        </p>
+                      </div>
                     </div>
-                    <p class="text-sm text-green-700">
-                      Séance d'essai gratuite de 45 minutes pour faire connaissance et définir vos
-                      objectifs.
-                    </p>
+                    <div class="flex items-start">
+                      <svg
+                        class="w-5 h-5 text-green-500 mr-3 mt-0.5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                      <div>
+                        <p class="font-medium text-gray-900">Espaces publics</p>
+                        <p class="text-sm text-gray-600">
+                          Parcs, plages, terrains de sport publics selon vos préférences
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex items-start">
+                      <svg
+                        class="w-5 h-5 text-green-500 mr-3 mt-0.5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                      <div>
+                        <p class="font-medium text-gray-900">Salle de sport</p>
+                        <p class="text-sm text-gray-600">
+                          Accès à ma salle partenaire (supplément possible)
+                        </p>
+                      </div>
+                    </div>
                   </div>
+                </div>
 
-                  <div class="space-y-3">
-                    <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4">Informations pratiques</h3>
+                  <div class="space-y-4">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div class="flex items-center mb-2">
+                        <svg
+                          class="w-5 h-5 text-green-600 mr-2"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd"
+                          />
+                        </svg>
+                        <span class="font-semibold text-green-800">Premier cours gratuit</span>
+                      </div>
+                      <p class="text-sm text-green-700">
+                        Séance d'essai gratuite de 45 minutes pour faire connaissance et définir vos
+                        objectifs.
+                      </p>
+                    </div>
+
+                    <div class="space-y-3">
+                      <!-- <div class="flex items-center justify-between">
                       <span class="text-gray-600">Temps de réponse</span>
                       <span class="font-semibold text-gray-900">&lt; 2h</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                      <span class="text-gray-600">Disponibilités</span>
-                      <span class="font-semibold text-gray-900">{{ coach?.availability }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                      <span class="text-gray-600">Annulation</span>
-                      <span class="font-semibold text-gray-900">24h avant</span>
+                    </div> -->
+                      <div class="flex items-start justify-between gap-4">
+                        <span class="text-gray-600 mt-0.5 shrink-0">Disponibilités</span>
+                        <div class="flex-1 text-right leading-snug">
+                          <span
+                            class="font-light text-gray-900 align-top"
+                            :class="{ 'whitespace-pre-line': showFullAvailability }"
+                            >{{ displayedAvailability }}</span
+                          >
+                          <button
+                            v-if="needsAvailabilityToggle"
+                            type="button"
+                            @click="showFullAvailability = !showFullAvailability"
+                            class="ml-1 text-xs font-medium text-orange-600 hover:underline"
+                          >
+                            {{ showFullAvailability ? 'moins' : 'plus' }}
+                          </button>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Annulation</span>
+                        <span class="font-semibold text-gray-900">24h avant</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Post-Modalités Call To Action -->
+          <div
+            class="bg-gradient-to-br from-orange-500 via-orange-600 to-blue-600 rounded-2xl shadow-lg p-6 sm:p-10 text-white"
+          >
+            <h2 class="text-2xl sm:text-3xl font-extrabold mb-4">Prêt à passer à l'action ?</h2>
+            <p class="text-base sm:text-lg leading-relaxed mb-6 max-w-3xl">
+              {{ coach?.firstName }} peut vous aider à structurer un programme motivant et durable.
+              Un simple premier message suffit pour clarifier vos objectifs et démarrer votre
+              progression. Ne remettez pas vos bonnes résolutions à plus tard.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button
+                @click="contactCoach"
+                class="inline-flex items-center justify-center px-8 py-4 rounded-full bg-white text-orange-600 font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
+              >
+                Contacter {{ coach?.firstName }} maintenant
+              </button>
+              <!-- <button
+                @click="contactCoach"
+                class="inline-flex items-center justify-center px-8 py-4 rounded-full bg-white/10 text-white font-semibold backdrop-blur-sm ring-1 ring-white/30 hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
+              >
+                Poser une question rapide
+              </button> -->
             </div>
           </div>
 
@@ -987,14 +1110,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { StarIcon } from '@heroicons/vue/24/solid'
+import { StarIcon, UserCircleIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
 import type { CoachService } from '@/types/service'
 import type { ClientRequest } from '@/types/Lead'
 import RequestModal from '@/components/RequestModal.vue'
 import { useCoachStore } from '@/stores/coach'
+import { useAuthStore } from '@/stores/auth'
 import { supabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
 import { supabase } from '@/utils/supabase'
 
@@ -1002,8 +1126,9 @@ import { supabase } from '@/utils/supabase'
 const route = useRoute()
 const router = useRouter()
 
-// Coach Store
+// Stores
 const coachStore = useCoachStore()
+const authStore = useAuthStore()
 
 // State
 const coach = ref<Coach | null>(null)
@@ -1016,6 +1141,55 @@ const selectedService = ref<CoachService | null>(null)
 const isLoading = ref(false)
 const isLoadingServices = ref(false)
 const isCoachCertified = ref<boolean>(false) // Track if current coach has active subscription
+// Header condensation
+const isCondensedHeader = ref(false)
+// Header sizing (for fixed header spacer)
+const headerRef = ref<HTMLElement | null>(null)
+const headerHeight = ref(0)
+const measureHeader = () => {
+  if (headerRef.value) headerHeight.value = headerRef.value.offsetHeight
+}
+// Mobile collapse state for "Modalités des cours"
+const mobileModalitesOpen = ref(false)
+// Availability truncation logic
+const showFullAvailability = ref(false)
+const AVAILABILITY_MAX_CHARS = 70
+const availabilityRaw = computed(() => coach.value?.availability || '')
+const needsAvailabilityToggle = computed(
+  () => availabilityRaw.value.length > AVAILABILITY_MAX_CHARS,
+)
+const displayedAvailability = computed(() => {
+  if (!needsAvailabilityToggle.value) return availabilityRaw.value
+  return showFullAvailability.value
+    ? availabilityRaw.value
+    : availabilityRaw.value.slice(0, AVAILABILITY_MAX_CHARS).trimEnd() + '…'
+})
+
+// Scroll handler to toggle condensed header
+const handleScroll = () => {
+  const y = window.scrollY || document.documentElement.scrollTop
+  isCondensedHeader.value = y > 40
+  // Measuring after scroll (debounced via rAF)
+  requestAnimationFrame(measureHeader)
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  window.addEventListener('resize', measureHeader, { passive: true })
+  handleScroll()
+  nextTick(measureHeader)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('resize', measureHeader)
+})
+
+// Re-measure whenever condensation state toggles (after transition start)
+watch(isCondensedHeader, async () => {
+  await nextTick()
+  measureHeader()
+})
 
 // Helper function to get coach pricing
 // const getCoachPrice = (coach: Coach | null): number => {
@@ -1058,9 +1232,6 @@ const checkCoachCertification = async (coachId: string) => {
 }
 
 // Methods
-const bookFreeTrial = () => {
-  showTrialModal.value = true
-}
 
 const contactCoach = () => {
   showContactModal.value = true
@@ -1153,7 +1324,84 @@ watch(
 )
 
 // Lifecycle
+const forceScrollTop = () => {
+  if (typeof window !== 'undefined') {
+    // Disable native restoration for this navigation
+    if ('scrollRestoration' in window.history) {
+      try {
+        window.history.scrollRestoration = 'manual'
+      } catch {}
+    }
+    window.scrollTo(0, 0)
+    requestAnimationFrame(() => window.scrollTo(0, 0))
+  }
+}
+
+// After dynamic content (images/services) loads, ensure scroll pinned to top
+const ensureFinalTopPosition = () => {
+  if (typeof window === 'undefined') return
+  const container = document.querySelector('.coach-public-profile')
+  if (!container) return
+  const images = Array.from(container.querySelectorAll('img')) as HTMLImageElement[]
+  if (!images.length) {
+    forceScrollTop()
+    return
+  }
+  let remaining = images.filter((img) => !img.complete).length
+  if (remaining === 0) {
+    forceScrollTop()
+    return
+  }
+  const done = () => {
+    remaining--
+    if (remaining <= 0) {
+      requestAnimationFrame(() => forceScrollTop())
+      stopScrollEnforcement()
+    }
+  }
+  images.forEach((img) => {
+    if (img.complete) return
+    img.addEventListener('load', done, { once: true })
+    img.addEventListener('error', done, { once: true })
+  })
+}
+
+// --- Scroll Enforcement Logic -------------------------------------------------
+// Some dynamic content (images/services) appears to push the scroll position down after
+// initial navigation. We aggressively keep the scroll at 0 until all critical loads finish
+// (or a max timeout) to guarantee landing at the top for user perception.
+let scrollEnforcementTimer: number | null = null
+let scrollEnforcementStart = 0
+
+const startScrollEnforcement = () => {
+  if (typeof window === 'undefined') return
+  stopScrollEnforcement()
+  scrollEnforcementStart = performance.now()
+  scrollEnforcementTimer = window.setInterval(() => {
+    // If something pushed us down, yank back up.
+    if (window.scrollY !== 0) {
+      window.scrollTo(0, 0)
+    }
+    // Safety stop after 1500ms to avoid locking user scroll.
+    if (performance.now() - scrollEnforcementStart > 1500) {
+      stopScrollEnforcement()
+    }
+  }, 16) // ~60fps
+}
+
+const stopScrollEnforcement = () => {
+  if (scrollEnforcementTimer !== null) {
+    clearInterval(scrollEnforcementTimer)
+    scrollEnforcementTimer = null
+  }
+}
+
 onMounted(async () => {
+  forceScrollTop()
+  startScrollEnforcement()
+  if (window.innerWidth >= 640) {
+    mobileModalitesOpen.value = true
+  }
   const coachId = route.params.id as string
   console.log('🔍 CoachPublicProfile: Loading coach profile for ID:', coachId)
 
@@ -1179,6 +1427,10 @@ onMounted(async () => {
     if (coach.value) {
       // Load coach services
       await loadCoachServices(coach.value.id)
+      forceScrollTop()
+      ensureFinalTopPosition()
+      // Stop enforcement when services have loaded and images finalization logic will take over
+      stopScrollEnforcement()
 
       // Check coach certification status
       await checkCoachCertification(coach.value.id)
@@ -1218,14 +1470,28 @@ onMounted(async () => {
   }
 })
 
+// Scroll reset on coach id change (same component instance navigation)
+watch(
+  () => route.params.id,
+  () => {
+    forceScrollTop()
+    startScrollEnforcement()
+    ensureFinalTopPosition()
+  },
+)
+
 onUnmounted(() => {
   // Clean up visibility change listener
   document.removeEventListener('visibilitychange', handleVisibilityChange)
+  stopScrollEnforcement()
 })
 </script>
 
 <style scoped>
 /* Custom scrollbar for mobile */
+.coach-public-profile {
+  overflow-anchor: none;
+}
 ::-webkit-scrollbar {
   width: 4px;
 }

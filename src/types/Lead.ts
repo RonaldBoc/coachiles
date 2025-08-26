@@ -6,7 +6,9 @@ export interface ClientRequest {
   location?: string
   coachingGoals?: string
   preferredLocation?: string
+  // Deprecated: preferredCoaching (use chosenServices)
   preferredCoaching?: string[]
+  chosenServices?: string[]
   availabilityNotes?: string
   availability?: string
   experience?: string
@@ -34,7 +36,7 @@ export interface Lead {
   client_email: string
   client_phone?: string
   location?: string
-  preferred_coaching?: readonly string[]
+  chosen_services?: readonly string[]
   goals?: string
   experience?: string
   availability?: string
@@ -52,6 +54,7 @@ export interface Lead {
   estimated_value?: number
   actual_value?: number
   do_not_contact?: boolean
+  is_hidden?: boolean
 
   // Multistep tracking
   current_step: number

@@ -346,27 +346,47 @@
                           v-if="isDayActive(dayIndex)"
                           class="flex items-center space-x-2 flex-1"
                         >
-                          <select
-                            :value="getDayStartTime(dayIndex)"
-                            @change="updateDayTime(dayIndex, 'start', $event)"
-                            class="text-sm border border-gray-300 rounded px-2 py-1"
-                          >
-                            <option v-for="time in timeSlots" :key="`start-${time}`" :value="time">
-                              {{ time }}
-                            </option>
-                          </select>
+                          <!-- Start time -->
+                          <div class="relative inline-block">
+                            <select
+                              :value="getDayStartTime(dayIndex)"
+                              @change="updateDayTime(dayIndex, 'start', $event)"
+                              class="custom-time-select text-sm border border-gray-300 rounded pl-2 pr-7 py-1 appearance-none focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                            >
+                              <option
+                                v-for="time in timeSlots"
+                                :key="`start-${time}`"
+                                :value="time"
+                              >
+                                {{ time }}
+                              </option>
+                            </select>
+                            <span
+                              class="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-gray-500"
+                            >
+                              <ChevronDownIcon class="w-4 h-4" />
+                            </span>
+                          </div>
 
                           <span class="text-sm text-gray-500">à</span>
 
-                          <select
-                            :value="getDayEndTime(dayIndex)"
-                            @change="updateDayTime(dayIndex, 'end', $event)"
-                            class="text-sm border border-gray-300 rounded px-2 py-1"
-                          >
-                            <option v-for="time in timeSlots" :key="`end-${time}`" :value="time">
-                              {{ time }}
-                            </option>
-                          </select>
+                          <!-- End time -->
+                          <div class="relative inline-block">
+                            <select
+                              :value="getDayEndTime(dayIndex)"
+                              @change="updateDayTime(dayIndex, 'end', $event)"
+                              class="custom-time-select text-sm border border-gray-300 rounded pl-2 pr-7 py-1 appearance-none focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                            >
+                              <option v-for="time in timeSlots" :key="`end-${time}`" :value="time">
+                                {{ time }}
+                              </option>
+                            </select>
+                            <span
+                              class="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-gray-500"
+                            >
+                              <ChevronDownIcon class="w-4 h-4" />
+                            </span>
+                          </div>
 
                           <!-- Add break option -->
                           <button
@@ -474,7 +494,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/vue'
-import { CameraIcon, MapPinIcon, UserCircleIcon } from '@heroicons/vue/24/outline'
+import { CameraIcon, MapPinIcon, UserCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getCitiesByCountry, type CountryType } from '@/constants/locations'
@@ -925,8 +945,21 @@ const handlePhotoUpload = async (event: Event) => {
 
 // Lifecycle
 onMounted(async () => {
-  // Initialize form with current profile data
   initializeForm()
   console.log('Coach Profile loaded')
 })
 </script>
+
+<style scoped>
+/* Hide native arrow so only custom ChevronDownIcon is visible */
+.custom-time-select::-ms-expand {
+  /* IE 10+ */
+  display: none;
+}
+.custom-time-select {
+  -moz-appearance: none; /* Firefox */
+  -webkit-appearance: none; /* Safari & Chrome */
+  appearance: none; /* Standard */
+  background-image: none;
+}
+</style>
