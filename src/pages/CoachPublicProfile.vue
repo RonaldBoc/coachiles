@@ -36,8 +36,14 @@
               </svg>
             </button>
             <h1
-              class="font-black text-transparent bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text tracking-tight transition-all duration-300"
+              @click="router.push('/')"
+              class="font-black text-transparent bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text tracking-tight transition-all duration-300 cursor-pointer select-none"
               :class="isCondensedHeader ? 'text-xl' : 'text-3xl'"
+              role="button"
+              tabindex="0"
+              @keydown.enter="router.push('/')"
+              @keydown.space.prevent="router.push('/')"
+              aria-label="Aller à l'accueil"
             >
               Coachiles
             </h1>
@@ -129,7 +135,7 @@
                   <StarIcon class="w-5 h-5 text-yellow-400 fill-current" />
                   <span class="ml-1 text-lg font-semibold text-gray-900">{{ coach?.rating }}</span>
                   <span class="mx-2 text-gray-300">•</span>
-                  <span class="text-gray-600">{{ coach?.totalClients }} élèves</span>
+                  <span class="text-gray-600">{{ reviews.length }} avis</span>
                 </div>
                 <p class="text-orange-600 font-medium">{{ coach?.location }}</p>
               </div>
@@ -580,6 +586,67 @@
             </div>
           </div>
 
+          <!-- Reviews Section -->
+          <div class="bg-white rounded-2xl shadow-lg p-8" v-if="coach">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                <StarIcon class="w-6 h-6 text-yellow-400 mr-2" /> Avis récents du coach
+                {{ coach?.firstName }}
+              </h2>
+              <button
+                @click="openReviewModal"
+                class="bg-gradient-to-r from-orange-500 to-blue-600 text-white px-5 py-2 rounded-full font-semibold text-sm hover:shadow-md transition disabled:opacity-50"
+                :disabled="creatingReview"
+              >
+                Laisser un avis
+              </button>
+            </div>
+            <div v-if="loadingReviews" class="space-y-4">
+              <div v-for="n in 3" :key="n" class="animate-pulse space-y-2">
+                <div class="h-4 bg-gray-200 rounded w-1/3" />
+                <div class="h-3 bg-gray-100 rounded w-full" />
+                <div class="h-3 bg-gray-100 rounded w-2/3" />
+              </div>
+            </div>
+            <div v-else>
+              <div v-if="reviews.length === 0" class="text-gray-500 text-sm italic">
+                Aucun avis pour le moment. Soyez le premier !
+              </div>
+              <ul class="divide-y divide-gray-100">
+                <li v-for="rev in reviews" :key="rev.id" class="py-5">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <p class="font-semibold text-gray-900">{{ rev.clientName }}</p>
+                      <div class="flex items-center text-yellow-400 mt-1">
+                        <StarIcon
+                          v-for="i in 5"
+                          :key="i"
+                          class="w-4 h-4"
+                          :class="i <= rev.rating ? 'fill-current' : 'text-gray-300'"
+                        />
+                        <span class="ml-2 text-xs text-gray-500">
+                          {{ formatDate(rev.createdAt) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <p v-if="rev.comment" class="mt-2 text-gray-700 whitespace-pre-line">
+                    {{ rev.comment }}
+                  </p>
+                  <div
+                    v-if="rev.coachResponse && !rev.coachResponseHidden"
+                    class="mt-3 pl-4 border-l-4 border-blue-200"
+                  >
+                    <p class="text-sm text-blue-700 font-medium">Réponse du coach :</p>
+                    <p class="text-sm text-gray-700 whitespace-pre-line mt-1">
+                      {{ rev.coachResponse }}
+                    </p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
           <!-- Post-Modalités Call To Action -->
           <div
             class="bg-gradient-to-br from-orange-500 via-orange-600 to-blue-600 rounded-2xl shadow-lg p-6 sm:p-10 text-white"
@@ -609,7 +676,7 @@
           <!-- Similar Coaches -->
           <div class="bg-white rounded-2xl shadow-lg p-8">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              Coachs similaires à {{ coach?.firstName }}
+              Vous recherchez peut-être autre chose?
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -629,17 +696,20 @@
                     <h3 class="font-semibold text-gray-900">
                       {{ similarCoach.firstName }}
                     </h3>
-                    <p class="text-sm text-gray-600">{{ similarCoach.location }}</p>
+                    <p class="text-xs text-gray-600">{{ similarCoach.location }}</p>
                     <div class="flex items-center mt-1">
                       <StarIcon class="w-4 h-4 text-yellow-400 fill-current" />
                       <span class="ml-1 text-sm text-gray-600">{{ similarCoach.rating }}</span>
                       <span class="mx-2 text-gray-300">•</span>
-                      <span class="text-sm text-gray-600">{{ similarCoach.experience }} ans</span>
+                      <span class="text-xs text-gray-600"
+                        >{{ similarCoach.experience }} ans d'expérience</span
+                      >
                     </div>
                   </div>
                   <div class="text-right">
                     <p class="text-lg font-bold text-gray-900">
                       <!-- {{ getCoachPrice(similarCoach) }}€ -->
+                      {{ coach?.hourlyRate }}€
                     </p>
                     <p class="text-xs text-gray-500">par séance</p>
                   </div>
@@ -694,7 +764,7 @@
                   <StarIcon class="w-5 h-5 text-yellow-400 fill-current" />
                   <span class="ml-1 text-lg font-semibold text-gray-900">{{ coach?.rating }}</span>
                   <span class="mx-2 text-gray-300">•</span>
-                  <span class="text-gray-600">{{ coach?.totalClients }} élèves</span>
+                  <span class="text-gray-600">{{ reviews.length }} avis</span>
                 </div>
                 <p class="text-orange-600 font-medium">{{ coach?.location }}</p>
               </div>
@@ -1107,63 +1177,6 @@
       </div>
     </div>
 
-    <!-- Reviews Section -->
-    <div class="bg-white rounded-2xl shadow-lg p-8" v-if="coach">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-gray-900 flex items-center">
-          <StarIcon class="w-6 h-6 text-yellow-400 mr-2" /> Avis récents
-        </h2>
-        <button
-          @click="openReviewModal"
-          class="bg-gradient-to-r from-orange-500 to-blue-600 text-white px-5 py-2 rounded-full font-semibold text-sm hover:shadow-md transition disabled:opacity-50"
-          :disabled="creatingReview"
-        >
-          Laisser un avis
-        </button>
-      </div>
-      <div v-if="loadingReviews" class="space-y-4">
-        <div v-for="n in 3" :key="n" class="animate-pulse space-y-2">
-          <div class="h-4 bg-gray-200 rounded w-1/3" />
-          <div class="h-3 bg-gray-100 rounded w-full" />
-          <div class="h-3 bg-gray-100 rounded w-2/3" />
-        </div>
-      </div>
-      <div v-else>
-        <div v-if="reviews.length === 0" class="text-gray-500 text-sm italic">
-          Aucun avis pour le moment. Soyez le premier !
-        </div>
-        <ul class="divide-y divide-gray-100">
-          <li v-for="rev in reviews" :key="rev.id" class="py-5">
-            <div class="flex items-start justify-between">
-              <div>
-                <p class="font-semibold text-gray-900">{{ rev.clientName }}</p>
-                <div class="flex items-center text-yellow-400 mt-1">
-                  <StarIcon
-                    v-for="i in 5"
-                    :key="i"
-                    class="w-4 h-4"
-                    :class="i <= rev.rating ? 'fill-current' : 'text-gray-300'"
-                  />
-                  <span class="ml-2 text-xs text-gray-500">
-                    {{ formatDate(rev.createdAt) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <p v-if="rev.comment" class="mt-2 text-gray-700 whitespace-pre-line">
-              {{ rev.comment }}
-            </p>
-            <div v-if="rev.coachResponse" class="mt-3 pl-4 border-l-4 border-blue-200">
-              <p class="text-sm text-blue-700 font-medium">Réponse du coach :</p>
-              <p class="text-sm text-gray-700 whitespace-pre-line mt-1">
-                {{ rev.coachResponse }}
-              </p>
-            </div>
-          </li>
-        </ul>
-      </div>
-    </div>
-
     <!-- Leave Review Modal -->
     <TransitionRoot as="template" :show="showReviewModal">
       <Dialog as="div" class="relative z-50" @close="closeReviewModal">
@@ -1323,6 +1336,7 @@
         </div>
       </Dialog>
     </TransitionRoot>
+    <AppFooter />
   </div>
 </template>
 
@@ -1342,6 +1356,7 @@ import { reviewApi } from '@/services'
 import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue'
 import { CheckIcon } from '@heroicons/vue/24/outline'
 import type { Review } from '@/types/review'
+import AppFooter from '@/components/AppFooter.vue'
 
 // Router
 const route = useRoute()
@@ -1505,6 +1520,69 @@ const navigateToCoach = (coachId: string) => {
   router.push(`/coach/${coachId}`)
 }
 
+// --- Similar Coaches Logic --------------------------------------------------
+// Derive a country name from a location string (heuristic: last token if comma, else last word)
+const deriveCountry = (loc: string | undefined | null): string | null => {
+  if (!loc) return null
+  if (loc.includes(',')) {
+    const parts = loc
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+    return parts[parts.length - 1].toLowerCase()
+  }
+  const words = loc.split(/\s+/).filter(Boolean)
+  if (!words.length) return null
+  return words[words.length - 1].toLowerCase()
+}
+
+const pickSimilarCoaches = (current: Coach, all: Coach[], max: number = 3): Coach[] => {
+  const currentCountry = deriveCountry(current.location)
+  const currentSpecs = new Set(current.specialties)
+  const candidates = all.filter((c) => c.id !== current.id)
+
+  interface RankedCoach {
+    coach: Coach
+    score: number
+    matchBoth: boolean
+    matchCountry: boolean
+    matchSpec: boolean
+  }
+  const ranked: RankedCoach[] = candidates.map((c) => {
+    const country = deriveCountry(c.location)
+    const matchCountry = !!currentCountry && country === currentCountry
+    const matchSpec = c.specialties.some((s) => currentSpecs.has(s))
+    const matchBoth = matchCountry && matchSpec
+    // Base scoring: both +4, country +2, spec +1, plus rating normalized (0-1) * 0.5
+    const score =
+      (matchBoth ? 4 : 0) + (matchCountry ? 2 : 0) + (matchSpec ? 1 : 0) + c.rating * 0.05
+    return { coach: c, score, matchBoth, matchCountry, matchSpec }
+  })
+
+  // Primary selection: any that match at least one criterion
+  const primary = ranked
+    .filter((r) => r.matchCountry || r.matchSpec)
+    .sort((a, b) => {
+      // Sort by: matchBoth desc, score desc, rating desc
+      if (b.matchBoth !== a.matchBoth) return Number(b.matchBoth) - Number(a.matchBoth)
+      if (b.score !== a.score) return b.score - a.score
+      return b.coach.rating - a.coach.rating
+    })
+    .slice(0, max)
+    .map((r) => r.coach)
+
+  if (primary.length >= max) return primary
+
+  // Fallback: fill with best rated remaining coaches not already chosen
+  const chosenIds = new Set(primary.map((c) => c.id))
+  const remaining = candidates
+    .filter((c) => !chosenIds.has(c.id))
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, max - primary.length)
+
+  return [...primary, ...remaining]
+}
+
 // Load coach services from database
 const loadCoachServices = async (coachId: string) => {
   try {
@@ -1617,86 +1695,67 @@ const stopScrollEnforcement = () => {
   }
 }
 
-onMounted(async () => {
-  forceScrollTop()
-  startScrollEnforcement()
-  if (window.innerWidth >= 640) {
-    mobileModalitesOpen.value = true
-  }
-  const coachId = route.params.id as string
-  console.log('🔍 CoachPublicProfile: Loading coach profile for ID:', coachId)
-
-  // Set loading states immediately to show skeleton
+// Consolidated loader so we can reuse on route changes
+const loadCoachProfile = async (coachId: string) => {
+  console.log('Loading coach profile for ID:', coachId)
+  // Reset state for new coach navigation
+  coach.value = null
+  coachServices.value = []
+  similarCoaches.value = []
+  isCoachCertified.value = false
+  reviews.value = []
   isLoading.value = true
   isLoadingServices.value = true
-
-  // Add visibility change listener to refresh services when page becomes visible
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-
   try {
-    // Load coaches from API if not already loaded
     if (coachStore.coaches.length === 0) {
-      console.log('📡 Loading coaches from API...')
+      console.log('📡 Fetching coaches (store empty) ...')
       await coachStore.fetchCoaches()
     }
-
-    // Find the coach by ID
     coach.value = coachStore.coaches.find((c) => c.id === coachId) || null
-
-    console.log('✅ Found coach:', coach.value?.firstName || 'Not found')
-
-    if (coach.value) {
-      // Load coach services
-      await loadCoachServices(coach.value.id)
-      forceScrollTop()
-      ensureFinalTopPosition()
-      // Stop enforcement when services have loaded and images finalization logic will take over
-      stopScrollEnforcement()
-
-      // Check coach certification status
-      await checkCoachCertification(coach.value.id)
-
-      // Find similar coaches (same specialties, different coach)
-      similarCoaches.value = coachStore.coaches
-        .filter(
-          (c) =>
-            c.id !== coachId &&
-            c.specialties.some((spec) => coach.value?.specialties.includes(spec)),
-        )
-        .slice(0, 4)
-
-      console.log('🔗 Found', similarCoaches.value.length, 'similar coaches')
-
-      // Check if contact modal should be opened automatically
-      if (route.query.contact === 'true') {
-        console.log('🔔 Auto-opening contact modal due to query parameter')
-        showContactModal.value = true
-        // Remove the query parameter from URL without navigating
-        router.replace({
-          path: route.path,
-          query: { ...route.query, contact: undefined },
-        })
-      }
-    } else {
-      console.log('❌ Coach not found with ID:', coachId)
-      // Stop services loading since no coach was found
+    if (!coach.value) {
+      console.warn('❌ Coach not found for id', coachId)
       isLoadingServices.value = false
+      return
     }
-  } catch (error) {
-    console.error('❌ Error loading coach profile:', error)
-    // Stop services loading on error
+    await loadCoachServices(coach.value.id)
+    stopScrollEnforcement()
+    await checkCoachCertification(coach.value.id)
+    similarCoaches.value = pickSimilarCoaches(coach.value, coachStore.coaches, 3)
+    console.log(
+      '🔗 Similar coaches after reload:',
+      similarCoaches.value.map((c) => c.firstName),
+    )
+  } catch (err) {
+    console.error('❌ Error in loadCoachProfile:', err)
     isLoadingServices.value = false
   } finally {
     isLoading.value = false
   }
+}
+
+onMounted(async () => {
+  forceScrollTop()
+  startScrollEnforcement()
+  if (window.innerWidth >= 640) mobileModalitesOpen.value = true
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  const coachId = route.params.id as string
+  await loadCoachProfile(coachId)
+  // Auto-open contact modal (and clean URL) if query present
+  if (route.query.contact === 'true') {
+    showContactModal.value = true
+    router.replace({ path: route.path, query: { ...route.query, contact: undefined } })
+  }
+  ensureFinalTopPosition()
 })
 
 // Scroll reset on coach id change (same component instance navigation)
 watch(
   () => route.params.id,
-  () => {
+  async (newId, oldId) => {
+    if (!newId || newId === oldId) return
     forceScrollTop()
     startScrollEnforcement()
+    await loadCoachProfile(newId as string)
     ensureFinalTopPosition()
   },
 )

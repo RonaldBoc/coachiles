@@ -37,10 +37,86 @@ watch(
 )
 
 // Tabs - Only account settings and subscription
+import { supabaseReviewApi } from '@/services/supabaseReviewApi'
+import { supabase } from '@/utils/supabase'
+
 const tabs = [
   { id: 'settings', name: 'Paramètres', icon: CogIcon },
   { id: 'subscription', name: 'Abonnement', icon: CreditCardIcon },
+  { id: 'reviews', name: 'Avis', icon: CheckIcon },
 ]
+
+// Reviews state
+interface CoachReviewRow {
+  id: string
+  createdAt: Date
+  rating: number
+  comment?: string
+  clientName: string
+  coachResponse?: string
+  coachRespondedAt?: Date
+  moderationStatus: string
+  isPublished: boolean
+  coach_response_hidden?: boolean
+}
+const myReviews = ref<CoachReviewRow[]>([])
+const reviewsLoading = ref(false)
+const reviewReply = ref<Record<string, string>>({})
+
+async function loadMyReviews() {
+  try {
+    reviewsLoading.value = true
+    const { data: user } = await supabase.auth.getUser()
+    let coachId = user.user?.id || null
+    // If no direct reviews under auth.uid, try resolving coach id by email (coaches table)
+    if (user.user?.email) {
+      const { data: coachRow } = await supabase
+        .from('coaches')
+        .select('id')
+        .eq('email', user.user.email)
+        .maybeSingle()
+      if (coachRow?.id) coachId = coachRow.id
+    }
+    if (!coachId) return
+    const rows = await supabaseReviewApi.getCoachReviews(coachId, {
+      includeUnpublished: true,
+      limit: 100,
+    })
+    // Fallback: if no rows and coachId was auth.uid, but email-mapped coach id differs, try again already handled above
+    myReviews.value = rows.map((r) => ({
+      id: r.id,
+      createdAt: r.createdAt,
+      rating: r.rating,
+      comment: r.comment,
+      clientName: r.clientName,
+      coachResponse: r.coachResponse,
+      coachRespondedAt: r.coachRespondedAt,
+      moderationStatus: r.moderationStatus,
+      isPublished: r.isPublished,
+    }))
+  } finally {
+    reviewsLoading.value = false
+  }
+}
+
+async function submitResponse(review: CoachReviewRow) {
+  const text = (reviewReply.value[review.id] || '').trim()
+  if (!text) return
+  try {
+    const { error } = await supabase
+      .from('reviews')
+      .update({ coach_response: text, coach_responded_at: new Date().toISOString() })
+      .eq('id', review.id)
+      .is('coach_response', null)
+    if (error) throw error
+    await loadMyReviews()
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Failed to submit response'
+    alert(msg)
+  }
+}
+
+loadMyReviews()
 
 // Settings functions
 const saveSettings = () => {
@@ -245,6 +321,50 @@ const closeDeletionModal = () => {
           <!-- Subscription Tab -->
           <TabPanel class="space-y-8">
             <ModernSubscriptionManagement />
+          </TabPanel>
+
+          <!-- Reviews Tab -->
+          <TabPanel class="space-y-6">
+            <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl p-4">
+              <h2 class="text-base font-semibold leading-7 text-gray-900 mb-4">Avis reçus</h2>
+              <div v-if="reviewsLoading" class="text-sm text-gray-500">Chargement...</div>
+              <div v-else class="space-y-4">
+                <div v-if="!myReviews.length" class="text-sm text-gray-500">
+                  Aucun avis pour le moment.
+                </div>
+                <div v-for="r in myReviews" :key="r.id" class="border rounded p-3 bg-gray-50/50">
+                  <div class="flex justify-between items-start">
+                    <div class="text-sm font-medium">{{ r.clientName }} • {{ r.rating }}★</div>
+                    <div class="text-xs text-gray-500">{{ r.moderationStatus }}</div>
+                  </div>
+                  <div class="mt-1 text-sm whitespace-pre-wrap">{{ r.comment || '—' }}</div>
+                  <div
+                    v-if="r.coachResponse"
+                    class="mt-2 text-xs p-2 bg-blue-50 rounded border border-blue-100"
+                  >
+                    <div class="font-semibold mb-1">Votre réponse</div>
+                    <div class="whitespace-pre-wrap">{{ r.coachResponse }}</div>
+                  </div>
+                  <div v-else class="mt-2">
+                    <textarea
+                      v-model="reviewReply[r.id]"
+                      rows="2"
+                      placeholder="Répondre (une seule réponse possible)"
+                      class="w-full text-xs rounded border-gray-300"
+                    ></textarea>
+                    <div class="mt-1 flex justify-end">
+                      <button
+                        @click="submitResponse(r)"
+                        class="px-3 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                        :disabled="!(reviewReply[r.id] || '').trim()"
+                      >
+                        Envoyer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </TabPanel>
         </TabPanels>
       </TabGroup>

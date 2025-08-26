@@ -388,6 +388,9 @@
                     Client
                   </th>
                   <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
                     Rating
                   </th>
                   <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
@@ -402,12 +405,38 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr v-for="r in reviews" :key="r.id" class="text-sm">
+                <tr v-for="r in reviews" :key="r.id" class="text-sm align-top">
                   <td class="px-4 py-2 whitespace-nowrap">{{ formatDate(r.created_at) }}</td>
                   <td class="px-4 py-2 whitespace-nowrap">{{ getCoachName(r.coach_id) }}</td>
                   <td class="px-4 py-2 whitespace-nowrap">{{ r.client_name }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                    {{ r.client_email }}
+                  </td>
                   <td class="px-4 py-2 whitespace-nowrap font-medium">{{ r.rating }}★</td>
-                  <td class="px-4 py-2 max-w-xs">{{ r.comment || '—' }}</td>
+                  <td class="px-4 py-2 max-w-xs">
+                    <div class="whitespace-pre-wrap break-words text-xs">
+                      {{ r.comment || '—' }}
+                    </div>
+                    <div
+                      v-if="r.coach_response"
+                      class="mt-2 p-2 rounded border bg-gray-50 dark:bg-gray-700/30"
+                      :class="r.coach_response_hidden ? 'opacity-40 line-through' : ''"
+                    >
+                      <div
+                        class="text-[10px] uppercase font-semibold mb-1 text-gray-500 flex items-center gap-2"
+                      >
+                        Coach response
+                        <span
+                          v-if="r.coach_response_hidden"
+                          class="px-1 rounded bg-yellow-200 text-yellow-800 text-[10px]"
+                          >Hidden</span
+                        >
+                      </div>
+                      <div class="text-xs whitespace-pre-wrap break-words">
+                        {{ r.coach_response }}
+                      </div>
+                    </div>
+                  </td>
                   <td class="px-4 py-2 whitespace-nowrap">
                     <span
                       :class="[
@@ -437,10 +466,23 @@
                     >
                       Reject
                     </button>
+                    <button
+                      v-if="r.coach_response"
+                      @click="toggleHideResponse(r)"
+                      class="text-xs px-2 py-1 rounded bg-yellow-600 text-white hover:bg-yellow-700"
+                    >
+                      {{ r.coach_response_hidden ? 'Unhide response' : 'Hide response' }}
+                    </button>
+                    <button
+                      @click="deleteReview(r)"
+                      class="text-xs px-2 py-1 rounded bg-gray-600 text-white hover:bg-gray-700"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
                 <tr v-if="!reviews.length">
-                  <td colspan="7" class="px-4 py-6 text-center text-xs text-gray-500">
+                  <td colspan="8" class="px-4 py-6 text-center text-xs text-gray-500">
                     No reviews match filters
                   </td>
                 </tr>
@@ -1306,6 +1348,26 @@ async function loadReviews() {
   if (error) reviewsError.value = error
   reviews.value = data as AdminReview[]
   reviewsLoading.value = false
+}
+
+async function toggleHideResponse(r: AdminReview) {
+  if (!confirm(`Confirm to ${r.coach_response_hidden ? 'unhide' : 'hide'} coach response?`)) return
+  const { ok, error } = await AdminApi.hideCoachResponse(r.id, !r.coach_response_hidden)
+  if (!ok) {
+    alert(error || 'Failed')
+    return
+  }
+  await loadReviews()
+}
+
+async function deleteReview(r: AdminReview) {
+  if (!confirm('Delete this review permanently? This cannot be undone.')) return
+  const { ok, error } = await AdminApi.deleteReview(r.id)
+  if (!ok) {
+    alert(error || 'Failed')
+    return
+  }
+  await loadReviews()
 }
 
 async function approveReview(id: string) {

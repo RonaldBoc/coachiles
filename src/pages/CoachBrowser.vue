@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
+  <div class="min-h-screen flex flex-col bg-gradient-to-br from-orange-50 via-white to-blue-50">
     <!-- Header -->
     <header
       ref="headerRef"
@@ -36,7 +36,7 @@
     <div aria-hidden="true" :style="{ height: headerHeight + 'px' }"></div>
 
     <!-- Hero Section -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
       <!-- Main Title -->
       <div class="text-center mb-12">
         <h1 class="text-6xl md:text-7xl font-black text-gray-900 mb-4 tracking-tight">
@@ -270,7 +270,9 @@
                   <span class="ml-1 text-sm font-semibold text-gray-900">{{ coach.rating }}</span>
                 </div>
                 <span class="mx-2 text-gray-300">•</span>
-                <span class="text-sm text-gray-600">{{ coach.totalClients }} avis</span>
+                <span class="text-sm text-gray-600"
+                  >{{ coachReviewCounts.get(coach.id) || 0 }} avis</span
+                >
               </div>
 
               <!-- Description -->
@@ -357,11 +359,13 @@
         </button>
       </div>
     </div>
+    <AppFooter />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import AppFooter from '@/components/AppFooter.vue'
 import { useRouter } from 'vue-router'
 import { StarIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
@@ -390,6 +394,7 @@ const sortBy = ref('rating')
 const isLoading = ref(false)
 const searchDebounceTimer = ref<number | null>(null)
 const coachSubscriptions = ref<Map<string, boolean>>(new Map()) // Track which coaches have active subscriptions
+const coachReviewCounts = ref<Map<string, number>>(new Map()) // Approved review counts per coach
 
 // Pagination for database approach
 const currentPage = ref(1)
@@ -451,6 +456,39 @@ const checkCoachSubscriptions = async (coachIds: string[]) => {
     console.log('📊 Updated subscription map:', Object.fromEntries(coachSubscriptions.value))
   } catch (error) {
     console.error('❌ Error in checkCoachSubscriptions:', error)
+  }
+}
+
+// Load approved (published) review counts for given coaches
+const loadReviewCounts = async (coachIds: string[]) => {
+  try {
+    if (!coachIds.length) return
+    // Only fetch counts for coachIds not yet loaded (optimization)
+    const missing = coachIds.filter((id) => !coachReviewCounts.value.has(id))
+    if (!missing.length) return
+
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('id, coach_id')
+      .eq('is_published', true)
+      .in('coach_id', missing)
+
+    if (error) {
+      console.error('❌ Error loading review counts:', error)
+      return
+    }
+
+    interface ReviewRow {
+      id: string
+      coach_id: string
+    }
+    const counts: Record<string, number> = {}
+    ;(data as ReviewRow[] | null)?.forEach((row) => {
+      counts[row.coach_id] = (counts[row.coach_id] || 0) + 1
+    })
+    Object.entries(counts).forEach(([id, count]) => coachReviewCounts.value.set(id, count))
+  } catch (err) {
+    console.error('❌ Unexpected error loading review counts:', err)
   }
 }
 
@@ -522,6 +560,7 @@ const searchCoaches = async (query: string, specialty: string, sort: string, pag
     const coachIds = coachStore.coaches.map((coach) => coach.id)
     if (coachIds.length > 0) {
       await checkCoachSubscriptions(coachIds)
+      await loadReviewCounts(coachIds)
     }
 
     console.log('✅ Search completed:', {

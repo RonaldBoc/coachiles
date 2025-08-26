@@ -35,6 +35,9 @@ const mapSupabaseToReview = (supabaseData: Tables<'reviews'>): Review => {
     coachRespondedAt: supabaseData.coach_responded_at
       ? new Date(supabaseData.coach_responded_at)
       : undefined,
+    coachResponseHidden:
+      (supabaseData as unknown as { coach_response_hidden?: boolean }).coach_response_hidden ??
+      false,
   }
 }
 

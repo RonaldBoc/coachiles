@@ -3,38 +3,39 @@ export interface Review {
   id: string
   createdAt: Date
   updatedAt: Date
-  
+
   // Review Details
   bookingId?: string
   coachId: string
   serviceId?: string
-  
+
   // Client Info
   clientName: string
   clientEmail: string
-  
+
   // Review Content
   rating: number // 1-5
   title?: string
   comment?: string
-  
+
   // Category Ratings (optional detailed feedback)
   communicationRating?: number // 1-5
   professionalismRating?: number // 1-5
   expertiseRating?: number // 1-5
   valueRating?: number // 1-5
-  
+
   // Status & Moderation
   isVerified: boolean
   isPublished: boolean
   isAnonymous: boolean
   moderationStatus: 'pending' | 'approved' | 'rejected'
   moderationNotes?: string
-  
+
   // Response from Coach
   coachResponse?: string
   coachRespondedAt?: Date
-  
+  coachResponseHidden?: boolean
+
   // Related data (populated in queries)
   booking?: import('./simple').SimpleBooking
   coach?: import('./simple').SimpleCoach

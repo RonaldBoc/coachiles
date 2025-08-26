@@ -63,6 +63,7 @@ export type AdminReview = {
   is_published: boolean
   is_verified: boolean
   coach_response?: string | null
+  coach_response_hidden?: boolean | null
 }
 
 interface RowsLike {
@@ -492,6 +493,48 @@ export const AdminApi = {
       return { ok: !!data }
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : 'Failed to reject review' }
+    }
+  },
+  async hideCoachResponse(
+    reviewId: string,
+    hide: boolean,
+    note?: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (!this._superadminCache) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('admin_hide_coach_response', {
+        p_review_id: reviewId,
+        p_admin_email: email,
+        p_hide: hide,
+        p_notes: note ?? null,
+      })
+      if (error) throw error
+      return { ok: !!data }
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : 'Failed to hide coach response',
+      }
+    }
+  },
+  async deleteReview(reviewId: string, note?: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (!this._superadminCache) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('admin_delete_review', {
+        p_review_id: reviewId,
+        p_admin_email: email,
+        p_notes: note ?? null,
+      })
+      if (error) throw error
+      return { ok: !!data }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Failed to delete review' }
     }
   },
 }
