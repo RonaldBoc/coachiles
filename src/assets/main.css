@@ -15,6 +15,13 @@ body {
   overflow-x: hidden;
 }
 
+/* Optional: auto-apply dark class using media query so existing dark: utilities activate */
+@media (prefers-color-scheme: dark) {
+  :root:not(.no-auto-dark) body {
+    /* Add the dark class to html element via JS ideally; fallback utility below */
+  }
+}
+
 a,
 .green {
   text-decoration: none;

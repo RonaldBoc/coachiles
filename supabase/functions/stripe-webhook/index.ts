@@ -68,9 +68,63 @@ serve(async (req) => {
         ? session.subscription
         : (session.subscription as Stripe.Subscription | null)?.id || null
 
+    // If subscription id is missing, still try to record a payment row using payment_intent
     if (!stripeSubscriptionId) {
+      try {
+        const txId =
+          typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : typeof session.invoice === 'string'
+              ? session.invoice
+              : null
+        if (!txId) {
+          console.log(
+            'ℹ️ Skipping payment insert (branch: no subscription id) – no payment_intent or invoice id yet',
+            {
+              sessionId: session.id,
+              payment_intent: session.payment_intent,
+              invoice: session.invoice,
+            },
+          )
+        }
+        if (txId && coachId) {
+          const { data: existing, error: exErr } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('transaction_id', txId)
+            .limit(1)
+            .maybeSingle()
+          if (!existing) {
+            const amount = Math.max(0, session.amount_total || 0) / 100
+            const currency = (session.currency || 'EUR').toUpperCase()
+            const { error: insErr } = await supabase.from('payments').insert({
+              coach_id: coachId,
+              amount,
+              currency,
+              payment_method: 'stripe',
+              transaction_id: txId,
+              status: 'completed',
+              payment_type: 'subscription',
+              processed_at: new Date().toISOString(),
+              description: `Stripe checkout session ${session.id}`,
+              platform_fee: 0,
+              payment_processor_fee: 0,
+              coach_earnings: amount,
+              metadata: { stripeCheckoutSessionId: session.id } as Record<string, unknown>,
+            })
+            if (insErr) console.error('❌ Failed to insert payment on checkout.session:', insErr)
+            else console.log('✅ Recorded payment from checkout.session for coach', coachId)
+          } else if (exErr) {
+            console.error('⚠️ Payment existence check failed on checkout.session:', exErr)
+          } else {
+            console.log('ℹ️ Payment already exists for checkout.session tx', txId)
+          }
+        }
+      } catch (e) {
+        console.error('⚠️ Failed to record payment from checkout.session:', e)
+      }
       console.warn(
-        '⚠️ No stripeSubscriptionId on session; skipping create. Will rely on later events.',
+        '⚠️ No stripeSubscriptionId on session; skipping subscription creation. Will rely on later events.',
       )
       return new Response('OK', { status: 200 })
     }
@@ -115,6 +169,60 @@ serve(async (req) => {
       if (updErr) console.error('❌ Failed to idempotently update existing Stripe sub row:', updErr)
       else console.log('✅ Idempotent update applied to row', existingByStripe.id)
 
+      // Also record a payment row from checkout.session
+      try {
+        const txId =
+          typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : typeof session.invoice === 'string'
+              ? session.invoice
+              : null
+        if (!txId) {
+          console.log(
+            'ℹ️ Skipping payment insert (branch: existingByStripe) – no payment_intent or invoice id yet',
+            {
+              sessionId: session.id,
+              payment_intent: session.payment_intent,
+              invoice: session.invoice,
+            },
+          )
+        }
+        if (txId && coachId) {
+          const { data: existing, error: exErr } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('transaction_id', txId)
+            .limit(1)
+            .maybeSingle()
+          if (!existing) {
+            const amount = Math.max(0, session.amount_total || 0) / 100
+            const currency = (session.currency || 'EUR').toUpperCase()
+            const { error: insErr } = await supabase.from('payments').insert({
+              coach_id: coachId,
+              amount,
+              currency,
+              payment_method: 'stripe',
+              transaction_id: txId,
+              status: 'completed',
+              payment_type: 'subscription',
+              processed_at: new Date().toISOString(),
+              description: `Stripe checkout session ${session.id}`,
+              platform_fee: 0,
+              payment_processor_fee: 0,
+              coach_earnings: amount,
+              metadata: { stripeCheckoutSessionId: session.id } as Record<string, unknown>,
+            })
+            if (insErr) console.error('❌ Failed to insert payment on checkout.session:', insErr)
+            else console.log('✅ Recorded payment from checkout.session for coach', coachId)
+          } else if (exErr) {
+            console.error('⚠️ Payment existence check failed on checkout.session:', exErr)
+          } else {
+            console.log('ℹ️ Payment already exists for checkout.session tx', txId)
+          }
+        }
+      } catch (e) {
+        console.error('⚠️ Failed to record payment from checkout.session:', e)
+      }
       return new Response('OK', { status: 200 })
     }
 
@@ -158,6 +266,60 @@ serve(async (req) => {
       if (updErr) console.error('❌ Failed to attach Stripe IDs to latest active row:', updErr)
       else console.log('✅ Attached Stripe IDs to latest active row', latestActiveNoStripe.id)
 
+      // Also record a payment row from checkout.session
+      try {
+        const txId =
+          typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : typeof session.invoice === 'string'
+              ? session.invoice
+              : null
+        if (!txId) {
+          console.log(
+            'ℹ️ Skipping payment insert (branch: latestActiveNoStripe) – no payment_intent or invoice id yet',
+            {
+              sessionId: session.id,
+              payment_intent: session.payment_intent,
+              invoice: session.invoice,
+            },
+          )
+        }
+        if (txId && coachId) {
+          const { data: existing, error: exErr } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('transaction_id', txId)
+            .limit(1)
+            .maybeSingle()
+          if (!existing) {
+            const amount = Math.max(0, session.amount_total || 0) / 100
+            const currency = (session.currency || 'EUR').toUpperCase()
+            const { error: insErr } = await supabase.from('payments').insert({
+              coach_id: coachId,
+              amount,
+              currency,
+              payment_method: 'stripe',
+              transaction_id: txId,
+              status: 'completed',
+              payment_type: 'subscription',
+              processed_at: new Date().toISOString(),
+              description: `Stripe checkout session ${session.id}`,
+              platform_fee: 0,
+              payment_processor_fee: 0,
+              coach_earnings: amount,
+              metadata: { stripeCheckoutSessionId: session.id } as Record<string, unknown>,
+            })
+            if (insErr) console.error('❌ Failed to insert payment on checkout.session:', insErr)
+            else console.log('✅ Recorded payment from checkout.session for coach', coachId)
+          } else if (exErr) {
+            console.error('⚠️ Payment existence check failed on checkout.session:', exErr)
+          } else {
+            console.log('ℹ️ Payment already exists for checkout.session tx', txId)
+          }
+        }
+      } catch (e) {
+        console.error('⚠️ Failed to record payment from checkout.session:', e)
+      }
       return new Response('OK', { status: 200 })
     }
 
@@ -206,6 +368,60 @@ serve(async (req) => {
     if (updErr) console.error('❌ Failed to update new subscription with Stripe IDs:', updErr)
     else console.log('✅ Saved Stripe IDs on new subscription', result.subscription_id)
 
+    // Also record a payment row from checkout.session
+    try {
+      const txId =
+        typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : typeof session.invoice === 'string'
+            ? session.invoice
+            : null
+      if (!txId) {
+        console.log(
+          'ℹ️ Skipping payment insert (branch: create new sub) – no payment_intent or invoice id yet',
+          {
+            sessionId: session.id,
+            payment_intent: session.payment_intent,
+            invoice: session.invoice,
+          },
+        )
+      }
+      if (txId && coachId) {
+        const { data: existing, error: exErr } = await supabase
+          .from('payments')
+          .select('id')
+          .eq('transaction_id', txId)
+          .limit(1)
+          .maybeSingle()
+        if (!existing) {
+          const amount = Math.max(0, session.amount_total || 0) / 100
+          const currency = (session.currency || 'EUR').toUpperCase()
+          const { error: insErr } = await supabase.from('payments').insert({
+            coach_id: coachId,
+            amount,
+            currency,
+            payment_method: 'stripe',
+            transaction_id: txId,
+            status: 'completed',
+            payment_type: 'subscription',
+            processed_at: new Date().toISOString(),
+            description: `Stripe checkout session ${session.id}`,
+            platform_fee: 0,
+            payment_processor_fee: 0,
+            coach_earnings: amount,
+            metadata: { stripeCheckoutSessionId: session.id } as Record<string, unknown>,
+          })
+          if (insErr) console.error('❌ Failed to insert payment on checkout.session:', insErr)
+          else console.log('✅ Recorded payment from checkout.session for coach', coachId)
+        } else if (exErr) {
+          console.error('⚠️ Payment existence check failed on checkout.session:', exErr)
+        } else {
+          console.log('ℹ️ Payment already exists for checkout.session tx', txId)
+        }
+      }
+    } catch (e) {
+      console.error('⚠️ Failed to record payment from checkout.session:', e)
+    }
     return new Response('OK', { status: 200 })
   }
 
@@ -260,10 +476,21 @@ serve(async (req) => {
   if (event.type === 'invoice.payment_succeeded') {
     const invoice = event.data.object as Stripe.Invoice
     const stripeSubId = typeof invoice.subscription === 'string' ? invoice.subscription : null
+    const stripeCustomerId =
+      typeof invoice.customer === 'string'
+        ? (invoice.customer as string)
+        : (invoice.customer as Stripe.Customer | null)?.id || null
+    console.log('🔎 invoice.payment_succeeded received', {
+      invoiceId: invoice.id,
+      stripeSubId,
+      coachMeta: invoice.lines?.data?.[0]?.metadata?.coachId,
+      amount_paid: invoice.amount_paid,
+      payment_intent: invoice.payment_intent,
+    })
     if (stripeSubId) {
       const paidAtSec = invoice.status_transitions?.paid_at
       const paidAt = paidAtSec ? new Date(paidAtSec * 1000).toISOString() : new Date().toISOString()
-      const { error: updErr } = await supabase
+      const { data: updatedSubs, error: updErr } = await supabase
         .from('subscriptions')
         .update({
           last_payment_at: paidAt,
@@ -272,9 +499,101 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq('stripe_subscription_id', stripeSubId)
+        .select('coach_id')
+        .limit(1)
 
       if (updErr) console.error('❌ Failed to sync invoice.payment_succeeded:', updErr)
       else console.log('✅ Synced invoice.payment_succeeded for', stripeSubId)
+
+      // Also record a payment row for this successful subscription invoice
+      try {
+        // Prefer the coach_id from the just-updated row, else lookup by sub/customer id
+        let coachIdForPayment: string | null = updatedSubs?.[0]?.coach_id ?? null
+        if (!coachIdForPayment) {
+          const { data: subRow, error: subErr } = await supabase
+            .from('subscriptions')
+            .select('coach_id')
+            .or(
+              [
+                stripeSubId ? `stripe_subscription_id.eq.${stripeSubId}` : '',
+                stripeCustomerId ? `stripe_customer_id.eq.${stripeCustomerId}` : '',
+              ]
+                .filter(Boolean)
+                .join(',') || 'id.eq.00000000-0000-0000-0000-000000000000',
+            )
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (subErr) {
+            console.error('⚠️ Failed to lookup subscription -> coach for payment record:', subErr)
+          }
+          coachIdForPayment = (subRow?.coach_id as string | undefined) ?? null
+        }
+
+        if (coachIdForPayment) {
+          console.log('🧮 Preparing to insert payment row', {
+            coachId: coachIdForPayment,
+            invoiceId: invoice.id,
+            subscriptionId: stripeSubId,
+          })
+          // Determine unique transaction id to ensure idempotency
+          const transactionId =
+            typeof invoice.payment_intent === 'string'
+              ? (invoice.payment_intent as string)
+              : invoice.id
+
+          // Skip if we already recorded this transaction id
+          const { data: existingPayment, error: existingErr } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('transaction_id', transactionId)
+            .limit(1)
+            .maybeSingle()
+
+          if (existingErr) {
+            console.error('⚠️ Failed to check existing payment by transaction_id:', existingErr)
+          }
+
+          if (!existingPayment) {
+            const amountCents = invoice.amount_paid ?? invoice.total ?? 0
+            const amount = Math.max(0, amountCents) / 100
+            const currency = (invoice.currency || 'EUR').toUpperCase()
+            const lineDesc = invoice.lines?.data?.[0]?.description
+            const description =
+              lineDesc || invoice.number || `Stripe subscription invoice ${invoice.id}`
+
+            const insertPayload = {
+              coach_id: coachIdForPayment,
+              amount,
+              currency,
+              payment_method: 'stripe',
+              transaction_id: transactionId,
+              status: 'completed',
+              payment_type: 'subscription',
+              processed_at: new Date().toISOString(),
+              description,
+              platform_fee: 0,
+              payment_processor_fee: 0,
+              coach_earnings: amount, // Adjust later if platform fees/commission apply
+              metadata: {
+                stripeInvoiceId: invoice.id,
+                stripeSubscriptionId: stripeSubId,
+                hostedInvoiceUrl: invoice.hosted_invoice_url || null,
+              } as Record<string, unknown>,
+            }
+
+            const { error: insErr } = await supabase.from('payments').insert(insertPayload)
+            if (insErr) console.error('❌ Failed to insert payment record:', insErr)
+            else console.log('✅ Recorded subscription payment for coach', coachIdForPayment)
+          } else {
+            console.log('ℹ️ Payment already recorded for transaction_id', transactionId)
+          }
+        } else {
+          console.warn('⚠️ Could not resolve coach_id to record payment for invoice', invoice.id)
+        }
+      } catch (e) {
+        console.error('⚠️ Unexpected error while recording payment:', e)
+      }
     }
   }
 
@@ -293,6 +612,50 @@ serve(async (req) => {
 
       if (updErr) console.error('❌ Failed to sync invoice.payment_failed:', updErr)
       else console.log('✅ Synced invoice.payment_failed for', stripeSubId)
+    }
+  }
+
+  // As a safety net, record successful payment intents (e.g., from Checkout) using metadata.coachId
+  if (event.type === 'payment_intent.succeeded') {
+    const pi = event.data.object as Stripe.PaymentIntent
+    const txId = pi.id
+    const coachId = (pi.metadata?.coachId as string | undefined) || null
+    if (coachId) {
+      try {
+        const { data: existing, error: exErr } = await supabase
+          .from('payments')
+          .select('id')
+          .eq('transaction_id', txId)
+          .limit(1)
+          .maybeSingle()
+        if (!existing) {
+          const amount = Math.max(0, pi.amount_received ?? pi.amount ?? 0) / 100
+          const currency = (pi.currency || 'EUR').toUpperCase()
+          const { error: insErr } = await supabase.from('payments').insert({
+            coach_id: coachId,
+            amount,
+            currency,
+            payment_method: 'stripe',
+            transaction_id: txId,
+            status: 'completed',
+            payment_type: 'subscription',
+            processed_at: new Date().toISOString(),
+            description: `Stripe payment intent ${pi.id}`,
+            platform_fee: 0,
+            payment_processor_fee: 0,
+            coach_earnings: amount,
+            metadata: { stripePaymentIntentId: pi.id } as Record<string, unknown>,
+          })
+          if (insErr) console.error('❌ Failed to insert payment on payment_intent:', insErr)
+          else console.log('✅ Recorded payment from payment_intent for coach', coachId)
+        } else if (exErr) {
+          console.error('⚠️ Payment existence check failed on payment_intent:', exErr)
+        } else {
+          console.log('ℹ️ Payment already exists for payment_intent', txId)
+        }
+      } catch (e) {
+        console.error('⚠️ Failed to record payment from payment_intent:', e)
+      }
     }
   }
 

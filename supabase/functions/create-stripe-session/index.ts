@@ -54,6 +54,8 @@ serve(async (req) => {
       success_url: `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/cancel`,
       'metadata[coachId]': coachId,
+      // Ensure metadata is copied to underlying objects
+      'subscription_data[metadata][coachId]': coachId,
     })
 
     const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {

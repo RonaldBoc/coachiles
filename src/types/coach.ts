@@ -21,6 +21,9 @@ export interface Coach {
   isActive: boolean
   hourlyRate?: number // hourly rate in euros
   languages?: string[] // spoken languages
+  // Admin deactivation metadata
+  disabledReason?: string | null
+  disabledAt?: Date | null
 }
 
 export interface DiplomaDocument {

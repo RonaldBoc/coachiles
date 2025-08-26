@@ -30,6 +30,27 @@ export type AdminDeletionLog = {
   coach_name?: string | null
 }
 
+export type CoachSubscriptionSummary = {
+  id: string
+  subscription_type: 'free' | 'premium' | string
+  plan_name?: string | null
+  current_period_start?: string | null
+  current_period_end?: string | null
+  subscription_status?: string | null
+}
+
+export type PaymentRow = {
+  id: string
+  created_at: string
+  amount: number
+  currency: string
+  status: string
+  payment_type: string
+  transaction_id: string | null
+  description: string | null
+  coach_earnings: number
+}
+
 type RowsLike = { rows?: unknown[] }
 function parseAdminList(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
@@ -94,7 +115,7 @@ export const AdminApi = {
       // Fallback direct query
       const { data, error } = await supabase
         .from('coaches')
-        .select('id,email,first_name,last_name,created_at,is_active')
+        .select('id,email,first_name,last_name,created_at,is_active,disabled_reason')
         .order('created_at', { ascending: false })
         .limit(500)
 
@@ -176,6 +197,150 @@ export const AdminApi = {
         data: [],
         error: err instanceof Error ? err.message : 'Failed to load deletion logs',
       }
+    }
+  },
+
+  // Fetch subscription types for all coaches via the public view (granted to authenticated)
+  async getCoachSubscriptionMap(): Promise<{
+    data: Record<string, CoachSubscriptionSummary>
+    error?: string
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('coaches_current_subscription')
+        .select(
+          'id, subscription_type, plan_name, current_period_start, current_period_end, subscription_status',
+        )
+        .limit(2000)
+
+      if (error) throw error
+      const map: Record<string, CoachSubscriptionSummary> = {}
+      ;(data || []).forEach((row) => {
+        const r = row as unknown as CoachSubscriptionSummary
+        map[r.id] = r
+      })
+      return { data: map }
+    } catch (err) {
+      return {
+        data: {},
+        error: err instanceof Error ? err.message : 'Failed to load subscriptions',
+      }
+    }
+  },
+
+  async getCoachDetails(coachId: string): Promise<{
+    data: {
+      coach: Record<string, unknown> | null
+      subscription: CoachSubscriptionSummary | null
+      payments: PaymentRow[]
+    }
+    error?: string
+  }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+
+      if (this._superadminCache === null) await this.isSuperadmin()
+      const canUseAdminRpc = this._superadminCache === true
+
+      if (!canUseAdminRpc) throw new Error('forbidden')
+
+      const { data, error } = await supabase.rpc('admin_get_coach_details', {
+        p_email: email,
+        p_coach_id: coachId,
+      })
+      if (error) throw error
+      const value = (data || {}) as Record<string, unknown>
+      return {
+        data: {
+          coach: (value.coach as Record<string, unknown>) ?? null,
+          subscription: (value.subscription as CoachSubscriptionSummary) ?? null,
+          payments: ((value.payments as PaymentRow[]) ?? []) as PaymentRow[],
+        },
+      }
+    } catch (err) {
+      return {
+        data: { coach: null, subscription: null, payments: [] },
+        error: err instanceof Error ? err.message : 'Failed to load coach details',
+      }
+    }
+  },
+
+  async setCoachSubscription(
+    coachId: string,
+    planType: 'free' | 'premium',
+    periodStart?: string,
+    periodEnd?: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+
+      if (this._superadminCache === null) await this.isSuperadmin()
+      const canUseAdminRpc = this._superadminCache === true
+      if (!canUseAdminRpc) throw new Error('forbidden')
+
+      const { data, error } = await supabase.rpc('admin_set_coach_subscription', {
+        p_email: email,
+        p_coach_id: coachId,
+        p_plan_type: planType,
+        p_period_start: periodStart ?? null,
+        p_period_end: periodEnd ?? null,
+      })
+      if (error) throw error
+      const out = (data || {}) as { success?: boolean }
+      const ok = out.success === true
+      return { ok }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Failed to set subscription' }
+    }
+  },
+
+  async listPaymentsForCoach(coachId: string): Promise<{ data: PaymentRow[]; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+
+      if (this._superadminCache === null) await this.isSuperadmin()
+      const canUseAdminRpc = this._superadminCache === true
+      if (!canUseAdminRpc) throw new Error('forbidden')
+
+      const { data, error } = await supabase.rpc('admin_list_payments_for_coach', {
+        p_email: email,
+        p_coach_id: coachId,
+      })
+      if (error) throw error
+      const rows = parseAdminList(data) as PaymentRow[]
+      return { data: rows }
+    } catch (err) {
+      return { data: [], error: err instanceof Error ? err.message : 'Failed to load payments' }
+    }
+  },
+
+  async setCoachActive(
+    coachId: string,
+    active: boolean,
+    reason?: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+
+      if (this._superadminCache === null) await this.isSuperadmin()
+      const canUseAdminRpc = this._superadminCache === true
+      if (!canUseAdminRpc) throw new Error('forbidden')
+
+      const { data, error } = await supabase.rpc('admin_set_coach_active', {
+        p_email: email,
+        p_coach_id: coachId,
+        p_active: active,
+        p_reason: reason ?? null,
+      })
+      if (error) throw error
+      const out = (data || {}) as { success?: boolean }
+      return { ok: out.success === true }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Failed to update status' }
     }
   },
 }

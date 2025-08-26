@@ -61,8 +61,14 @@ export const requireAuth: NavigationGuard = async (to, from, next) => {
       next()
     }
   } else {
-    console.log('✅ Auth check passed, proceeding to route')
-    next()
+    // If coach is disabled, redirect them to the disabled info page for protected coach routes
+    if (authStore.coach && authStore.coach.isActive === false && to.path !== '/coach/disabled') {
+      console.log('🚫 Coach is disabled, redirecting to /coach/disabled')
+      next({ path: '/coach/disabled' })
+    } else {
+      console.log('✅ Auth check passed, proceeding to route')
+      next()
+    }
   }
 }
 
@@ -100,8 +106,14 @@ export const requireAuthOnly: NavigationGuard = async (to, from, next) => {
       query: { redirect: to.fullPath },
     })
   } else {
-    console.log('✅ User authenticated, allowing access')
-    next()
+    // Allow access to disabled page; optionally redirect if trying to access other pages
+    if (authStore.coach && authStore.coach.isActive === false && to.path !== '/coach/disabled') {
+      console.log('🚫 Coach is disabled, redirecting to /coach/disabled')
+      next({ path: '/coach/disabled' })
+    } else {
+      console.log('✅ User authenticated, allowing access')
+      next()
+    }
   }
 }
 

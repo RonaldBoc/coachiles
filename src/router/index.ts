@@ -28,6 +28,7 @@ import {
 import Superadmin from '@/pages/Superadmin.vue'
 
 import SuccessPage from '@/pages/Success.vue'
+import CoachDisabled from '@/pages/CoachDisabled.vue'
 
 const routes = [
   { path: '/', redirect: '/coaches' },
@@ -63,6 +64,11 @@ const routes = [
     path: '/coach/profile',
     component: CoachProfile,
     beforeEnter: requireAuth,
+  },
+  {
+    path: '/coach/disabled',
+    component: CoachDisabled,
+    beforeEnter: requireAuthOnly,
   },
   {
     path: '/coach/account',

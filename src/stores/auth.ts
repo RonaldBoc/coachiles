@@ -244,6 +244,8 @@ export const useAuthStore = defineStore('auth', () => {
           isActive: data.is_active || false,
           hourlyRate: data.hourly_rate || 50,
           languages: data.languages || ['Français'],
+          disabledReason: data.disabled_reason ?? null,
+          disabledAt: data.disabled_at ? new Date(data.disabled_at) : null,
         }
         console.log('✅ Coach profile loaded:', coach.value?.firstName, coach.value?.lastName)
       } else {
@@ -345,6 +347,8 @@ export const useAuthStore = defineStore('auth', () => {
         isActive: data.is_active || false,
         hourlyRate: data.hourly_rate || 50,
         languages: data.languages || ['Français'],
+        disabledReason: data.disabled_reason ?? null,
+        disabledAt: data.disabled_at ? new Date(data.disabled_at) : null,
       }
 
       console.log('✅ Coach profile created:', coach.value.firstName)
