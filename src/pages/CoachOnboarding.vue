@@ -1,35 +1,48 @@
 <template>
   <div class="min-h-screen bg-gray-50 py-12 sm:px-6 lg:px-8">
     <!-- Progress Bar -->
-    <div class="max-w-3xl mx-auto mb-8">
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <div v-for="(step, index) in steps" :key="step.id" class="flex items-center">
+    <div class="max-w-5xl mx-auto mb-10">
+      <div class="bg-white rounded-lg shadow px-4 py-6 md:px-8">
+        <!-- Mobile compact indicator -->
+        <div class="md:hidden text-sm text-gray-600 text-center mb-4">
+          Étape <span class="font-semibold">{{ currentStep + 1 }}</span> / {{ steps.length }} ·
+          <span class="font-medium">{{ steps[currentStep].title }}</span>
+        </div>
+        <!-- Desktop / Tablet full stepper (centered) -->
+        <div class="hidden md:block relative">
+          <!-- Background line -->
+          <div class="absolute left-0 right-0 top-5 h-0.5 bg-gray-200"></div>
+          <!-- Progress line -->
+          <div
+            class="absolute left-0 top-5 h-0.5 bg-blue-600 transition-all duration-300"
+            :style="{ width: (currentStep / (steps.length - 1)) * 100 + '%' }"
+          ></div>
+          <div class="flex justify-between items-start w-full relative">
+            <div
+              v-for="(step, index) in steps"
+              :key="step.id"
+              class="flex flex-col items-center gap-1 w-20 md:w-24"
+            >
               <div
                 :class="[
-                  'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
+                  'relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors duration-200',
                   currentStep > index
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 border-blue-600 text-white'
                     : currentStep === index
-                      ? 'bg-blue-100 text-blue-600 border-2 border-blue-600'
-                      : 'bg-gray-200 text-gray-400',
+                      ? 'bg-blue-50 border-blue-600 text-blue-600'
+                      : 'bg-gray-100 border-gray-300 text-gray-400',
                 ]"
               >
                 {{ index + 1 }}
               </div>
-              <span
+              <div
                 :class="[
-                  'ml-2 text-sm font-medium',
+                  'relative z-10 text-xs md:text-sm font-medium text-center leading-tight',
                   currentStep >= index ? 'text-gray-900' : 'text-gray-400',
                 ]"
               >
                 {{ step.title }}
-              </span>
-              <div
-                v-if="index < steps.length - 1"
-                :class="['ml-4 w-8 h-0.5', currentStep > index ? 'bg-blue-600' : 'bg-gray-200']"
-              ></div>
+              </div>
             </div>
           </div>
         </div>
