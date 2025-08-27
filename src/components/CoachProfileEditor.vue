@@ -95,6 +95,7 @@ interface CoachDbRow {
   certifications?: string[]
   experience_years?: number | null
   availability?: string[]
+  hourly_rate?: number | null
   profile_personal?: Partial<CoachProfilePayload['personal']>
   profile_contact?: Partial<CoachProfilePayload['contact']>
   profile_activity?: Partial<CoachProfilePayload['activity']>
@@ -139,6 +140,8 @@ const TERRITORY_KEYS = Object.keys(COUNTRIES) as CountryType[]
 
 // Reactive model (merge with initialData if provided)
 const model = reactive({
+  // Pricing
+  hourlyRate: null as number | null,
   personal: {
     firstName: props.initialData?.personal?.firstName || '',
     lastName: props.initialData?.personal?.lastName || '',
@@ -282,6 +285,8 @@ onMounted(() => {
   if (model.contact.email || props.initialCoachId) {
     hydrateFromDatabase()
   }
+  // Default hourly rate if unset (business default 50€)
+  if (model.hourlyRate === null) model.hourlyRate = 50
 })
 onBeforeUnmount(() => {
   window.removeEventListener('mousedown', handleOutsideClick)
@@ -481,6 +486,7 @@ async function save() {
       certifications: model.activity.diplomas.map((d) => d.title),
       experience_years: payload.activity.experienceYears,
       experience: payload.activity.experienceYears,
+      hourly_rate: model.hourlyRate,
       availability: availabilityArray,
       profile_personal: payload.personal,
       profile_contact: payload.contact,
@@ -547,6 +553,10 @@ async function hydrateFromDatabase() {
     if (!data) return
     // Personal
     currentCoachId.value = data.id
+    // Pricing
+    if (typeof data.hourly_rate === 'number') {
+      model.hourlyRate = Number(data.hourly_rate)
+    }
     const p: Partial<CoachProfilePayload['personal']> = data.profile_personal || {}
     model.personal.firstName = p.firstName ?? data.first_name ?? model.personal.firstName
     model.personal.lastName = p.lastName ?? data.last_name ?? model.personal.lastName
@@ -1168,6 +1178,23 @@ watch(
           vos clients verront.
         </p>
       </header>
+      <!-- Hourly Rate -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tarif horaire (€ / h)</label>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            v-model.number="model.hourlyRate"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Ex: 50"
+          />
+          <p class="text-[11px] text-gray-500 mt-1">
+            Indiquez votre tarif de base pour une séance individuelle d'une heure.
+          </p>
+        </div>
+      </div>
       <!-- Availability Days -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2"

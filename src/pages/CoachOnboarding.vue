@@ -694,6 +694,24 @@
             séance ✅
           </p>
           <form @submit.prevent="nextStep" class="space-y-8">
+            <!-- Hourly Rate -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Tarif horaire (€ / h)</label
+              >
+              <input
+                type="number"
+                min="0"
+                step="1"
+                v-model.number="formData.basePrice"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ex: 50"
+              />
+              <p class="text-[11px] text-gray-500 mt-1">
+                Indique ton tarif de base pour une séance individuelle d'une heure. Tu peux le
+                modifier plus tard.
+              </p>
+            </div>
             <!-- Availability Days -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2"
@@ -1437,6 +1455,10 @@ onMounted(async () => {
         formData.value.city = existing.profile_personal.city || ''
         formData.value.languages = existing.profile_personal.languages || []
       }
+      // Pricing
+      if (typeof existing.hourly_rate === 'number') {
+        formData.value.basePrice = Number(existing.hourly_rate)
+      }
       if (existing.profile_activity) {
         activity.value.experienceYears = existing.profile_activity.experienceYears || null
         activity.value.workExperiences = existing.profile_activity.workExperiences || []
@@ -1604,6 +1626,7 @@ async function saveCurrentStep(advance: boolean) {
             cancellationPolicy: modalities.value.cancellationPolicy,
           },
           availability: modalities.value.availabilityDays,
+          hourly_rate: formData.value.basePrice,
           onboarding_done: false,
         })
         .eq('id', coachId.value)
