@@ -46,6 +46,8 @@ export interface Coach {
       proofFileUrl?: string
       rejectionNote?: string
     }>
+    // Professional work experiences (free-text entries added by coach)
+    workExperiences?: string[]
   }
 }
 

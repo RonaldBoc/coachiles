@@ -264,6 +264,51 @@
                   {{ specialty }}
                 </span>
               </div>
+              <!-- Languages -->
+              <div v-if="coach?.languages && coach.languages.length" class="mt-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Langues parlées</h3>
+                <div class="flex flex-wrap gap-2">
+                  <span
+                    v-for="lang in coach.languages"
+                    :key="lang"
+                    class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200"
+                  >
+                    {{ lang }}
+                  </span>
+                </div>
+              </div>
+              <!-- Professional Work Experiences -->
+              <div
+                v-if="
+                  coach?.profile_activity?.workExperiences &&
+                  coach.profile_activity.workExperiences.length
+                "
+                class="mt-10"
+              >
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                  Expériences professionnelles
+                </h3>
+                <ul class="space-y-3">
+                  <li
+                    v-for="(exp, idx) in coach.profile_activity.workExperiences"
+                    :key="idx"
+                    class="flex items-start gap-3"
+                  >
+                    <svg
+                      class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                    <span class="text-gray-700 leading-snug">{{ exp }}</span>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
 
@@ -1388,7 +1433,7 @@ const isLoading = ref(false)
 const isLoadingServices = ref(false)
 // Premium subscription gates last name & direct contact info (not publicly shown yet)
 const hasPremiumSubscription = ref<boolean>(false)
-// Admin certification (approved proofs) controls badge & visibility of diplomas/certifications
+// Certified badge now represents having an active premium subscription (NOT diploma validation)
 const isAdminCertified = ref<boolean>(false)
 // Header condensation
 const isCondensedHeader = ref(false)
@@ -1492,17 +1537,14 @@ const checkPremiumSubscription = async (coachId: string) => {
   hasPremiumSubscription.value = subscription?.has_active_subscription || false
 }
 
-// Compute admin certification based on approved diplomas stored in profile_activity JSON
+// Compute certification: premium subscription only (decoupled from diploma approvals)
 interface DiplomaLike {
   title?: string
   status?: string
 }
 const evaluateAdminCertification = () => {
-  const diplomas = (coach.value as unknown as { profile_activity?: { diplomas?: DiplomaLike[] } })
-    ?.profile_activity?.diplomas
-  isAdminCertified.value = Array.isArray(diplomas)
-    ? diplomas.some((d) => d && d.status === 'approved')
-    : false
+  // Simply mirror premium status
+  isAdminCertified.value = hasPremiumSubscription.value === true
 }
 
 // Only diplomas with status approved are publicly visible
@@ -1799,12 +1841,10 @@ const loadCoachProfile = async (coachId: string) => {
     }
     if (coach.value) await loadCoachServices(coach.value.id)
     stopScrollEnforcement()
-    await Promise.all([
-      coach.value ? checkPremiumSubscription(coach.value.id) : Promise.resolve(),
-      Promise.resolve().then(() => evaluateAdminCertification()),
-    ])
-    // Re-evaluate certification whenever coach object changes after load
+    // Fetch premium status then set certification accordingly
+    if (coach.value) await checkPremiumSubscription(coach.value.id)
     evaluateAdminCertification()
+    // (Optional) could refetch diplomas for display but they no longer influence certification
     if (coach.value) similarCoaches.value = pickSimilarCoaches(coach.value, coachStore.coaches, 3)
     console.log(
       '🔗 Similar coaches after reload:',
@@ -1918,6 +1958,11 @@ const formatDate = (d: Date) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'm
 
 watch(coach, async (c) => {
   if (c) await loadReviews()
+})
+
+// Recompute certification if premium status flips asynchronously
+watch(hasPremiumSubscription, () => {
+  evaluateAdminCertification()
 })
 </script>
 

@@ -538,7 +538,7 @@ async function hydrateFromDatabase() {
     let builder = supabase
       .from('coaches')
       .select(
-        'id,email,first_name,last_name,languages,specialties,certifications,experience_years,availability,profile_personal,profile_contact,profile_activity,modalities,bio,avatar_url',
+        'id,email,first_name,last_name,languages,specialties,certifications,experience_years,hourly_rate,availability,profile_personal,profile_contact,profile_activity,modalities,bio,avatar_url',
       )
     if (model.contact.email) {
       builder = builder.eq('email', model.contact.email)

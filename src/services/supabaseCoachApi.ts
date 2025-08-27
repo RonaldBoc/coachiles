@@ -1,4 +1,5 @@
 import { supabase, type Tables } from '@/utils/supabase'
+import { COUNTRIES } from '@/constants/locations'
 import type { Coach } from '@/types/coach'
 import { handleApiError } from '@/utils/errors'
 import { generateProfilePictureSizes, validateImageFile } from '@/utils/imageProcessing'
@@ -111,7 +112,23 @@ function mapSupabaseToCoach(supabaseData: CoachesTable): Coach {
     phone: supabaseData.phone || '',
     photo: supabaseData.avatar_url || chosenDefault,
     bio: supabaseData.bio || '',
-    location: supabaseData.locations?.[0] || 'Martinique',
+    // Location now derived from structured profile_personal (city + territory code -> label)
+    location: (() => {
+      const personal = (supabaseData as unknown as { profile_personal?: unknown })
+        .profile_personal as { city?: unknown; territory?: unknown } | undefined
+      const city = personal?.city && typeof personal.city === 'string' ? personal.city.trim() : ''
+      const territoryCode =
+        personal?.territory && typeof personal.territory === 'string'
+          ? (personal.territory as keyof typeof COUNTRIES)
+          : undefined
+      const territoryLabel =
+        territoryCode && COUNTRIES[territoryCode] ? COUNTRIES[territoryCode] : ''
+      if (city && territoryLabel) return `${city}, ${territoryLabel}`
+      if (city) return city
+      if (territoryLabel) return territoryLabel
+      // Fallback to legacy locations array first element or generic placeholder
+      return supabaseData.locations?.[0] || 'Martinique'
+    })(),
     specialties: supabaseData.specialties || [],
     certifications: supabaseData.certifications || [],
     experience: supabaseData.experience_years || 0,
@@ -128,7 +145,19 @@ function mapSupabaseToCoach(supabaseData: CoachesTable): Coach {
     hourlyRate: supabaseData.hourly_rate || 50,
     languages: supabaseData.languages || ['Français'],
     modalities: supabaseData.modalities || undefined,
-    profile_activity: supabaseData.profile_activity || undefined,
+    profile_activity: supabaseData.profile_activity
+      ? {
+          ...supabaseData.profile_activity,
+          // Ensure workExperiences list if present in stored JSON (backward compatible)
+          workExperiences: Array.isArray(
+            (supabaseData as unknown as { profile_activity?: { workExperiences?: unknown } })
+              .profile_activity?.workExperiences,
+          )
+            ? ((supabaseData as unknown as { profile_activity?: { workExperiences?: string[] } })
+                .profile_activity!.workExperiences as string[])
+            : undefined,
+        }
+      : undefined,
   }
 }
 
