@@ -100,6 +100,7 @@ interface CoachDbRow {
   profile_activity?: Partial<CoachProfilePayload['activity']>
   modalities?: Partial<ModalitiesData>
   bio?: string | null
+  avatar_url?: string | null
 }
 
 type InitialData = {
@@ -109,7 +110,11 @@ type InitialData = {
   modalities?: Partial<ModalitiesData>
 }
 
-const props = defineProps<{ initialCoachId?: string; initialData?: InitialData }>()
+const props = defineProps<{
+  initialCoachId?: string
+  initialData?: InitialData
+  showAvatarSection?: boolean // if false, parent handles avatar editing
+}>()
 const emit = defineEmits<{ (e: 'saved', payload: CoachProfilePayload): void }>()
 
 // Storage bucket (configurable via env). Create this bucket in Supabase Storage if it does not exist.
@@ -285,6 +290,71 @@ onBeforeUnmount(() => {
 const hasSpecialtyMatches = computed(() =>
   filteredSpecialtyGroups.value.some((g) => g.specialties.length > 0),
 )
+
+// --- Avatar management (change profile picture) ---
+import maleDefaultAvatar from '@/assets/avatars/default_male.svg'
+import femaleDefaultAvatar from '@/assets/avatars/default_female.svg'
+import { supabaseCoachApi } from '@/services/supabaseCoachApi'
+
+const currentCoachId = ref<string | null>(props.initialCoachId || null)
+const avatarUrl = ref<string | null>(null)
+const pendingAvatarFile = ref<File | null>(null)
+const avatarPreviewUrl = ref<string | null>(null)
+const isUploadingAvatar = ref(false)
+const avatarUploadMessage = ref<string | null>(null)
+let avatarMsgTimeout: number | undefined
+
+function defaultAvatarForGender(gender: string) {
+  return gender === 'female' ? femaleDefaultAvatar : maleDefaultAvatar
+}
+
+function handleAvatarFile(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (avatarPreviewUrl.value) URL.revokeObjectURL(avatarPreviewUrl.value)
+  pendingAvatarFile.value = file
+  avatarPreviewUrl.value = URL.createObjectURL(file)
+  avatarUploadMessage.value = null
+  // Auto-upload immediately if we have coach id
+  if (!currentCoachId.value) {
+    avatarUploadMessage.value = 'Profil non encore chargé. Réessayez dans un instant.'
+    return
+  }
+  uploadNewAvatar()
+}
+function cancelPendingAvatar() {
+  if (avatarPreviewUrl.value) URL.revokeObjectURL(avatarPreviewUrl.value)
+  avatarPreviewUrl.value = null
+  pendingAvatarFile.value = null
+  avatarUploadMessage.value = null
+}
+async function uploadNewAvatar() {
+  if (!pendingAvatarFile.value) return
+  if (!currentCoachId.value) {
+    alert('Impossible de téléverser la photo: identifiant du coach introuvable.')
+    return
+  }
+  try {
+    isUploadingAvatar.value = true
+    avatarUploadMessage.value = null
+    const newUrl = await supabaseCoachApi.uploadAvatar(
+      currentCoachId.value,
+      pendingAvatarFile.value,
+    )
+    avatarUrl.value = newUrl
+    cancelPendingAvatar()
+    avatarUploadMessage.value = 'Photo mise à jour ✅'
+  } catch (err) {
+    const msg = (err as Error)?.message || String(err)
+    avatarUploadMessage.value = 'Erreur: ' + msg
+  } finally {
+    isUploadingAvatar.value = false
+    if (avatarMsgTimeout) window.clearTimeout(avatarMsgTimeout)
+    avatarMsgTimeout = window.setTimeout(() => {
+      avatarUploadMessage.value = null
+    }, 5000)
+  }
+}
 
 // Save UI state
 const isSaving = ref(false)
@@ -462,7 +532,7 @@ async function hydrateFromDatabase() {
     let builder = supabase
       .from('coaches')
       .select(
-        'id,email,first_name,last_name,languages,specialties,certifications,experience_years,availability,profile_personal,profile_contact,profile_activity,modalities,bio',
+        'id,email,first_name,last_name,languages,specialties,certifications,experience_years,availability,profile_personal,profile_contact,profile_activity,modalities,bio,avatar_url',
       )
     if (model.contact.email) {
       builder = builder.eq('email', model.contact.email)
@@ -476,6 +546,7 @@ async function hydrateFromDatabase() {
     }
     if (!data) return
     // Personal
+    currentCoachId.value = data.id
     const p: Partial<CoachProfilePayload['personal']> = data.profile_personal || {}
     model.personal.firstName = p.firstName ?? data.first_name ?? model.personal.firstName
     model.personal.lastName = p.lastName ?? data.last_name ?? model.personal.lastName
@@ -558,6 +629,8 @@ async function hydrateFromDatabase() {
       }
     }
     isHydrated.value = true
+    // Avatar hydration (fallback to gender default)
+    avatarUrl.value = data.avatar_url || defaultAvatarForGender(model.personal.gender)
   } catch (e) {
     const err = e as Error
     hydrateError.value = err?.message || String(e)
@@ -577,6 +650,90 @@ watch(
 
 <template>
   <div class="space-y-10">
+    <!-- Avatar / Profile Photo (optional) -->
+    <section
+      v-if="props.showAvatarSection !== false"
+      class="bg-white p-6 rounded-xl shadow-sm space-y-4"
+    >
+      <header class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900">Photo de profil</h2>
+          <p class="text-sm text-gray-500 mt-1">Ajoutez ou modifiez votre photo professionnelle.</p>
+        </div>
+        <div v-if="avatarUrl" class="text-xs text-gray-500 hidden sm:block">
+          Formats optimisés (miniatures générées automatiquement)
+        </div>
+      </header>
+      <div class="flex items-start gap-6 flex-col sm:flex-row">
+        <div
+          class="relative w-28 h-28 rounded-full border bg-gray-50 overflow-hidden flex items-center justify-center"
+        >
+          <img
+            v-if="avatarPreviewUrl"
+            :src="avatarPreviewUrl"
+            class="w-full h-full object-cover"
+            alt="Aperçu temporaire"
+          />
+          <img
+            v-else-if="avatarUrl"
+            :src="avatarUrl"
+            class="w-full h-full object-cover"
+            alt="Photo actuelle"
+          />
+          <img
+            v-else
+            :src="model.personal.gender === 'female' ? femaleDefaultAvatar : maleDefaultAvatar"
+            class="w-20 h-20 object-contain opacity-80"
+            alt="Avatar par défaut"
+          />
+          <div
+            v-if="isUploadingAvatar"
+            class="absolute inset-0 bg-white/70 flex items-center justify-center"
+          >
+            <svg
+              class="animate-spin h-6 w-6 text-blue-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              ></path>
+            </svg>
+          </div>
+        </div>
+        <div class="flex-1 space-y-3">
+          <label
+            class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm bg-white hover:bg-gray-50"
+          >
+            <ArrowUpTrayIcon class="w-4 h-4 text-gray-500" />
+            <span>{{ pendingAvatarFile ? 'Sélection...' : 'Choisir une image' }}</span>
+            <input type="file" accept="image/*" class="hidden" @change="handleAvatarFile" />
+          </label>
+          <p class="text-[11px] text-gray-500 leading-snug">
+            JPG / PNG. Téléversement automatique dès sélection. Une image carrée et lumineuse
+            améliore la confiance des clients.
+          </p>
+          <div
+            v-if="avatarUploadMessage"
+            class="text-xs"
+            :class="avatarUploadMessage.startsWith('Erreur') ? 'text-red-600' : 'text-green-600'"
+          >
+            {{ avatarUploadMessage }}
+          </div>
+        </div>
+      </div>
+    </section>
     <!-- Personal Info -->
     <section class="bg-white p-6 rounded-xl shadow-sm space-y-6">
       <header>

@@ -52,6 +52,20 @@
     <!-- Step Content -->
     <div class="max-w-2xl mx-auto">
       <div class="bg-white rounded-lg shadow p-8">
+        <!-- Global save status message -->
+        <div
+          v-if="saveStatus"
+          :class="[
+            'mb-6 px-4 py-3 rounded-md text-sm font-medium flex items-center gap-2',
+            saveStatus.type === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-red-700 border border-red-200',
+          ]"
+        >
+          <span>
+            {{ saveStatus.message }}
+          </span>
+        </div>
         <!-- Step 1: Basic Personal Information (updated) -->
         <div v-if="currentStep === 0">
           <h2 class="text-2xl font-bold text-gray-900 mb-6">Informations personnelles</h2>
@@ -266,7 +280,13 @@
 
         <!-- Step 2: Activité du coach (module identique à l'éditeur de profil) -->
         <div v-if="currentStep === 1">
-          <h2 class="text-2xl font-bold text-gray-900 mb-6">Activité de coach</h2>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Activité de coach</h2>
+          <p class="text-sm text-gray-600 mb-6">
+            Partage ton <span class="font-medium">expérience</span>, tes
+            <span class="font-medium">diplômes</span> et tes
+            <span class="font-medium">spécialités</span> 🎯 Ces infos aident les clients à
+            comprendre en un coup d'œil ce qui te rend unique.
+          </p>
           <form @submit.prevent="nextStep" class="space-y-8">
             <!-- Row 1: Experience + Work Experiences -->
             <div class="grid gap-6 md:grid-cols-4">
@@ -542,13 +562,19 @@
 
         <!-- Step 3: Profil -->
         <div v-if="currentStep === 2">
-          <h2 class="text-2xl font-bold text-gray-900 mb-6">Profil</h2>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Profil</h2>
+          <p class="text-sm text-gray-600 mb-6">
+            Ajoute une <span class="font-medium">photo pro</span>, une
+            <span class="font-medium">bio engageante</span> et tes
+            <span class="font-medium">liens</span>. C'est ta vitrine: montre ta personnalité et ce
+            qui donne envie de réserver avec toi ✨
+          </p>
           <form @submit.prevent="nextStep" class="space-y-8">
             <div class="space-y-3">
               <label class="block text-sm font-medium text-gray-700">Photo de profil</label>
-              <p class="text-xs text-gray-500">
+              <!-- <p class="text-xs text-gray-500">
                 Une photo claire et professionnelle augmente la confiance des clients.
-              </p>
+              </p> -->
               <div class="flex items-center gap-4">
                 <div
                   class="w-24 h-24 rounded-full bg-gray-100 border flex items-center justify-center overflow-hidden"
@@ -559,7 +585,12 @@
                     alt="Aperçu"
                     class="w-full h-full object-cover"
                   />
-                  <span v-else class="text-gray-400 text-xs">Aucune</span>
+                  <img
+                    v-else
+                    :src="formData.gender === 'female' ? femaleDefaultAvatar : maleDefaultAvatar"
+                    alt="Avatar par défaut"
+                    class="w-full h-full object-contain p-2"
+                  />
                 </div>
                 <div class="flex flex-col gap-2">
                   <label
@@ -655,7 +686,13 @@
 
         <!-- Step 4: Modalités générales -->
         <div v-if="currentStep === 3">
-          <h2 class="text-2xl font-bold text-gray-900 mb-6">Modalités générales</h2>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Modalités générales</h2>
+          <p class="text-sm text-gray-600 mb-6">
+            Indique comment tu <span class="font-medium">fonctionnes au quotidien</span>: jours
+            habituels, lieux possibles (domicile, visio, extérieur), cours d'essai et règles
+            d'annulation. Ces infos rassurent et évitent les malentendus avant même la première
+            séance ✅
+          </p>
           <form @submit.prevent="nextStep" class="space-y-8">
             <!-- Availability Days -->
             <div>
@@ -786,10 +823,12 @@
 
         <!-- Step 5: Services (Enhanced) -->
         <div v-if="currentStep === 4">
-          <h2 class="text-2xl font-bold text-gray-900 mb-6">Services proposés</h2>
-          <p class="text-gray-600 mb-6">
-            Souhaitez-vous ajouter des services spécifiques à votre profil ? Vous pourrez toujours
-            les modifier plus tard.
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Services proposés</h2>
+          <p class="text-sm text-gray-600 mb-6">
+            Ici tu crées des <span class="font-medium">offres/produits</span> spécifiques et
+            détaillés, que les clients pourront réserver (titre, format, durée, prix). Tu peux en
+            ajouter autant que tu veux, maintenant ou passer et revenir plus tard dans ton espace
+            personnel💡
           </p>
           <div class="space-y-6">
             <div class="flex space-x-4">
@@ -1069,6 +1108,10 @@ const loading = ref(false)
 const error = ref('')
 const currentStep = ref(0)
 const wantsToAddServices = ref(false)
+// Incremental save related state
+const coachId = ref<string | null>(null)
+const saving = ref(false)
+const saveStatus = ref<{ step: number; message: string; type: 'success' | 'error' } | null>(null)
 
 const steps = [
   { id: 'basic', title: 'Informations' },
@@ -1244,6 +1287,10 @@ function normalizeUrl(v: string) {
   return `https://${v}`
 }
 
+// Gender-based default avatar assets
+import maleDefaultAvatar from '@/assets/avatars/default_male.svg'
+import femaleDefaultAvatar from '@/assets/avatars/default_female.svg'
+
 const services = ref<
   Array<{
     title: string
@@ -1346,43 +1393,89 @@ const resetServiceForm = () => {
 }
 
 onMounted(async () => {
-  // Check if user is authenticated
   if (!authStore.user) {
     router.push('/auth')
     return
   }
-
-  // Wait for auth store to finish loading coach profile if still loading
   if (authStore.loading) {
-    console.log('⏳ Waiting for auth store to finish loading...')
-    // Wait for loading to complete
-    const checkLoading = () => {
-      return new Promise<void>((resolve) => {
-        const interval = setInterval(() => {
+    const wait = () =>
+      new Promise<void>((resolve) => {
+        const int = setInterval(() => {
           if (!authStore.loading) {
-            clearInterval(interval)
+            clearInterval(int)
             resolve()
           }
-        }, 50)
+        }, 40)
       })
+    await wait()
+  }
+  // Try loading existing draft (inactive) or active profile
+  try {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('coaches')
+      .select('*')
+      .eq('email', authStore.user.email)
+      .single()
+    if (!fetchErr && existing) {
+      coachId.value = existing.id
+      // If onboarding already done, redirect
+      if (existing.onboarding_done === true) {
+        router.push('/coach/profile')
+        return
+      }
+      // Ensure account stays active during onboarding (retro-fit older rows)
+      if (existing.is_active === false) {
+        await supabase.from('coaches').update({ is_active: true }).eq('id', existing.id)
+      }
+      // Populate draft values
+      if (existing.profile_personal) {
+        formData.value.firstName = existing.profile_personal.firstName || ''
+        formData.value.lastName = existing.profile_personal.lastName || ''
+        formData.value.age = existing.profile_personal.age || null
+        formData.value.gender = existing.profile_personal.gender || ''
+        formData.value.territory = existing.profile_personal.territory || ''
+        formData.value.city = existing.profile_personal.city || ''
+        formData.value.languages = existing.profile_personal.languages || []
+      }
+      if (existing.profile_activity) {
+        activity.value.experienceYears = existing.profile_activity.experienceYears || null
+        activity.value.workExperiences = existing.profile_activity.workExperiences || []
+        activity.value.diplomas = existing.profile_activity.diplomas || []
+        activity.value.specialties = existing.profile_activity.specialties || []
+      }
+      if (existing.profile_contact) {
+        formData.value.phone = existing.profile_contact.phone || ''
+        formData.value.website = existing.profile_contact.website || ''
+        formData.value.instagram = existing.profile_contact.instagram || ''
+        formData.value.facebook = existing.profile_contact.facebook || ''
+      }
+      formData.value.bio = existing.bio || ''
+      if (existing.modalities) {
+        modalities.value.availabilityDays = existing.modalities.availabilityDays || []
+        if (existing.modalities.locations) {
+          modalities.value.canBeAtHome = existing.modalities.locations.atHome?.enabled ?? true
+          modalities.value.atHomeDetails = existing.modalities.locations.atHome?.details || ''
+          modalities.value.canBeOnline = existing.modalities.locations.visio?.enabled ?? true
+          modalities.value.onlineDetails = existing.modalities.locations.visio?.details || ''
+          modalities.value.canBeInPublicSpaces =
+            existing.modalities.locations.publicSpaces?.enabled ?? true
+        }
+        if (existing.modalities.freeTrial) {
+          modalities.value.hasFreeTrial = existing.modalities.freeTrial.enabled
+          modalities.value.freeTrialModalities = existing.modalities.freeTrial.details || ''
+        }
+        modalities.value.cancellationPolicy =
+          existing.modalities.cancellationPolicy || modalities.value.cancellationPolicy
+      }
+      console.log('📝 Draft coach profile loaded')
     }
-    await checkLoading()
+  } catch (e) {
+    console.warn('Impossible de charger un brouillon existant', e)
   }
-
-  // Check if user already has a coach profile
-  if (authStore.isCoach) {
-    console.log('ℹ️ User already has coach profile, redirecting to profile')
-    router.push('/coach/profile')
-    return
-  }
-
-  console.log('👋 Welcome to onboarding! User needs to complete profile setup.')
 })
 
-const nextStep = () => {
-  if (currentStep.value < steps.length - 1) {
-    currentStep.value++
-  }
+const nextStep = async () => {
+  await saveCurrentStep(true)
 }
 
 const prevStep = () => {
@@ -1391,41 +1484,105 @@ const prevStep = () => {
   }
 }
 
-const completeOnboarding = async () => {
+function setSaveStatus(step: number, message: string, type: 'success' | 'error') {
+  saveStatus.value = { step, message, type }
+  setTimeout(
+    () => {
+      if (saveStatus.value && saveStatus.value.step === step) saveStatus.value = null
+    },
+    type === 'success' ? 3500 : 6000,
+  )
+}
+
+async function saveCurrentStep(advance: boolean) {
+  const step = currentStep.value
   if (!authStore.user) {
-    error.value = 'Vous devez être connecté'
+    setSaveStatus(step, 'Utilisateur non connecté', 'error')
     return
   }
-
-  loading.value = true
-  error.value = ''
-
+  saving.value = true
   try {
-    console.log('🏗️ Creating coach profile for:', authStore.user.email)
-
-    // Parse certifications from textarea (one per line)
-    const certificationsArray = activity.value.diplomas.map((d) => d.title)
-
-    // Create the coach profile with structured personal & profile data
-    const { data: coachData, error: coachError } = await supabase
-      .from('coaches')
-      .insert([
-        {
-          email: authStore.user.email,
-          first_name: formData.value.firstName,
-          last_name: formData.value.lastName,
-          phone: formData.value.phone,
-          bio: formData.value.bio || null,
-          specialties: activity.value.specialties,
-          certifications: certificationsArray,
-          experience_years: activity.value.experienceYears,
-          hourly_rate: formData.value.basePrice,
-          // Store territory label in locations array (fallback Martinique)
-          locations: formData.value.territory
-            ? [COUNTRIES[formData.value.territory]]
-            : ['Martinique'],
+    if (step === 0) {
+      // Insert or update draft
+      const payload: Record<string, unknown> = {
+        email: authStore.user.email,
+        first_name: formData.value.firstName || null,
+        last_name: formData.value.lastName || null,
+        phone: formData.value.phone || null,
+        bio: formData.value.bio || null,
+        languages: formData.value.languages,
+        specialties: [],
+        certifications: [],
+        experience_years: null,
+        hourly_rate: formData.value.basePrice,
+        locations: formData.value.territory ? [COUNTRIES[formData.value.territory]] : [],
+        profile_personal: {
+          firstName: formData.value.firstName,
+          lastName: formData.value.lastName,
+          age: formData.value.age,
+          gender: formData.value.gender,
+          territory: formData.value.territory,
+          city: formData.value.city,
           languages: formData.value.languages,
-          // Persist modalities subset
+        },
+        // Keep account active so coach isn't shown as "désactivé" while onboarding
+        is_active: true,
+        onboarding_done: false,
+      }
+      if (!coachId.value) {
+        const { data, error } = await supabase.from('coaches').insert([payload]).select().single()
+        if (error) throw error
+        coachId.value = data.id
+      } else {
+        const { error } = await supabase.from('coaches').update(payload).eq('id', coachId.value)
+        if (error) throw error
+      }
+    } else if (coachId.value && step === 1) {
+      const { error } = await supabase
+        .from('coaches')
+        .update({
+          experience_years: activity.value.experienceYears,
+          specialties: activity.value.specialties,
+          certifications: activity.value.diplomas.map((d) => d.title),
+          profile_activity: {
+            experienceYears: activity.value.experienceYears,
+            workExperiences: activity.value.workExperiences,
+            diplomas: activity.value.diplomas,
+            specialties: activity.value.specialties,
+          },
+          onboarding_done: false,
+        })
+        .eq('id', coachId.value)
+      if (error) throw error
+    } else if (coachId.value && step === 2) {
+      const { error } = await supabase
+        .from('coaches')
+        .update({
+          bio: formData.value.bio || null,
+          phone: formData.value.phone || null,
+          profile_contact: {
+            email: authStore.user.email,
+            phone: formData.value.phone,
+            website: normalizeUrl(formData.value.website),
+            instagram: normalizeUrl(formData.value.instagram),
+            facebook: normalizeUrl(formData.value.facebook),
+          },
+          onboarding_done: false,
+        })
+        .eq('id', coachId.value)
+      if (error) throw error
+      // Upload avatar immediately if chosen
+      if (pendingAvatarFile.value) {
+        try {
+          await supabaseCoachApi.uploadAvatar(coachId.value, pendingAvatarFile.value)
+        } catch (e) {
+          console.warn('Avatar upload failed (non bloquant)', e)
+        }
+      }
+    } else if (coachId.value && step === 3) {
+      const { error } = await supabase
+        .from('coaches')
+        .update({
           modalities: {
             availabilityDays: modalities.value.availabilityDays,
             locations: {
@@ -1446,104 +1603,75 @@ const completeOnboarding = async () => {
             },
             cancellationPolicy: modalities.value.cancellationPolicy,
           },
-          // Legacy availability (if column exists) store days as text[]
           availability: modalities.value.availabilityDays,
-          profile_personal: {
-            firstName: formData.value.firstName,
-            lastName: formData.value.lastName,
-            age: formData.value.age,
-            gender: formData.value.gender,
-            territory: formData.value.territory,
-            city: formData.value.city,
-            languages: formData.value.languages,
-          },
-          profile_activity: {
-            experienceYears: activity.value.experienceYears,
-            workExperiences: activity.value.workExperiences,
-            diplomas: activity.value.diplomas,
-            specialties: activity.value.specialties,
-          },
-          profile_contact: {
-            email: authStore.user.email,
-            phone: formData.value.phone,
-            website: normalizeUrl(formData.value.website),
-            instagram: normalizeUrl(formData.value.instagram),
-            facebook: normalizeUrl(formData.value.facebook),
-          },
-          rating: 0,
-          total_sessions: 0,
-          is_active: true,
-        },
-      ])
-      .select()
-      .single()
-
-    if (coachError) {
-      throw coachError
+          onboarding_done: false,
+        })
+        .eq('id', coachId.value)
+      if (error) throw error
     }
+    setSaveStatus(step, `Étape ${step + 1} enregistrée ✅`, 'success')
+    if (advance && currentStep.value < steps.length - 1) currentStep.value++
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'inconnue'
+    console.error('Erreur sauvegarde', e)
+    setSaveStatus(step, 'Erreur enregistrement: ' + msg, 'error')
+  } finally {
+    saving.value = false
+  }
+}
 
-    console.log('✅ Coach profile created:', coachData)
+const completeOnboarding = async () => {
+  if (!authStore.user) {
+    error.value = 'Vous devez être connecté'
+    return
+  }
 
-    // Upload avatar if provided (ignore failures silently)
-    if (pendingAvatarFile.value) {
-      try {
-        await supabaseCoachApi.uploadAvatar(coachData.id, pendingAvatarFile.value)
-        console.log('📸 Avatar uploaded')
-      } catch (e) {
-        console.warn('⚠️ Avatar upload failed, continuing onboarding:', e)
-      }
+  loading.value = true
+  error.value = ''
+
+  try {
+    console.log('🔄 Finalisation du profil coach')
+    // Ensure previous step data saved (modalities already saved at step 3). Save step 4 doesn't alter coach row directly.
+    if (!coachId.value) {
+      // If user jumped somehow, save step 0 first
+      await saveCurrentStep(false)
     }
-
-    // Create all services from the services array
-    if (services.value.length > 0) {
-      console.log(`🛠️ Creating ${services.value.length} services...`)
-
+    // Create services now (if any)
+    if (coachId.value && services.value.length > 0) {
       const servicesToCreate = services.value.map((service) => ({
-        coach_id: coachData.id,
+        coach_id: coachId.value!,
         title: service.title,
         description: service.description || '',
         category: service.category,
         sub_category: service.subCategory || null,
-        // Use correct database field names
         can_be_solo: service.canBeSolo || service.individualAvailable,
         solo_price: service.soloPrice || service.individualPrice,
         can_be_group: service.canBeGroup || service.groupAvailable,
         group_price: service.groupPrice,
         duration: service.duration,
-        // Modalities chosen in previous step
         can_be_at_home: modalities.value.canBeAtHome,
         can_be_online: modalities.value.canBeOnline,
         can_be_in_public_spaces: modalities.value.canBeInPublicSpaces,
         has_free_trial: modalities.value.hasFreeTrial,
         free_trial_modalities: modalities.value.freeTrialModalities || null,
         cancellation_policy: modalities.value.cancellationPolicy,
-        // use_profile_availability removed in onboarding subset
         custom_availability: null,
         is_active: true,
       }))
-
-      const { error: serviceError } = await supabase.from('coach_services').insert(servicesToCreate)
-
-      if (serviceError) {
-        console.error('⚠️ Error creating services:', serviceError)
-        // Don't throw here, profile creation succeeded
-      } else {
-        console.log(`✅ ${services.value.length} services created`)
-      }
+      const { error: servicesErr } = await supabase.from('coach_services').insert(servicesToCreate)
+      if (servicesErr) console.warn('Erreur création services', servicesErr)
     }
-
-    // Also create service from serviceForm if it has data (backward compatibility)
+    // Single service via form if chosen
     if (
+      coachId.value &&
       wantsToAddServices.value &&
       serviceForm.value.title &&
       serviceForm.value.category &&
       services.value.length === 0
     ) {
-      console.log('🛠️ Creating service from form...')
-
-      const { error: serviceError } = await supabase.from('coach_services').insert([
+      const { error: singleErr } = await supabase.from('coach_services').insert([
         {
-          coach_id: coachData.id,
+          coach_id: coachId.value,
           title: serviceForm.value.title,
           description: serviceForm.value.description || '',
           category: serviceForm.value.category,
@@ -1553,31 +1681,27 @@ const completeOnboarding = async () => {
           can_be_group: serviceForm.value.groupAvailable,
           group_price: serviceForm.value.groupPrice,
           duration: serviceForm.value.duration,
-          // Modalities chosen in previous step
           can_be_at_home: modalities.value.canBeAtHome,
           can_be_online: modalities.value.canBeOnline,
           can_be_in_public_spaces: modalities.value.canBeInPublicSpaces,
           has_free_trial: modalities.value.hasFreeTrial,
           free_trial_modalities: modalities.value.freeTrialModalities || null,
           cancellation_policy: modalities.value.cancellationPolicy,
-          // use_profile_availability removed in onboarding subset
           custom_availability: null,
           is_active: true,
         },
       ])
-
-      if (serviceError) {
-        console.error('⚠️ Error creating service:', serviceError)
-        // Don't throw here, profile creation succeeded
-      } else {
-        console.log('✅ Service from form created')
-      }
+      if (singleErr) console.warn('Erreur création service formulaire', singleErr)
     }
-
-    // Reload auth store to pick up the new coach profile
+    // Activate profile
+    if (coachId.value) {
+      const { error: activateErr } = await supabase
+        .from('coaches')
+        .update({ is_active: true, onboarding_done: true })
+        .eq('id', coachId.value)
+      if (activateErr) console.warn('Erreur activation/onboarding profil', activateErr)
+    }
     await authStore.loadCoachProfile()
-
-    // Redirect to profile page
     router.push('/coach/profile')
   } catch (err: unknown) {
     console.error('❌ Error completing onboarding:', err)

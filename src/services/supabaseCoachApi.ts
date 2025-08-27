@@ -91,15 +91,27 @@ type CoachesTable = Tables<'coaches'> & {
 }
 
 function mapSupabaseToCoach(supabaseData: CoachesTable): Coach {
+  // Determine gender (best effort) using profile_personal if present to choose default avatar
+  // Fallback to male if undefined.
+  let gender: string | undefined = undefined
+  const maybePersonal = (supabaseData as unknown as { profile_personal?: { gender?: string } })
+    .profile_personal
+  if (maybePersonal && typeof maybePersonal.gender === 'string') {
+    gender = maybePersonal.gender
+  }
+  const defaultMale = '/src/assets/avatars/default_male.svg'
+  const defaultFemale = '/src/assets/avatars/default_female.svg'
+  const chosenDefault = gender === 'female' ? defaultFemale : defaultMale
+
   return {
     id: supabaseData.id,
     firstName: supabaseData.first_name,
     lastName: supabaseData.last_name || '',
     email: supabaseData.email,
     phone: supabaseData.phone || '',
-    photo: supabaseData.avatar_url || '',
+    photo: supabaseData.avatar_url || chosenDefault,
     bio: supabaseData.bio || '',
-    location: supabaseData.locations?.[0] || 'Martinique', // Take first location
+    location: supabaseData.locations?.[0] || 'Martinique',
     specialties: supabaseData.specialties || [],
     certifications: supabaseData.certifications || [],
     experience: supabaseData.experience_years || 0,
@@ -108,13 +120,13 @@ function mapSupabaseToCoach(supabaseData: CoachesTable): Coach {
       : '',
     rating: supabaseData.rating || 0,
     totalClients: supabaseData.total_sessions || 0,
-    subscriptionStatus: 'inactive', // Will be updated by getSubscriptionStatus for specific coaches
-    services: [], // Not implemented yet
+    subscriptionStatus: 'inactive',
+    services: [],
     createdAt: new Date(supabaseData.created_at),
     updatedAt: new Date(supabaseData.updated_at),
     isActive: supabaseData.is_active,
-    hourlyRate: supabaseData.hourly_rate || 50, // Add missing hourly rate field
-    languages: supabaseData.languages || ['Français'], // Add missing languages field
+    hourlyRate: supabaseData.hourly_rate || 50,
+    languages: supabaseData.languages || ['Français'],
     modalities: supabaseData.modalities || undefined,
     profile_activity: supabaseData.profile_activity || undefined,
   }

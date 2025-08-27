@@ -222,13 +222,16 @@ export const useAuthStore = defineStore('auth', () => {
         const subscriptionStatus = await getCoachSubscriptionStatus(data.id)
 
         // Transform Supabase data to Coach type
+        const cacheBustedAvatar = data.avatar_url
+          ? `${data.avatar_url}?v=${new Date(data.updated_at).getTime()}`
+          : ''
         coach.value = {
           id: data.id, // This is the coaches table UUID
           firstName: data.first_name,
           lastName: data.last_name,
           email: data.email,
           phone: data.phone || '',
-          photo: data.avatar_url || '',
+          photo: cacheBustedAvatar,
           bio: data.bio || '',
           location: (data.locations && data.locations[0]) || '',
           specialties: data.specialties || [],
@@ -326,12 +329,15 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       // Transform to local coach format and set directly (no recursion)
+      const cacheBustedNew = data.avatar_url
+        ? `${data.avatar_url}?v=${new Date(data.updated_at).getTime()}`
+        : ''
       coach.value = {
         id: data.id,
         firstName: data.first_name,
         email: data.email,
         phone: data.phone || '',
-        photo: data.avatar_url || '',
+        photo: cacheBustedNew,
         bio: data.bio || '',
         location: (data.locations && data.locations[0]) || '',
         specialties: data.specialties || [],
@@ -572,8 +578,12 @@ export const useAuthStore = defineStore('auth', () => {
         throw updateError
       }
 
-      // Update local coach state
-      coach.value = { ...coach.value, ...updates }
+      // Update local coach state with cache-busted avatar if changed
+      let newPhoto = updates.photo
+      if (updates.photo) {
+        newPhoto = `${updates.photo}?v=${Date.now()}`
+      }
+      coach.value = { ...coach.value, ...updates, ...(newPhoto ? { photo: newPhoto } : {}) }
 
       return data
     } catch (err) {
