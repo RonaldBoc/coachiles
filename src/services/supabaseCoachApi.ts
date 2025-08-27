@@ -62,11 +62,39 @@ const getMultipleSubscriptionStatuses = async (
   }
 }
 
-function mapSupabaseToCoach(supabaseData: Tables<'coaches'>): Coach {
+// Extend Supabase coaches table type to include optional modalities JSON column if present
+interface ModalitiesRowShape {
+  availabilityDays?: string[]
+  locations?: {
+    atHome?: { enabled: boolean; details?: string }
+    visio?: { enabled: boolean; details?: string }
+    publicSpaces?: { enabled: boolean; details?: string }
+    gym?: { enabled: boolean; details?: string }
+  }
+  freeTrial?: { enabled: boolean; details?: string }
+  cancellationPolicy?: string
+}
+
+type CoachesTable = Tables<'coaches'> & {
+  modalities?: ModalitiesRowShape | null
+  last_name?: string | null
+  profile_activity?: {
+    diplomas?: Array<{
+      id: string
+      title?: string
+      status?: 'pending' | 'approved' | 'rejected'
+      proofFileName?: string
+      proofFileUrl?: string
+      rejectionNote?: string
+    }>
+  } | null
+}
+
+function mapSupabaseToCoach(supabaseData: CoachesTable): Coach {
   return {
     id: supabaseData.id,
     firstName: supabaseData.first_name,
-    lastName: '', // No last_name column in current schema
+    lastName: supabaseData.last_name || '',
     email: supabaseData.email,
     phone: supabaseData.phone || '',
     photo: supabaseData.avatar_url || '',
@@ -75,7 +103,9 @@ function mapSupabaseToCoach(supabaseData: Tables<'coaches'>): Coach {
     specialties: supabaseData.specialties || [],
     certifications: supabaseData.certifications || [],
     experience: supabaseData.experience_years || 0,
-    availability: supabaseData.availability?.join(', ') || '',
+    availability: Array.isArray(supabaseData.availability)
+      ? supabaseData.availability.join(', ')
+      : '',
     rating: supabaseData.rating || 0,
     totalClients: supabaseData.total_sessions || 0,
     subscriptionStatus: 'inactive', // Will be updated by getSubscriptionStatus for specific coaches
@@ -85,6 +115,8 @@ function mapSupabaseToCoach(supabaseData: Tables<'coaches'>): Coach {
     isActive: supabaseData.is_active,
     hourlyRate: supabaseData.hourly_rate || 50, // Add missing hourly rate field
     languages: supabaseData.languages || ['Français'], // Add missing languages field
+    modalities: supabaseData.modalities || undefined,
+    profile_activity: supabaseData.profile_activity || undefined,
   }
 }
 

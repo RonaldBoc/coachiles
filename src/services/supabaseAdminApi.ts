@@ -76,6 +76,29 @@ function parseAdminList(value: unknown): unknown[] {
   return []
 }
 
+// Diploma moderation types
+export interface CoachActivityDiploma {
+  id: string
+  title: string
+  status: 'pending' | 'approved' | 'rejected'
+  proofFileName?: string
+  proofFilePath?: string
+  proofFileUrl?: string // legacy support
+  rejectionNote?: string
+}
+export interface AdminDiplomaSubmission {
+  coach_id: string
+  coach_name: string
+  coach_email: string
+  diploma_id: string
+  title: string
+  status: 'pending' | 'approved' | 'rejected'
+  proofFilePath?: string
+  proofFileUrl?: string // signed (ephemeral) or legacy public URL
+  proofFileName?: string
+  rejectionNote?: string
+}
+
 export const AdminApi = {
   _superadminCache: null as boolean | null,
   async isSuperadmin(): Promise<boolean> {
@@ -493,6 +516,100 @@ export const AdminApi = {
       return { ok: !!data }
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : 'Failed to reject review' }
+    }
+  },
+  // --- Diploma / Certification Moderation ----------------------------------
+  async listDiplomaSubmissions(): Promise<{ data: AdminDiplomaSubmission[]; error?: string }> {
+    try {
+      interface EnvMeta {
+        env?: Record<string, string | undefined>
+      }
+      const envMeta = (import.meta as unknown as EnvMeta).env || {}
+      const bucket = envMeta.VITE_SUPABASE_DIPLOMA_BUCKET || 'diploma-proofs'
+      // Fetch coaches with profile_activity JSON (limit to recent updates for efficiency)
+      const { data, error } = await supabase
+        .from('coaches')
+        .select('id, first_name, last_name, email, profile_activity, updated_at')
+        .order('updated_at', { ascending: false })
+        .limit(500)
+      if (error) throw error
+      interface CoachRowLite {
+        id: string
+        first_name?: string | null
+        last_name?: string | null
+        email: string
+        profile_activity?: { diplomas?: CoachActivityDiploma[] }
+        updated_at?: string
+      }
+      const rows: AdminDiplomaSubmission[] = (
+        (data as CoachRowLite[] | null | undefined) || []
+      ).flatMap((c) => {
+        const diplomas = c.profile_activity?.diplomas as CoachActivityDiploma[] | undefined
+        if (!Array.isArray(diplomas)) return []
+        return diplomas.map((d) => ({
+          coach_id: c.id,
+          coach_name: `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+          coach_email: c.email,
+          diploma_id: d.id || '',
+          title: d.title || '',
+          status: d.status || 'pending',
+          proofFilePath: d.proofFilePath,
+          // Temporarily copy legacy URL; will be replaced with signed version below if path present
+          proofFileUrl: d.proofFileUrl,
+          proofFileName: d.proofFileName,
+          rejectionNote: d.rejectionNote,
+        }))
+      })
+      // Generate signed URLs for any entries that have a path but no usable url or bucket is private
+      for (const r of rows) {
+        if (r.proofFilePath) {
+          try {
+            const { data: signed, error: signErr } = await supabase.storage
+              .from(bucket)
+              .createSignedUrl(r.proofFilePath, 600)
+            if (!signErr && signed?.signedUrl) {
+              r.proofFileUrl = signed.signedUrl
+            }
+          } catch {
+            // Non-fatal; leave URL undefined
+          }
+        }
+      }
+      // Sort pending first then recently updated
+      rows.sort((a, b) => {
+        const statusOrder = (s: string) => (s === 'pending' ? 0 : s === 'rejected' ? 1 : 2)
+        const so = statusOrder(a.status) - statusOrder(b.status)
+        if (so !== 0) return so
+        return 0
+      })
+      return { data: rows }
+    } catch (err) {
+      return { data: [], error: err instanceof Error ? err.message : 'Failed to load diplomas' }
+    }
+  },
+  async setDiplomaStatus(
+    coachId: string,
+    diplomaId: string,
+    status: 'approved' | 'rejected',
+    note?: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { data: userRes } = await supabase.auth.getUser()
+      const email = userRes.user?.email || ''
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (!this._superadminCache) throw new Error('forbidden')
+      const { data, error } = await supabase.rpc('admin_set_diploma_status', {
+        p_email: email,
+        p_coach_id: coachId,
+        p_diploma_id: diplomaId,
+        p_status: status,
+        p_note: note ?? null,
+      })
+      if (error) throw error
+      const out = (data || {}) as { success?: boolean }
+      return { ok: out.success === true }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Failed to update diploma' }
     }
   },
   async hideCoachResponse(

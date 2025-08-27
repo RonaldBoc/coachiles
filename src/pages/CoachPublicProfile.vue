@@ -111,7 +111,7 @@
                   class="w-20 h-20 rounded-full object-cover"
                 />
                 <!-- Certification badge (mobile) -->
-                <div v-if="isCoachCertified" class="absolute -top-2 -right-2">
+                <div v-if="isAdminCertified" class="absolute -top-2 -right-2">
                   <span
                     class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
                     title="Coach certifié Coachiles"
@@ -129,7 +129,10 @@
               </div>
               <div class="flex-1">
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">
-                  {{ coach?.firstName }}
+                  {{ coach?.firstName
+                  }}<template v-if="hasPremiumSubscription && coach?.lastName">
+                    {{ coach?.lastName }}</template
+                  >
                 </h1>
                 <div class="flex items-center mb-2">
                   <StarIcon class="w-5 h-5 text-yellow-400 fill-current" />
@@ -173,26 +176,50 @@
           <!-- About / Profile Section -->
           <div class="bg-white rounded-2xl shadow-lg p-8">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              À propos de {{ coach?.firstName }}
+              À propos de {{ coach?.firstName
+              }}<template v-if="hasPremiumSubscription && coach?.lastName">
+                {{ coach?.lastName }}</template
+              >
             </h2>
 
             <!-- Bio -->
-            <div class="mb-8">
-              <p class="text-gray-700 leading-relaxed text-lg">{{ coach?.bio }}</p>
+            <div class="mb-8 space-y-6" v-if="bioParagraphs.length">
+              <div v-for="(para, i) in bioParagraphs" :key="i" class="space-y-2">
+                <p
+                  v-for="(line, j) in para
+                    .split(/\n/)
+                    .map((l) => l.trim())
+                    .filter((l) => l.length > 0)"
+                  :key="j"
+                  class="text-gray-700 leading-relaxed text-lg"
+                >
+                  {{ line }}
+                </p>
+              </div>
+            </div>
+            <div v-else class="mb-8">
+              <p class="text-gray-400 italic">Bio en cours de rédaction.</p>
             </div>
 
             <!-- Experience & Credentials -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Formation & Certifications</h3>
-                <ul class="space-y-2">
-                  <li
-                    v-for="cert in coach?.certifications"
-                    :key="cert"
-                    class="flex items-center text-gray-700"
+              <div v-if="approvedDiplomas.length">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  Formation & Certifications
+                  <span
+                    v-if="isAdminCertified"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700 border border-blue-200"
+                    >Validées</span
+                  >
+                </h3>
+                <div class="space-y-2">
+                  <div
+                    v-for="d in approvedDiplomas"
+                    :key="d.title"
+                    class="flex items-start text-gray-700"
                   >
                     <svg
-                      class="w-4 h-4 text-green-500 mr-2"
+                      class="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -202,9 +229,9 @@
                         clip-rule="evenodd"
                       />
                     </svg>
-                    {{ cert }}
-                  </li>
-                </ul>
+                    <span>{{ d.title }}</span>
+                  </div>
+                </div>
               </div>
               <div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Expérience</h3>
@@ -213,14 +240,14 @@
                     <span class="text-gray-600">Années d'expérience</span>
                     <span class="font-semibold text-gray-900">{{ coach?.experience }} ans</span>
                   </div>
-                  <div class="flex items-center justify-between">
+                  <!-- <div class="flex items-center justify-between">
                     <span class="text-gray-600">Élèves accompagnés</span>
                     <span class="font-semibold text-gray-900">{{ coach?.totalClients }}+</span>
-                  </div>
-                  <div class="flex items-center justify-between">
+                  </div> -->
+                  <!-- <div class="flex items-center justify-between">
                     <span class="text-gray-600">Spécialisation</span>
                     <span class="font-semibold text-gray-900">Tous niveaux</span>
-                  </div>
+                  </div> -->
                 </div>
               </div>
             </div>
@@ -463,75 +490,50 @@
               </span>
             </button>
             <div class="mt-4 sm:mt-6" :class="{ 'hidden sm:block': !mobileModalitesOpen }">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div v-if="coach?.modalities" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Dynamic Locations -->
                 <div>
                   <h3 class="text-lg font-semibold text-gray-900 mb-4">Lieux de cours</h3>
                   <div class="space-y-4">
-                    <div class="flex items-start">
-                      <svg
-                        class="w-5 h-5 text-green-500 mr-3 mt-0.5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                      <div>
-                        <p class="font-medium text-gray-900">À domicile</p>
-                        <p class="text-sm text-gray-600">
-                          Je me déplace chez vous dans un rayon de 20km autour de
-                          {{ coach?.location }}
-                        </p>
+                    <template v-for="(entry, key) in coach.modalities.locations" :key="key">
+                      <div v-if="entry?.enabled" class="flex items-start">
+                        <svg
+                          class="w-5 h-5 text-green-500 mr-3 mt-0.5"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clip-rule="evenodd"
+                          />
+                        </svg>
+                        <div>
+                          <p class="font-medium text-gray-900">
+                            {{
+                              locationLabels[key as keyof typeof coach.modalities.locations] || key
+                            }}
+                          </p>
+                          <p v-if="entry.details" class="text-sm text-gray-600 whitespace-pre-line">
+                            {{ entry.details }}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div class="flex items-start">
-                      <svg
-                        class="w-5 h-5 text-green-500 mr-3 mt-0.5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                      <div>
-                        <p class="font-medium text-gray-900">Espaces publics</p>
-                        <p class="text-sm text-gray-600">
-                          Parcs, plages, terrains de sport publics selon vos préférences
-                        </p>
-                      </div>
-                    </div>
-                    <div class="flex items-start">
-                      <svg
-                        class="w-5 h-5 text-green-500 mr-3 mt-0.5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                      <div>
-                        <p class="font-medium text-gray-900">Salle de sport</p>
-                        <p class="text-sm text-gray-600">
-                          Accès à ma salle partenaire (supplément possible)
-                        </p>
-                      </div>
-                    </div>
+                    </template>
+                    <p v-if="!hasAnyLocation" class="text-sm text-gray-500 italic">
+                      Aucun lieu spécifié pour le moment.
+                    </p>
                   </div>
                 </div>
 
+                <!-- Practical Info -->
                 <div>
                   <h3 class="text-lg font-semibold text-gray-900 mb-4">Informations pratiques</h3>
                   <div class="space-y-4">
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div
+                      v-if="coach.modalities.freeTrial?.enabled"
+                      class="bg-green-50 border border-green-200 rounded-lg p-4"
+                    >
                       <div class="flex items-center mb-2">
                         <svg
                           class="w-5 h-5 text-green-600 mr-2"
@@ -546,43 +548,51 @@
                         </svg>
                         <span class="font-semibold text-green-800">Premier cours gratuit</span>
                       </div>
-                      <p class="text-sm text-green-700">
-                        Séance d'essai gratuite de 45 minutes pour faire connaissance et définir vos
-                        objectifs.
+                      <p class="text-sm text-green-700 whitespace-pre-line">
+                        {{ coach.modalities.freeTrial.details || "Séance d'essai gratuite" }}
                       </p>
                     </div>
 
                     <div class="space-y-3">
-                      <!-- <div class="flex items-center justify-between">
-                      <span class="text-gray-600">Temps de réponse</span>
-                      <span class="font-semibold text-gray-900">&lt; 2h</span>
-                    </div> -->
-                      <div class="flex items-start justify-between gap-4">
+                      <div
+                        v-if="coach.modalities.availabilityDays?.length"
+                        class="flex items-start justify-between gap-4"
+                      >
                         <span class="text-gray-600 mt-0.5 shrink-0">Disponibilités</span>
                         <div class="flex-1 text-right leading-snug">
-                          <span
-                            class="font-light text-gray-900 align-top"
-                            :class="{ 'whitespace-pre-line': showFullAvailability }"
-                            >{{ displayedAvailability }}</span
-                          >
-                          <button
-                            v-if="needsAvailabilityToggle"
-                            type="button"
-                            @click="showFullAvailability = !showFullAvailability"
-                            class="ml-1 text-xs font-medium text-orange-600 hover:underline"
-                          >
-                            {{ showFullAvailability ? 'moins' : 'plus' }}
-                          </button>
+                          <span class="font-light text-gray-900 align-top">
+                            {{
+                              coach.modalities.availabilityDays
+                                .map((d) => dayShort[d] || d)
+                                .join(', ')
+                            }}
+                          </span>
                         </div>
                       </div>
-                      <div class="flex items-center justify-between">
-                        <span class="text-gray-600">Annulation</span>
-                        <span class="font-semibold text-gray-900">24h avant</span>
+                      <div v-if="coach.modalities.cancellationPolicy" class="space-y-1">
+                        <span class="text-gray-600 font-medium block">Annulation</span>
+                        <div
+                          class="text-sm text-gray-700 whitespace-pre-line leading-relaxed bg-gray-50 border border-gray-100 rounded-md p-3"
+                        >
+                          {{ coach.modalities.cancellationPolicy }}
+                        </div>
                       </div>
+                      <p
+                        v-if="
+                          !coach.modalities.availabilityDays?.length &&
+                          !coach.modalities.cancellationPolicy
+                        "
+                        class="text-sm text-gray-500 italic"
+                      >
+                        Informations à venir.
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
+              <p v-else class="text-sm text-gray-500 italic mt-2">
+                Modalités en cours de configuration.
+              </p>
             </div>
           </div>
 
@@ -741,7 +751,7 @@
                     class="w-24 h-24 rounded-full object-cover mb-4"
                   />
                   <!-- Certification badge (desktop) -->
-                  <div v-if="isCoachCertified" class="absolute -top-2 -right-2">
+                  <div v-if="isAdminCertified" class="absolute -top-2 -right-2">
                     <span
                       class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
                       title="Coach certifié Coachiles"
@@ -1376,7 +1386,10 @@ const showServiceModal = ref(false)
 const selectedService = ref<CoachService | null>(null)
 const isLoading = ref(false)
 const isLoadingServices = ref(false)
-const isCoachCertified = ref<boolean>(false) // Track if current coach has active subscription
+// Premium subscription gates last name & direct contact info (not publicly shown yet)
+const hasPremiumSubscription = ref<boolean>(false)
+// Admin certification (approved proofs) controls badge & visibility of diplomas/certifications
+const isAdminCertified = ref<boolean>(false)
 // Header condensation
 const isCondensedHeader = ref(false)
 // Header sizing (for fixed header spacer)
@@ -1387,18 +1400,45 @@ const measureHeader = () => {
 }
 // Mobile collapse state for "Modalités des cours"
 const mobileModalitesOpen = ref(false)
-// Availability truncation logic
-const showFullAvailability = ref(false)
-const AVAILABILITY_MAX_CHARS = 70
-const availabilityRaw = computed(() => coach.value?.availability || '')
-const needsAvailabilityToggle = computed(
-  () => availabilityRaw.value.length > AVAILABILITY_MAX_CHARS,
-)
-const displayedAvailability = computed(() => {
-  if (!needsAvailabilityToggle.value) return availabilityRaw.value
-  return showFullAvailability.value
-    ? availabilityRaw.value
-    : availabilityRaw.value.slice(0, AVAILABILITY_MAX_CHARS).trimEnd() + '…'
+// Dynamic modalities helpers
+const locationLabels: Record<string, string> = {
+  atHome: 'À domicile',
+  visio: 'Visio',
+  publicSpaces: 'Espaces publics',
+  gym: 'Salle de sport',
+}
+const dayShort: Record<string, string> = {
+  Lundi: 'Lun',
+  Mardi: 'Mar',
+  Mercredi: 'Mer',
+  Jeudi: 'Jeu',
+  Vendredi: 'Ven',
+  Samedi: 'Sam',
+  Dimanche: 'Dim',
+  Monday: 'Lun',
+  Tuesday: 'Mar',
+  Wednesday: 'Mer',
+  Thursday: 'Jeu',
+  Friday: 'Ven',
+  Saturday: 'Sam',
+  Sunday: 'Dim',
+}
+type LocationEntry = { enabled?: boolean; details?: string }
+const hasAnyLocation = computed(() => {
+  const locs = coach.value?.modalities?.locations as Record<string, LocationEntry> | undefined
+  if (!locs) return false
+  return Object.values(locs).some((l) => !!l?.enabled)
+})
+
+// Bio paragraphs: split on blank lines, trim each, filter empties
+const bioParagraphs = computed(() => {
+  const raw = coach.value?.bio || ''
+  // Normalize Windows line endings then split on two or more newlines
+  return raw
+    .replace(/\r\n/g, '\n')
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
 })
 
 // Scroll handler to toggle condensed header
@@ -1442,30 +1482,36 @@ watch(isCondensedHeader, async () => {
 //   return Math.round(basePrice + experienceMultiplier + ratingBonus + specialtyBonus)
 // }
 
-// Check if coach has active subscription (certified)
-const checkCoachCertification = async (coachId: string) => {
-  try {
-    console.log('🔍 Checking certification status for coach:', coachId)
-
-    const { data: subscription, error } = await supabase
-      .from('coaches_current_subscription')
-      .select('has_active_subscription')
-      .eq('id', coachId)
-      .single()
-
-    if (error) {
-      console.error('❌ Error checking coach certification:', error)
-      isCoachCertified.value = false
-      return
-    }
-
-    isCoachCertified.value = subscription?.has_active_subscription || false
-    console.log('✅ Coach certification status:', isCoachCertified.value)
-  } catch (error) {
-    console.error('❌ Error in checkCoachCertification:', error)
-    isCoachCertified.value = false
-  }
+// Premium subscription check (non-blocking)
+const checkPremiumSubscription = async (coachId: string) => {
+  const { data: subscription } = await supabase
+    .from('coaches_current_subscription')
+    .select('has_active_subscription')
+    .eq('id', coachId)
+    .single()
+  hasPremiumSubscription.value = subscription?.has_active_subscription || false
 }
+
+// Compute admin certification based on approved diplomas stored in profile_activity JSON
+interface DiplomaLike {
+  title?: string
+  status?: string
+}
+const evaluateAdminCertification = () => {
+  const diplomas = (coach.value as unknown as { profile_activity?: { diplomas?: DiplomaLike[] } })
+    ?.profile_activity?.diplomas
+  isAdminCertified.value = Array.isArray(diplomas)
+    ? diplomas.some((d) => d && d.status === 'approved')
+    : false
+}
+
+// Only diplomas with status approved are publicly visible
+const approvedDiplomas = computed(() => {
+  const diplomas = (coach.value as unknown as { profile_activity?: { diplomas?: DiplomaLike[] } })
+    ?.profile_activity?.diplomas
+  if (!Array.isArray(diplomas)) return [] as DiplomaLike[]
+  return diplomas.filter((d) => d && d.status === 'approved' && d.title)
+})
 
 // Methods
 
@@ -1702,7 +1748,8 @@ const loadCoachProfile = async (coachId: string) => {
   coach.value = null
   coachServices.value = []
   similarCoaches.value = []
-  isCoachCertified.value = false
+  isAdminCertified.value = false
+  hasPremiumSubscription.value = false
   reviews.value = []
   isLoading.value = true
   isLoadingServices.value = true
@@ -1717,10 +1764,48 @@ const loadCoachProfile = async (coachId: string) => {
       isLoadingServices.value = false
       return
     }
-    await loadCoachServices(coach.value.id)
+    // Always fetch a fresh copy to ensure profile_activity (diplomas) is up-to-date after moderation
+    try {
+      interface FreshCoachRow {
+        id: string
+        last_name?: string | null
+        bio?: string | null
+        profile_activity?: {
+          diplomas?: Array<{
+            id: string
+            title?: string
+            status?: 'pending' | 'approved' | 'rejected'
+            proofFileName?: string
+            proofFileUrl?: string
+            rejectionNote?: string
+          }>
+        }
+      }
+      const { data: fresh, error: freshErr } = await supabase
+        .from('coaches')
+        .select('id,last_name,bio,profile_activity')
+        .eq('id', coach.value.id)
+        .single<FreshCoachRow>()
+      if (!freshErr && fresh && coach.value) {
+        coach.value = {
+          ...coach.value,
+          profile_activity: fresh.profile_activity,
+          lastName: fresh.last_name || coach.value.lastName,
+          bio: fresh.bio || coach.value.bio,
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not refresh coach profile with profile_activity', e)
+    }
+    if (coach.value) await loadCoachServices(coach.value.id)
     stopScrollEnforcement()
-    await checkCoachCertification(coach.value.id)
-    similarCoaches.value = pickSimilarCoaches(coach.value, coachStore.coaches, 3)
+    await Promise.all([
+      coach.value ? checkPremiumSubscription(coach.value.id) : Promise.resolve(),
+      Promise.resolve().then(() => evaluateAdminCertification()),
+    ])
+    // Re-evaluate certification whenever coach object changes after load
+    evaluateAdminCertification()
+    if (coach.value) similarCoaches.value = pickSimilarCoaches(coach.value, coachStore.coaches, 3)
     console.log(
       '🔗 Similar coaches after reload:',
       similarCoaches.value.map((c) => c.firstName),

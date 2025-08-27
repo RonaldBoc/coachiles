@@ -131,6 +131,139 @@
         </div>
       </section>
 
+      <!-- Certifications / Diplomas -->
+      <section v-if="activeTab === 'certifications'" class="space-y-4">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex flex-wrap gap-4 items-end">
+          <label class="text-sm">
+            <span class="mr-2">Status</span>
+            <select
+              v-model="diplomaStatusFilter"
+              class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
+            >
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </label>
+          <label class="text-sm">
+            <span class="mr-2">Coach</span>
+            <select
+              v-model="diplomaCoachFilter"
+              class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm min-w-[160px]"
+            >
+              <option value="">All</option>
+              <option v-for="c in coaches" :key="c.id" :value="c.id">
+                {{ getCoachName(c.id) || c.email }}
+              </option>
+            </select>
+          </label>
+          <div class="text-xs text-gray-500">Showing {{ filteredDiplomaSubs.length }}</div>
+          <div class="flex-1"></div>
+          <button
+            @click="loadDiplomas"
+            class="text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500"
+          >
+            Refresh
+          </button>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div v-if="diplomasLoading" class="p-6 text-sm text-gray-500">Loading diplomas...</div>
+          <div v-else-if="diplomasError" class="p-6 text-sm text-red-600">{{ diplomasError }}</div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Coach
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Title
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Proof
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Note (rejection)
+                  </th>
+                  <th class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                <tr v-for="d in filteredDiplomaSubs" :key="d.diploma_id">
+                  <td class="px-4 py-2 whitespace-nowrap">
+                    <div class="font-medium">{{ d.coach_name || '—' }}</div>
+                    <div class="text-[11px] text-gray-500">{{ d.coach_email }}</div>
+                  </td>
+                  <td class="px-4 py-2 max-w-xs break-words">{{ d.title }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap">
+                    <a
+                      v-if="d.proofFileUrl"
+                      :href="d.proofFileUrl"
+                      target="_blank"
+                      class="text-indigo-600 hover:underline"
+                    >
+                      {{ d.proofFileName || 'Voir' }}
+                    </a>
+                    <span v-else class="text-[11px] text-gray-400">—</span>
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap">
+                    <span
+                      :class="[
+                        'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium',
+                        d.status === 'pending' && 'bg-amber-100 text-amber-800',
+                        d.status === 'approved' && 'bg-green-100 text-green-800',
+                        d.status === 'rejected' && 'bg-red-100 text-red-800',
+                      ]"
+                      >{{ d.status }}</span
+                    >
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap w-64">
+                    <div
+                      v-if="d.status === 'rejected' && d.rejectionNote"
+                      class="text-[11px] text-red-600 mb-1"
+                    >
+                      {{ d.rejectionNote }}
+                    </div>
+                    <input
+                      v-model="diplomaNoteMap[d.diploma_id]"
+                      placeholder="Raison (si rejet)"
+                      class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-xs px-2 py-1"
+                    />
+                  </td>
+                  <td class="px-4 py-2 whitespace-nowrap space-x-2">
+                    <button
+                      v-if="d.status === 'pending'"
+                      @click="approveDiploma(d)"
+                      class="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      v-if="d.status === 'pending'"
+                      @click="rejectDiploma(d)"
+                      class="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+                    >
+                      Reject
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="!filteredDiplomaSubs.length">
+                  <td colspan="6" class="px-4 py-6 text-center text-xs text-gray-500">
+                    No diploma submissions match filters
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- Coaches -->
       <section v-if="activeTab === 'coaches'" class="space-y-4">
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
@@ -979,13 +1112,16 @@ type DeletionLogRow = {
   reactivated_at: string | null
   coach_name?: string | null
 }
-const activeTab = ref<'overview' | 'coaches' | 'leads' | 'deletion' | 'reviews'>('overview')
+const activeTab = ref<'overview' | 'coaches' | 'leads' | 'deletion' | 'reviews' | 'certifications'>(
+  'overview',
+)
 const tabs = [
   { key: 'overview', label: 'Overview' },
   { key: 'coaches', label: 'Coaches' },
   { key: 'leads', label: 'Leads' },
   { key: 'reviews', label: 'Reviews' },
   { key: 'deletion', label: 'Deletion Logs' },
+  { key: 'certifications', label: 'Certifications' },
 ] as const
 
 // State
@@ -1036,6 +1172,57 @@ const reviews = ref<AdminReview[]>([])
 const reviewsLoading = ref(false)
 const reviewsError = ref<string | null>(null)
 const reviewNote = ref('')
+
+// Certifications (diploma submissions)
+interface DiplomaSubmissionRow {
+  coach_id: string
+  coach_name: string
+  coach_email: string
+  diploma_id: string
+  title: string
+  status: 'pending' | 'approved' | 'rejected'
+  proofFileUrl?: string
+  proofFileName?: string
+  rejectionNote?: string
+}
+const diplomaSubs = ref<DiplomaSubmissionRow[]>([])
+const diplomasLoading = ref(false)
+const diplomasError = ref<string | null>(null)
+const diplomaNoteMap = ref<Record<string, string>>({})
+const diplomaStatusFilter = ref<'pending' | 'approved' | 'rejected' | ''>('')
+const diplomaCoachFilter = ref('')
+const filteredDiplomaSubs = computed(() => {
+  return diplomaSubs.value.filter((d) => {
+    const statusOk = !diplomaStatusFilter.value || d.status === diplomaStatusFilter.value
+    const coachOk = !diplomaCoachFilter.value || d.coach_id === diplomaCoachFilter.value
+    return statusOk && coachOk
+  })
+})
+async function loadDiplomas() {
+  diplomasLoading.value = true
+  diplomasError.value = null
+  const res = await AdminApi.listDiplomaSubmissions()
+  if (res.error) diplomasError.value = res.error
+  diplomaSubs.value = res.data as DiplomaSubmissionRow[]
+  diplomasLoading.value = false
+}
+async function approveDiploma(sub: DiplomaSubmissionRow) {
+  const { ok, error } = await AdminApi.setDiplomaStatus(sub.coach_id, sub.diploma_id, 'approved')
+  if (!ok) alert(error || 'Failed to approve diploma')
+  await loadDiplomas()
+}
+async function rejectDiploma(sub: DiplomaSubmissionRow) {
+  const note = diplomaNoteMap.value[sub.diploma_id]?.trim()
+  const { ok, error } = await AdminApi.setDiplomaStatus(
+    sub.coach_id,
+    sub.diploma_id,
+    'rejected',
+    note,
+  )
+  if (!ok) alert(error || 'Failed to reject diploma')
+  diplomaNoteMap.value[sub.diploma_id] = ''
+  await loadDiplomas()
+}
 
 // Details modal state
 const showCoachModal = ref(false)
@@ -1393,6 +1580,7 @@ watch([reviewStatusFilter, reviewCoachFilter], () => {
 })
 watch(activeTab, (t) => {
   if (t === 'reviews') loadReviews()
+  if (t === 'certifications') loadDiplomas()
 })
 </script>
 

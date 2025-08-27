@@ -21,9 +21,32 @@ export interface Coach {
   isActive: boolean
   hourlyRate?: number // hourly rate in euros
   languages?: string[] // spoken languages
+  // Modalities (course modalities/preferences)
+  modalities?: {
+    availabilityDays?: string[]
+    locations?: {
+      atHome?: { enabled: boolean; details?: string }
+      visio?: { enabled: boolean; details?: string }
+      publicSpaces?: { enabled: boolean; details?: string }
+      gym?: { enabled: boolean; details?: string }
+    }
+    freeTrial?: { enabled: boolean; details?: string }
+    cancellationPolicy?: string
+  }
   // Admin deactivation metadata
   disabledReason?: string | null
   disabledAt?: Date | null
+  // Structured activity JSON (new) including diplomas stored server-side
+  profile_activity?: {
+    diplomas?: Array<{
+      id: string
+      title?: string
+      status?: 'pending' | 'approved' | 'rejected'
+      proofFileName?: string
+      proofFileUrl?: string
+      rejectionNote?: string
+    }>
+  }
 }
 
 export interface DiplomaDocument {
