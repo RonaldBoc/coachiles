@@ -425,8 +425,41 @@
 
       <!-- Conditional Services Content -->
       <div>
+        <!-- Loading skeleton while fetching services -->
+        <div
+          v-if="!isEditingService && isLoadingServices"
+          class="grid grid-cols-1 md:grid-cols-2 gap-4 py-4"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <div
+            v-for="n in 2"
+            :key="n"
+            class="border border-gray-200 rounded-lg p-6 animate-pulse space-y-4"
+          >
+            <div class="flex items-start space-x-4">
+              <div class="w-12 h-12 bg-gray-200 rounded-md"></div>
+              <div class="flex-1 space-y-2">
+                <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+                <div class="h-3 bg-gray-100 rounded w-full"></div>
+                <div class="h-3 bg-gray-100 rounded w-5/6"></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-2">
+              <div class="h-3 bg-gray-100 rounded w-3/4"></div>
+              <div class="h-3 bg-gray-100 rounded w-2/3"></div>
+              <div class="h-3 bg-gray-100 rounded w-1/2"></div>
+              <div class="h-3 bg-gray-100 rounded w-2/5"></div>
+            </div>
+            <div class="flex gap-2 pt-2">
+              <div class="h-5 bg-gray-100 rounded-full w-16"></div>
+              <div class="h-5 bg-gray-100 rounded-full w-20"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- No services message -->
-        <div v-if="!isEditingService && coachServices.length === 0" class="text-center py-12">
+        <div v-else-if="!isEditingService && coachServices.length === 0" class="text-center py-12">
           <svg
             class="mx-auto h-12 w-12 text-gray-400"
             fill="none"
