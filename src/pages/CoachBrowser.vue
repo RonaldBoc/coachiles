@@ -263,8 +263,8 @@
 
             <!-- Card content -->
             <div class="p-5">
-              <!-- Rating and reviews -->
-              <div class="flex items-center mb-3">
+              <!-- Rating and reviews (hidden if zero) -->
+              <div v-if="(coachReviewCounts.get(coach.id) || 0) > 0" class="flex items-center mb-3">
                 <div class="flex items-center">
                   <StarIcon class="w-4 h-4 text-yellow-400 fill-current" />
                   <span class="ml-1 text-sm font-semibold text-gray-900">{{ coach.rating }}</span>

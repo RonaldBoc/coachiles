@@ -134,7 +134,7 @@
                     {{ coach?.lastName }}</template
                   >
                 </h1>
-                <div class="flex items-center mb-2">
+                <div v-if="reviews.length > 0" class="flex items-center mb-2">
                   <StarIcon class="w-5 h-5 text-yellow-400 fill-current" />
                   <span class="ml-1 text-lg font-semibold text-gray-900">{{ coach?.rating }}</span>
                   <span class="mx-2 text-gray-300">•</span>
@@ -753,9 +753,11 @@
                     </h3>
                     <p class="text-xs text-gray-600">{{ similarCoach.location }}</p>
                     <div class="flex items-center mt-1">
-                      <StarIcon class="w-4 h-4 text-yellow-400 fill-current" />
-                      <span class="ml-1 text-sm text-gray-600">{{ similarCoach.rating }}</span>
-                      <span class="mx-2 text-gray-300">•</span>
+                      <template v-if="similarCoach.rating && similarCoach.rating > 0">
+                        <StarIcon class="w-4 h-4 text-yellow-400 fill-current" />
+                        <span class="ml-1 text-sm text-gray-600">{{ similarCoach.rating }}</span>
+                        <span class="mx-2 text-gray-300">•</span>
+                      </template>
                       <span class="text-xs text-gray-600"
                         >{{ similarCoach.experience }} ans d'expérience</span
                       >
@@ -815,7 +817,7 @@
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">
                   {{ coach?.firstName }}
                 </h1>
-                <div class="flex items-center justify-center mb-2">
+                <div v-if="reviews.length > 0" class="flex items-center justify-center mb-2">
                   <StarIcon class="w-5 h-5 text-yellow-400 fill-current" />
                   <span class="ml-1 text-lg font-semibold text-gray-900">{{ coach?.rating }}</span>
                   <span class="mx-2 text-gray-300">•</span>
