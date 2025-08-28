@@ -13,7 +13,8 @@ export interface CoachService {
 
   // Category & Classification
   category: string // From coach's specialties
-  subCategory?: string // Optional custom text
+  subCategory?: string // (Deprecated) Optional custom text
+  domain?: string // Derived higher-level grouping (ex: Fitness & Musculation)
 
   // Session Details
   duration: number // in minutes
@@ -22,6 +23,11 @@ export interface CoachService {
   canBeAtHome: boolean
   canBeOnline: boolean
   canBeInPublicSpaces: boolean
+  // Custom specific place (optional JSON from DB)
+  customPlace?: {
+    label?: string
+    address?: string
+  }
 
   // Free Trial
   hasFreeTrial: boolean
@@ -55,11 +61,21 @@ export interface ServiceFormData {
   soloPrice: number | null
   groupPrice: number | null
   category: string
+  // Removed from UI; keeping for backward compatibility in code paths
   subCategory: string
+  domain?: string
   duration: number
   canBeAtHome: boolean
   canBeOnline: boolean
   canBeInPublicSpaces: boolean
+  canBeOtherLocation?: boolean
+  otherLocationLabel?: string
+  otherLocationAddress?: string
+  // When persisting we map otherLocation* fields into customPlace JSON in DB
+  customPlace?: {
+    label?: string
+    address?: string
+  }
   hasFreeTrial: boolean
   freeTrialModalities: string
   cancellationPolicy: string

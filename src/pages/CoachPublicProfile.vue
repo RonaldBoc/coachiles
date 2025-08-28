@@ -997,7 +997,9 @@
               </div>
               <div>
                 <h3 class="text-xl font-bold text-gray-900">{{ selectedService.title }}</h3>
-                <p class="text-gray-600">{{ selectedService.category }}</p>
+                <p class="text-gray-600">
+                  {{ selectedService.category }} - {{ selectedService.domain }}
+                </p>
               </div>
             </div>
             <button
@@ -1106,12 +1108,51 @@
                   >
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-gray-600">Catégorie</span>
-                  <span class="font-medium text-gray-900">{{ selectedService.category }}</span>
+                  <span class="text-gray-600">Domaine</span>
+                  <span class="font-medium text-gray-900">{{ selectedService.domain }}</span>
                 </div>
                 <div v-if="selectedService.subCategory" class="flex items-center justify-between">
                   <span class="text-gray-600">Sous-catégorie</span>
                   <span class="font-medium text-gray-900">{{ selectedService.subCategory }}</span>
+                </div>
+                <div
+                  v-if="
+                    selectedService.customAvailability && selectedService.customAvailability.length
+                  "
+                  class="flex items-start justify-between"
+                >
+                  <span class="text-gray-600 mt-0.5">Jours disponibles</span>
+                  <div class="text-right">
+                    <template v-if="availabilityShortcut === 'all'">
+                      <span
+                        class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
+                        >Tous les jours</span
+                      >
+                    </template>
+                    <template v-else-if="availabilityShortcut === 'weekend'">
+                      <span
+                        class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
+                        >Week-end</span
+                      >
+                    </template>
+                    <template v-else-if="availabilityShortcut === 'weekdays'">
+                      <span
+                        class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
+                        >En semaine</span
+                      >
+                    </template>
+                    <template v-else>
+                      <div class="flex flex-wrap gap-1 justify-end max-w-[200px]">
+                        <span
+                          v-for="slot in normalizedAvailability"
+                          :key="slot.day"
+                          class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-orange-100 text-orange-700"
+                        >
+                          {{ slot.short }}
+                        </span>
+                      </div>
+                    </template>
+                  </div>
                 </div>
               </div>
               <div class="space-y-4">
@@ -1177,6 +1218,38 @@
                   />
                 </svg>
                 <span class="text-gray-700">Espaces publics (parcs, plages)</span>
+              </div>
+              <div
+                v-if="
+                  selectedService.customPlace &&
+                  (selectedService.customPlace.label || selectedService.customPlace.address)
+                "
+                class="flex items-start"
+              >
+                <svg
+                  class="w-5 h-5 text-green-500 mr-3 mt-0.5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <div class="text-gray-700 text-sm">
+                  <div class="font-medium">Lieu du cours :</div>
+                  <div>
+                    <span v-if="selectedService.customPlace.label" class="text-gray-900">{{
+                      selectedService.customPlace.label
+                    }}</span>
+                    <span
+                      v-if="selectedService.customPlace.address"
+                      class="block text-gray-500 text-[13px] mt-0.5"
+                      >{{ selectedService.customPlace.address }}</span
+                    >
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1963,6 +2036,38 @@ watch(coach, async (c) => {
 // Recompute certification if premium status flips asynchronously
 watch(hasPremiumSubscription, () => {
   evaluateAdminCertification()
+})
+// Availability mapping additions
+// Map dayOfWeek (0=Dimanche,1=Lundi,..) to French names & short labels
+const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+const shortNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+// normalizedAvailability depends on selectedService (assumed ref in existing code)
+// Provide defensive fallbacks
+const normalizedAvailability = computed(() => {
+  const svc = selectedService?.value
+  if (!svc || !svc.customAvailability) return []
+  return svc.customAvailability
+    .filter((a) => a && a.isActive !== false)
+    .map((a) => {
+      const idx = a.dayOfWeek ?? 0
+      return {
+        day: idx,
+        label: dayNames[idx] || 'Jour',
+        short: shortNames[idx] || '??',
+        startTime: a.startTime,
+        endTime: a.endTime,
+      }
+    })
+    .sort((a, b) => a.day - b.day)
+})
+// Determine if availability matches a shortcut pattern
+const availabilityShortcut = computed(() => {
+  const days = normalizedAvailability.value.map((d) => d.day).sort((a, b) => a - b)
+  if (days.length === 7 && days.every((d, i) => d === i)) return 'all'
+  if (days.length && days.every((d) => d === 0 || d === 6)) return 'weekend'
+  const weekdays = days.filter((d) => d > 0 && d < 6)
+  if (weekdays.length === 5 && days.length === 5) return 'weekdays'
+  return 'custom'
 })
 </script>
 

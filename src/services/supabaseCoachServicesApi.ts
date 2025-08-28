@@ -4,6 +4,11 @@
 import { supabase } from '@/utils/supabase'
 import type { CoachService, ServiceFormData } from '@/types/service'
 
+interface DbCustomPlace {
+  label?: string | null
+  address?: string | null
+}
+
 // Database types
 interface DbCoachService {
   id: string
@@ -16,10 +21,12 @@ interface DbCoachService {
   group_price: number | null
   category: string
   sub_category: string | null
+  domain: string | null
   duration: number
   can_be_at_home: boolean
   can_be_online: boolean
   can_be_in_public_spaces: boolean
+  custom_place: DbCustomPlace | null
   has_free_trial: boolean
   free_trial_modalities: string | null
   cancellation_policy: string
@@ -40,10 +47,12 @@ interface DbCoachServiceInsert {
   group_price: number | null
   category: string
   sub_category: string | null
+  domain?: string | null
   duration: number
   can_be_at_home: boolean
   can_be_online: boolean
   can_be_in_public_spaces: boolean
+  custom_place?: DbCustomPlace | null
   has_free_trial: boolean
   free_trial_modalities: string | null
   cancellation_policy: string
@@ -254,10 +263,17 @@ export class SupabaseCoachServicesApi {
       groupPrice: dbService.group_price,
       category: dbService.category,
       subCategory: dbService.sub_category || undefined,
+      domain: dbService.domain || undefined,
       duration: dbService.duration,
       canBeAtHome: dbService.can_be_at_home,
       canBeOnline: dbService.can_be_online,
       canBeInPublicSpaces: dbService.can_be_in_public_spaces,
+      customPlace: dbService.custom_place
+        ? {
+            ...(dbService.custom_place.label ? { label: dbService.custom_place.label } : {}),
+            ...(dbService.custom_place.address ? { address: dbService.custom_place.address } : {}),
+          }
+        : undefined,
       hasFreeTrial: dbService.has_free_trial,
       freeTrialModalities: dbService.free_trial_modalities || undefined,
       cancellationPolicy: dbService.cancellation_policy,
@@ -286,10 +302,19 @@ export class SupabaseCoachServicesApi {
       group_price: serviceData.groupPrice,
       category: serviceData.category,
       sub_category: serviceData.subCategory || null,
+      domain: (serviceData as { domain?: string }).domain || null,
       duration: serviceData.duration,
       can_be_at_home: serviceData.canBeAtHome,
       can_be_online: serviceData.canBeOnline,
       can_be_in_public_spaces: serviceData.canBeInPublicSpaces,
+      custom_place:
+        serviceData.canBeOtherLocation &&
+        (serviceData.otherLocationLabel || serviceData.otherLocationAddress)
+          ? {
+              label: serviceData.otherLocationLabel || null,
+              address: serviceData.otherLocationAddress || null,
+            }
+          : null,
       has_free_trial: serviceData.hasFreeTrial,
       free_trial_modalities: serviceData.freeTrialModalities || null,
       cancellation_policy: serviceData.cancellationPolicy,

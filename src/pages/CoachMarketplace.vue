@@ -124,31 +124,96 @@
               </div>
             </div>
 
-            <!-- Category & Subcategory -->
+            <!-- Category & Domain (searchable dropdown styled like profile specialties) -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
-              <select
-                v-model="serviceForm.category"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              >
-                <option value="">Sélectionner une catégorie</option>
-                <option v-for="specialty in coachSpecialties" :key="specialty" :value="specialty">
-                  {{ specialty }}
-                </option>
-              </select>
-
-              <div class="mt-3">
-                <label class="block text-sm font-medium text-gray-700 mb-1"
-                  >Sous-catégorie (optionnel)</label
+              <div class="flex items-start gap-3">
+                <div class="flex-1 space-y-1" ref="categoryDropdownEl">
+                  <div class="relative">
+                    <input
+                      v-model="specialtySearch"
+                      type="text"
+                      placeholder="Rechercher / choisir une spécialité..."
+                      class="w-full rounded-md border text-sm pr-8 px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      :class="[
+                        serviceForm.category && !isValidCategory
+                          ? 'border-red-300 focus:border-red-400 focus:ring-red-500'
+                          : 'border-gray-300',
+                      ]"
+                      @focus="openCategoryDropdown()"
+                      @input="showCategoryDropdown = true"
+                    />
+                    <button
+                      v-if="specialtySearch"
+                      type="button"
+                      class="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600"
+                      @click="((specialtySearch = ''), (serviceForm.category = ''))"
+                    >
+                      ×
+                    </button>
+                    <!-- Selected category displayed directly in input (no pill) -->
+                    <!-- Dropdown -->
+                    <div
+                      v-if="showCategoryDropdown"
+                      class="absolute z-30 mt-1 w-full max-h-72 overflow-auto rounded-md border bg-white shadow-lg text-sm"
+                    >
+                      <div
+                        v-if="!hasCategoryMatches"
+                        class="px-3 py-2 text-xs text-gray-500 italic"
+                      >
+                        Aucune spécialité trouvée
+                      </div>
+                      <template v-for="group in filteredSpecialtyGroups" :key="group.category">
+                        <div v-if="group.specialties.length" class="py-1">
+                          <div
+                            class="px-3 pt-2 pb-1 text-[11px] font-semibold text-gray-500 uppercase tracking-wide"
+                          >
+                            {{ group.category }}
+                          </div>
+                          <button
+                            v-for="opt in group.specialties"
+                            :key="opt"
+                            type="button"
+                            class="w-full text-left px-3 py-1.5 hover:bg-indigo-50 flex items-center justify-between"
+                            :disabled="serviceForm.category === opt"
+                            @click="selectCategory(opt)"
+                          >
+                            <span
+                              :class="[
+                                'text-xs',
+                                serviceForm.category === opt
+                                  ? 'text-gray-400 line-through'
+                                  : 'text-gray-700',
+                              ]"
+                              >{{ opt }}</span
+                            >
+                            <span
+                              v-if="serviceForm.category === opt"
+                              class="text-[10px] text-gray-400"
+                              >Sélectionné</span
+                            >
+                          </button>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                  <p v-if="serviceForm.category && !isValidCategory" class="text-xs text-red-600">
+                    Catégorie inconnue (liste mise à jour requise ?)
+                  </p>
+                  <p class="text-[11px] text-gray-500">
+                    Recherchez par nom ou parcourez les groupes, puis cliquez pour sélectionner.
+                  </p>
+                </div>
+                <span
+                  v-if="derivedDomain"
+                  class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 whitespace-nowrap"
                 >
-                <input
-                  v-model="serviceForm.subCategory"
-                  type="text"
-                  placeholder="Ex: Débutants, Performance, Rééducation..."
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                />
+                  {{ derivedDomain }}
+                </span>
               </div>
+              <p class="mt-2 text-xs text-gray-500">
+                Le domaine est déterminé automatiquement à partir de la spécialité sélectionnée.
+              </p>
             </div>
 
             <!-- Description -->
@@ -212,6 +277,31 @@
                   />
                   <span class="ml-2 text-sm text-gray-700">Espaces publics</span>
                 </label>
+                <label class="flex items-center">
+                  <input
+                    v-model="serviceForm.canBeOtherLocation"
+                    type="checkbox"
+                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <span class="ml-2 text-sm text-gray-700">Autre lieu spécifique</span>
+                </label>
+                <div v-if="serviceForm.canBeOtherLocation" class="ml-6 space-y-2">
+                  <input
+                    v-model="serviceForm.otherLocationLabel"
+                    type="text"
+                    placeholder="Nom du lieu (ex: Studio privé, Salle partenaire)"
+                    class="w-full md:w-72 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <input
+                    v-model="serviceForm.otherLocationAddress"
+                    type="text"
+                    placeholder="Adresse (optionnel)"
+                    class="w-full md:w-96 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <p class="text-[11px] text-gray-500">
+                    Ces informations seront visibles par les clients intéressés.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -255,59 +345,59 @@
               </select>
             </div>
 
-            <!-- Availability Settings -->
+            <!-- Availability Days (new simplified design) -->
             <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-700 mb-3"
-                >Disponibilités pour ce service</label
+                >Disponibilités (jours) pour ce service</label
               >
-
-              <div class="space-y-4">
-                <label class="flex items-center">
-                  <input
-                    v-model="serviceForm.useProfileAvailability"
-                    type="radio"
-                    :value="true"
-                    name="availabilityType"
-                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                  />
-                  <span class="ml-2 text-sm text-gray-700"
-                    >Utiliser mes disponibilités générales du profil</span
-                  >
-                </label>
-
-                <label class="flex items-center">
-                  <input
-                    v-model="serviceForm.useProfileAvailability"
-                    type="radio"
-                    :value="false"
-                    name="availabilityType"
-                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                  />
-                  <span class="ml-2 text-sm text-gray-700"
-                    >Définir des créneaux spécifiques pour ce service</span
-                  >
-                </label>
-
-                <div
-                  v-if="!serviceForm.useProfileAvailability"
-                  class="mt-4 bg-white border border-gray-200 rounded-lg p-4"
+              <div class="flex flex-wrap gap-2 mb-3">
+                <button
+                  v-for="d in weekDays"
+                  :key="d"
+                  type="button"
+                  @click="
+                    selectedDays = selectedDays.includes(d)
+                      ? selectedDays.filter((x) => x !== d)
+                      : [...selectedDays, d]
+                  "
+                  :class="[
+                    'px-3 py-1 rounded-full text-xs font-medium border transition',
+                    selectedDays.includes(d)
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400',
+                  ]"
                 >
-                  <div class="flex justify-between items-center mb-3">
-                    <h4 class="text-sm font-medium text-gray-900">Créneaux spécifiques</h4>
-                    <button
-                      @click="copyAvailabilityFromProfile"
-                      class="text-sm text-indigo-600 hover:text-indigo-800"
-                    >
-                      Copier depuis le profil
-                    </button>
-                  </div>
-                  <p class="text-sm text-gray-500">
-                    Fonctionnalité à venir - Pour l'instant, les créneaux généraux seront utilisés.
-                  </p>
-                </div>
+                  {{ d.slice(0, 3) }}
+                </button>
               </div>
+              <div class="flex flex-wrap gap-2 mb-2">
+                <button
+                  type="button"
+                  class="text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                  @click="selectedDays = [...weekDays]"
+                >
+                  Tous les jours
+                </button>
+                <button
+                  type="button"
+                  class="text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                  @click="selectedDays = weekDays.filter((d) => d === 'Samedi' || d === 'Dimanche')"
+                >
+                  Week-end
+                </button>
+                <button
+                  type="button"
+                  class="text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                  @click="selectedDays = []"
+                >
+                  Effacer
+                </button>
+              </div>
+              <p class="text-[11px] text-gray-500">
+                Sélectionnez les jours habituels où ce service est disponible. (Créneaux horaires
+                détaillés à venir.)
+              </p>
             </div>
-
             <!-- Form Actions -->
             <div class="md:col-span-2 flex justify-end space-x-3 pt-4 border-t border-gray-200">
               <button
@@ -321,6 +411,7 @@
                 :disabled="
                   !serviceForm.title ||
                   !serviceForm.category ||
+                  !isValidCategory ||
                   (!serviceForm.canBeSolo && !serviceForm.canBeGroup)
                 "
                 class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -332,189 +423,128 @@
         </div>
       </div>
 
-      <!-- Services List -->
-      <div v-if="!isEditingService" class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
-        <div class="px-4 py-6 sm:p-8">
-          <!-- Loading Skeleton -->
-          <div v-if="isLoadingServices" class="space-y-4">
-            <div
-              v-for="n in 3"
-              :key="n"
-              class="border border-gray-200 rounded-lg p-6 animate-pulse"
+      <!-- Conditional Services Content -->
+      <div>
+        <!-- No services message -->
+        <div v-if="!isEditingService && coachServices.length === 0" class="text-center py-12">
+          <svg
+            class="mx-auto h-12 w-12 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8zM8 14v.01M12 14v.01M16 14v.01"
+            />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun service créé</h3>
+          <p class="mt-1 text-sm text-gray-500">Commencez par créer votre premier service.</p>
+          <div class="mt-6">
+            <button
+              @click="addNewService"
+              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              <div class="flex justify-between items-start">
-                <div class="flex-1">
-                  <!-- Title and status skeleton -->
-                  <div class="flex items-center space-x-3 mb-2">
-                    <div class="h-5 bg-gray-300 rounded w-48"></div>
-                    <div class="h-4 bg-gray-200 rounded w-16"></div>
-                  </div>
+              <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Créer mon premier service
+            </button>
+          </div>
+        </div>
 
-                  <!-- Description skeleton -->
-                  <div class="mb-3">
-                    <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-                  </div>
+        <!-- Services list -->
+        <div v-if="!isEditingService && coachServices.length > 0" class="space-y-4">
+          <div
+            v-for="service in coachServices"
+            :key="service.id"
+            class="border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors"
+          >
+            <div class="flex justify-between items-start">
+              <div class="flex-1">
+                <div class="flex items-center space-x-3 mb-2">
+                  <h3 class="text-lg font-medium text-gray-900">{{ service.title }}</h3>
+                  <span
+                    :class="
+                      service.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    "
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  >
+                    {{ service.isActive ? 'Actif' : 'Inactif' }}
+                  </span>
+                </div>
 
-                  <!-- Details grid skeleton -->
-                  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                    <div>
-                      <div class="h-3 bg-gray-200 rounded w-16 mb-1"></div>
-                      <div class="h-4 bg-gray-300 rounded w-20"></div>
-                    </div>
-                    <div>
-                      <div class="h-3 bg-gray-200 rounded w-12 mb-1"></div>
-                      <div class="h-4 bg-gray-300 rounded w-16"></div>
-                    </div>
-                    <div>
-                      <div class="h-3 bg-gray-200 rounded w-16 mb-1"></div>
-                      <div class="h-4 bg-gray-300 rounded w-12"></div>
-                    </div>
-                    <div>
-                      <div class="h-3 bg-gray-200 rounded w-20 mb-1"></div>
-                      <div class="h-4 bg-gray-300 rounded w-12"></div>
-                    </div>
-                  </div>
+                <p class="text-gray-600 mb-3">
+                  {{ service.description || 'Aucune description' }}
+                </p>
 
-                  <!-- Tags skeleton -->
-                  <div class="flex flex-wrap gap-2">
-                    <div class="h-5 bg-gray-200 rounded-full w-24"></div>
-                    <div class="h-5 bg-gray-200 rounded-full w-28"></div>
-                    <div class="h-5 bg-gray-200 rounded-full w-32"></div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span class="text-gray-500">Catégorie:</span>
+                    <div class="font-medium">{{ service.category }}</div>
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Durée:</span>
+                    <div class="font-medium">{{ service.duration }} min</div>
+                  </div>
+                  <div v-if="service.canBeSolo">
+                    <span class="text-gray-500">Prix solo:</span>
+                    <div class="font-medium">{{ service.soloPrice }}€</div>
+                  </div>
+                  <div v-if="service.canBeGroup">
+                    <span class="text-gray-500">Prix groupe:</span>
+                    <div class="font-medium">{{ service.groupPrice }}€</div>
                   </div>
                 </div>
 
-                <!-- Action buttons skeleton -->
-                <div class="flex space-x-2 ml-4">
-                  <div class="h-4 bg-gray-200 rounded w-16"></div>
-                  <div class="h-4 bg-gray-200 rounded w-20"></div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <span
+                    v-if="service.canBeSolo"
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                  >
+                    Cours particulier
+                  </span>
+                  <span
+                    v-if="service.canBeGroup"
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                  >
+                    Cours en groupe
+                  </span>
+                  <span
+                    v-if="service.hasFreeTrial"
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                  >
+                    Cours d'essai gratuit
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <!-- No services message -->
-          <div v-else-if="coachServices.length === 0" class="text-center py-12">
-            <svg
-              class="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8zM8 14v.01M12 14v.01M16 14v.01"
-              />
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun service créé</h3>
-            <p class="mt-1 text-sm text-gray-500">Commencez par créer votre premier service.</p>
-            <div class="mt-6">
-              <button
-                @click="addNewService"
-                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                Créer mon premier service
-              </button>
-            </div>
-          </div>
-
-          <!-- Services list -->
-          <div v-else class="space-y-4">
-            <div
-              v-for="service in coachServices"
-              :key="service.id"
-              class="border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors"
-            >
-              <div class="flex justify-between items-start">
-                <div class="flex-1">
-                  <div class="flex items-center space-x-3 mb-2">
-                    <h3 class="text-lg font-medium text-gray-900">{{ service.title }}</h3>
-                    <span
-                      :class="
-                        service.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      "
-                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                    >
-                      {{ service.isActive ? 'Actif' : 'Inactif' }}
-                    </span>
-                  </div>
-
-                  <p class="text-gray-600 mb-3">
-                    {{ service.description || 'Aucune description' }}
-                  </p>
-
-                  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <span class="text-gray-500">Catégorie:</span>
-                      <div class="font-medium">{{ service.category }}</div>
-                    </div>
-                    <div>
-                      <span class="text-gray-500">Durée:</span>
-                      <div class="font-medium">{{ service.duration }} min</div>
-                    </div>
-                    <div v-if="service.canBeSolo">
-                      <span class="text-gray-500">Prix solo:</span>
-                      <div class="font-medium">{{ service.soloPrice }}€</div>
-                    </div>
-                    <div v-if="service.canBeGroup">
-                      <span class="text-gray-500">Prix groupe:</span>
-                      <div class="font-medium">{{ service.groupPrice }}€</div>
-                    </div>
-                  </div>
-
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    <span
-                      v-if="service.canBeSolo"
-                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                    >
-                      Cours particulier
-                    </span>
-                    <span
-                      v-if="service.canBeGroup"
-                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
-                    >
-                      Cours en groupe
-                    </span>
-                    <span
-                      v-if="service.hasFreeTrial"
-                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                    >
-                      Cours d'essai gratuit
-                    </span>
-                  </div>
-                </div>
-
-                <div class="flex space-x-2 ml-4">
-                  <button
-                    @click="editService(service)"
-                    class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                  >
-                    Modifier
-                  </button>
-                  <button
-                    @click="deleteService(service.id)"
-                    class="text-red-600 hover:text-red-800 text-sm font-medium"
-                  >
-                    Supprimer
-                  </button>
-                </div>
+              <div class="flex space-x-2 ml-4">
+                <button
+                  @click="editService(service)"
+                  class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                >
+                  Modifier
+                </button>
+                <button
+                  @click="deleteService(service.id)"
+                  class="text-red-600 hover:text-red-800 text-sm font-medium"
+                >
+                  Supprimer
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+    <!-- /.container -->
   </CoachLayout>
 </template>
 
@@ -525,6 +555,9 @@ import type { CoachService, ServiceFormData } from '@/types/service'
 import { DURATION_OPTIONS, CANCELLATION_POLICIES } from '@/types/service'
 import { supabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
 import { useAuthStore } from '@/stores/auth'
+import { SPECIALTY_OPTIONS, type SpecialtyGroup } from '@/constants/coachOptions'
+// Week days (FR)
+const weekDays = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 
 // Store
 const authStore = useAuthStore()
@@ -572,24 +605,80 @@ const serviceForm = ref<ServiceFormData>({
   canBeAtHome: false,
   canBeOnline: false,
   canBeInPublicSpaces: false,
+  canBeOtherLocation: false,
+  otherLocationLabel: '',
+  otherLocationAddress: '',
   hasFreeTrial: false,
   freeTrialModalities: '',
   cancellationPolicy: 'flexible',
   useProfileAvailability: true,
   customAvailability: [],
 })
+// Simple day selection (names)
+const selectedDays = ref<string[]>([])
 
-// Coach specialties from profile (used as categories)
-const coachSpecialties = computed(() => {
-  // Get specialties from the authenticated coach's profile
-  const specialties = authStore.coach?.specialties || []
+// All specialties flat list for searchable datalist
+const allSpecialties = computed(() => {
+  return SPECIALTY_OPTIONS.flatMap((g) => g.specialties)
+})
 
-  // If no specialties are set, provide some defaults
-  if (specialties.length === 0) {
-    return ['Sport', 'Fitness', 'Bien-être', 'Nutrition']
+// Validate that entered category matches one of the known specialties
+const isValidCategory = computed(() => {
+  if (!serviceForm.value.category) return false
+  return allSpecialties.value.includes(serviceForm.value.category)
+})
+
+// Map category to domain using SPECIALTY_OPTIONS
+const categoryToDomainMap: Record<string, string> = {}
+for (const group of SPECIALTY_OPTIONS) {
+  for (const spec of group.specialties) {
+    categoryToDomainMap[spec] = group.category
   }
+}
+const derivedDomain = computed(() => {
+  return serviceForm.value.category ? categoryToDomainMap[serviceForm.value.category] : ''
+})
 
-  return specialties
+// --- Category (Specialty) searchable dropdown (reuse design from profile specialties) ---
+const specialtySearch = ref('')
+const showCategoryDropdown = ref(false)
+const categoryDropdownEl = ref<HTMLElement | null>(null)
+const filteredSpecialtyGroups = computed<SpecialtyGroup[]>(() => {
+  const term = specialtySearch.value.trim().toLowerCase()
+  if (!term) return SPECIALTY_OPTIONS
+  return SPECIALTY_OPTIONS.map((g) => ({
+    category: g.category,
+    specialties: g.specialties.filter((s) => s.toLowerCase().includes(term)),
+  })).filter((g) => g.specialties.length > 0 || g.category.toLowerCase().includes(term))
+})
+const hasCategoryMatches = computed(() =>
+  filteredSpecialtyGroups.value.some((g) => g.specialties.length > 0),
+)
+function openCategoryDropdown() {
+  showCategoryDropdown.value = true
+}
+function closeCategoryDropdown() {
+  showCategoryDropdown.value = false
+}
+function selectCategory(opt: string) {
+  serviceForm.value.category = opt
+  // Show the chosen category directly inside the input field
+  specialtySearch.value = opt
+  closeCategoryDropdown()
+}
+function handleOutsideClickCategory(e: MouseEvent) {
+  if (!showCategoryDropdown.value) return
+  const target = e.target as Node
+  if (categoryDropdownEl.value && !categoryDropdownEl.value.contains(target)) {
+    closeCategoryDropdown()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('mousedown', handleOutsideClickCategory)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('mousedown', handleOutsideClickCategory)
 })
 
 // Methods
@@ -604,6 +693,16 @@ const editService = (service: CoachService) => {
   editingServiceId.value = service.id
 
   // Populate form with service data
+  const svc = service as CoachService & {
+    canBeOtherLocation?: boolean
+    otherLocationLabel?: string
+    otherLocationAddress?: string
+  }
+  // Derive other-location fields from customPlace if present (DB JSON column)
+  const hasCustomPlace =
+    !!service.customPlace && (!!service.customPlace.label || !!service.customPlace.address)
+  const derivedOtherLocationLabel = service.customPlace?.label || svc.otherLocationLabel || ''
+  const derivedOtherLocationAddress = service.customPlace?.address || svc.otherLocationAddress || ''
   serviceForm.value = {
     title: service.title,
     description: service.description,
@@ -617,11 +716,24 @@ const editService = (service: CoachService) => {
     canBeAtHome: service.canBeAtHome,
     canBeOnline: service.canBeOnline,
     canBeInPublicSpaces: service.canBeInPublicSpaces,
+    canBeOtherLocation: hasCustomPlace || svc.canBeOtherLocation || false,
+    otherLocationLabel: derivedOtherLocationLabel,
+    otherLocationAddress: derivedOtherLocationAddress,
     hasFreeTrial: service.hasFreeTrial,
     freeTrialModalities: service.freeTrialModalities || '',
     cancellationPolicy: service.cancellationPolicy,
     useProfileAvailability: service.useProfileAvailability,
     customAvailability: service.customAvailability || [],
+  }
+  // Ensure the category appears inside the searchable input
+  specialtySearch.value = service.category
+  // Hydrate selectedDays from customAvailability if present
+  if (service.customAvailability && service.customAvailability.length) {
+    selectedDays.value = service.customAvailability
+      .map((a) => (a.dayOfWeek === 0 ? 'Dimanche' : weekDays[a.dayOfWeek - 1]))
+      .filter(Boolean)
+  } else {
+    selectedDays.value = []
   }
 }
 
@@ -645,16 +757,29 @@ const resetServiceForm = () => {
     canBeAtHome: false,
     canBeOnline: false,
     canBeInPublicSpaces: false,
+    canBeOtherLocation: false,
+    otherLocationLabel: '',
+    otherLocationAddress: '',
     hasFreeTrial: false,
     freeTrialModalities: '',
     cancellationPolicy: 'flexible',
     useProfileAvailability: true,
     customAvailability: [],
   }
+  selectedDays.value = []
+  specialtySearch.value = ''
 }
 
 const saveService = async () => {
   try {
+    // Map selectedDays -> customAvailability placeholder time ranges
+    serviceForm.value.customAvailability = selectedDays.value.map((d) => {
+      const idx = weekDays.indexOf(d)
+      const dayOfWeek = d === 'Dimanche' ? 0 : idx + 1
+      return { dayOfWeek, startTime: '08:00', endTime: '20:00', isActive: true }
+    })
+    // Attach derived domain into form data
+    ;(serviceForm.value as ServiceFormData & { domain?: string }).domain = derivedDomain.value || ''
     if (editingServiceId.value) {
       // Update existing service
       const updatedService = await supabaseCoachServicesApi.updateService(
@@ -695,13 +820,6 @@ const deleteService = async (serviceId: string) => {
       console.error('❌ Error deleting service:', error)
     }
   }
-}
-
-// Copy availability from profile (placeholder function)
-const copyAvailabilityFromProfile = () => {
-  // This would copy the coach's general availability to the service
-  // For now, just a placeholder
-  console.log('Copy availability from profile - to be implemented')
 }
 
 // Load services when component mounts
