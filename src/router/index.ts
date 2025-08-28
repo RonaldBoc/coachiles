@@ -14,6 +14,7 @@ import CoachProposals from '@/pages/CoachProposals.vue'
 import CoachRegistration from '@/pages/CoachRegistration.vue'
 import CoachSignup from '@/pages/CoachSignup.vue'
 import CoachOnboarding from '@/pages/CoachOnboarding.vue'
+import Abonnement from '@/pages/Abonnement.vue'
 import AccountReactivation from '@/pages/AccountReactivation.vue'
 import AccountDeletionDemo from '@/pages/AccountDeletionDemo.vue'
 import APITestPage from '@/pages/APITestPage.vue'
@@ -85,6 +86,12 @@ const routes = [
     component: CoachAccount,
     beforeEnter: requireAuth,
     meta: { title: 'Paramètres' },
+  },
+  {
+    path: '/coach/abonnement',
+    component: Abonnement,
+    beforeEnter: requireAuth,
+    meta: { title: 'Abonnement' },
   },
   // Services (renamed from marketplace) - new canonical path
   {

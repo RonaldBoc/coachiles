@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels, Switch } from '@headlessui/vue'
-import {
-  CogIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  CreditCardIcon,
-  CheckIcon,
-} from '@heroicons/vue/24/outline'
+import { CogIcon, EnvelopeIcon, PhoneIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import AccountDeletionModal from '@/components/AccountDeletionModal.vue'
-import ModernSubscriptionManagement from '@/components/ModernSubscriptionManagement.vue'
+// Subscription management moved to dedicated Abonnement page
 
 const router = useRouter()
 
@@ -42,7 +36,6 @@ import { supabase } from '@/utils/supabase'
 
 const tabs = [
   { id: 'settings', name: 'Paramètres', icon: CogIcon },
-  { id: 'subscription', name: 'Abonnement', icon: CreditCardIcon },
   { id: 'reviews', name: 'Avis', icon: CheckIcon },
 ]
 
@@ -164,6 +157,12 @@ const closeDeletionModal = () => {
       <div class="mb-8">
         <h1 class="text-3xl font-bold tracking-tight text-gray-900">Mon compte</h1>
         <p class="mt-2 text-sm text-gray-600">Gérez vos paramètres de compte et votre abonnement</p>
+        <RouterLink
+          to="/coach/abonnement"
+          class="mt-3 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+        >
+          Gérer mon abonnement →
+        </RouterLink>
       </div>
 
       <!-- Tabs -->
@@ -316,11 +315,6 @@ const closeDeletionModal = () => {
                 </div>
               </div>
             </div>
-          </TabPanel>
-
-          <!-- Subscription Tab -->
-          <TabPanel class="space-y-8">
-            <ModernSubscriptionManagement />
           </TabPanel>
 
           <!-- Reviews Tab -->

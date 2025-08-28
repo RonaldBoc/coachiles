@@ -55,6 +55,17 @@
             >
               Mes Services
             </router-link>
+            <router-link
+              to="/coach/abonnement"
+              :class="[
+                'px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                $route.path === '/coach/abonnement'
+                  ? 'bg-orange-100 text-orange-800'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
+              ]"
+            >
+              Abonnement
+            </router-link>
             <!-- <router-link
               to="/coach/bookings"
               :class="[
@@ -273,6 +284,18 @@
             ]"
           >
             Mes Services
+          </router-link>
+          <router-link
+            to="/coach/abonnement"
+            @click="showMobileMenu = false"
+            :class="[
+              'block px-3 py-2 rounded-md text-base font-medium',
+              $route.path === '/coach/abonnement'
+                ? 'bg-orange-100 text-orange-800'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
+            ]"
+          >
+            Abonnement
           </router-link>
           <router-link
             to="/coach/bookings"
