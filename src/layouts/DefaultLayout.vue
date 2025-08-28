@@ -108,10 +108,10 @@
 
           <li>
             <router-link
-              to="/coach/marketplace"
+              to="/coach/services"
               class="nav-link"
               :class="{ 'justify-center': isCollapsed }"
-              :title="isCollapsed ? 'Marketplace' : ''"
+              :title="isCollapsed ? 'Services' : ''"
             >
               <svg
                 class="w-5 h-5 flex-shrink-0"
@@ -127,7 +127,7 @@
                 />
               </svg>
               <span v-if="!isCollapsed" class="ml-3 transition-all duration-300">
-                Marketplace
+                Mes Services
               </span>
             </router-link>
           </li>

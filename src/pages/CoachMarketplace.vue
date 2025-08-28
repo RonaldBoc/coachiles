@@ -4,25 +4,46 @@
       <!-- Header -->
       <div class="mb-8 bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
         <div class="px-4 py-6 sm:p-8">
-          <div class="flex justify-between items-center">
-            <div>
-              <h1 class="text-3xl font-bold text-gray-900">Marketplace - Mes Services</h1>
-              <p class="text-gray-600 mt-2">
-                Gérez vos offres de coaching et services personnalisés sur la marketplace
+          <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+            <div class="md:max-w-3xl">
+              <h1 class="text-3xl font-bold text-gray-900">Mes Services / Cours Particuliers</h1>
+              <!-- Description -->
+              <p v-if="!showFullDesc && isMobile" class="text-gray-600 mt-3 leading-relaxed">
+                {{ truncatedDescription }}
+                <button
+                  v-if="needsTruncation"
+                  @click="showFullDesc = true"
+                  class="ml-1 text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                >
+                  Afficher plus
+                </button>
               </p>
+              <div v-else class="mt-3 space-y-3">
+                <p class="text-gray-600 leading-relaxed">
+                  {{ fullDescription }}
+                  <button
+                    v-if="isMobile && needsTruncation"
+                    @click="showFullDesc = false"
+                    class="ml-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                  >
+                    Réduire
+                  </button>
+                </p>
+              </div>
             </div>
-            <button
-              v-if="!isEditingService && !isLoadingServices"
-              @click="addNewService"
-              class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              + Ajouter un service
-            </button>
-            <!-- Loading button skeleton -->
-            <div
-              v-else-if="isLoadingServices"
-              class="animate-pulse bg-gray-200 h-10 w-32 rounded-md"
-            ></div>
+            <div class="flex md:flex-col items-start gap-3">
+              <button
+                v-if="!isEditingService && !isLoadingServices"
+                @click="addNewService"
+                class="w-full md:w-auto bg-indigo-600 text-white px-5 py-2.5 rounded-md font-medium shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                + Ajouter un service
+              </button>
+              <div
+                v-else-if="isLoadingServices"
+                class="animate-pulse bg-gray-200 h-10 w-40 rounded-md"
+              ></div>
+            </div>
           </div>
         </div>
       </div>
@@ -498,7 +519,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import type { CoachService, ServiceFormData } from '@/types/service'
 import { DURATION_OPTIONS, CANCELLATION_POLICIES } from '@/types/service'
@@ -513,6 +534,29 @@ const coachServices = ref<CoachService[]>([])
 const isEditingService = ref(false)
 const editingServiceId = ref<string | null>(null)
 const isLoadingServices = ref(true) // Add loading state
+
+// Responsive description controls
+const fullDescription = `Créez, organisez et optimisez vos offres : cours particuliers ou de groupe, durées, tarifs, lieux (domicile, en ligne, espaces publics) et éventuel cours d'essai gratuit. Activez ou désactivez un service à tout moment pour ajuster votre visibilité.`
+const showFullDesc = ref(false)
+const isMobile = ref(false)
+const MAX_MOBILE_CHARS = 140
+const truncatedDescription = computed(() =>
+  fullDescription.length > MAX_MOBILE_CHARS
+    ? fullDescription.slice(0, MAX_MOBILE_CHARS).trimEnd() + '…'
+    : fullDescription,
+)
+const needsTruncation = computed(() => fullDescription.length > MAX_MOBILE_CHARS)
+
+const updateViewport = () => {
+  isMobile.value = window.innerWidth < 768
+  if (!isMobile.value) {
+    showFullDesc.value = true
+  } else if (!needsTruncation.value) {
+    showFullDesc.value = true
+  } else {
+    showFullDesc.value = false
+  }
+}
 
 // Form data
 const serviceForm = ref<ServiceFormData>({
@@ -684,5 +728,11 @@ onMounted(async () => {
   // Debug: Log current coach and specialties
   console.log('🧑‍💼 Current coach:', authStore.coach)
   console.log('🎯 Coach specialties:', authStore.coach?.specialties || [])
+  updateViewport()
+  window.addEventListener('resize', updateViewport)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateViewport)
 })
 </script>

@@ -764,7 +764,7 @@
                   <div class="text-right">
                     <p class="text-lg font-bold text-gray-900">
                       <!-- {{ getCoachPrice(similarCoach) }}€ -->
-                      {{ coach?.hourlyRate }}€
+                      {{ similarCoach.hourlyRate }}€
                     </p>
                     <p class="text-xs text-gray-500">par séance</p>
                   </div>

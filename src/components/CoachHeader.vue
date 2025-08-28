@@ -45,15 +45,15 @@
               </span>
             </router-link>
             <router-link
-              to="/coach/marketplace"
+              to="/coach/services"
               :class="[
                 'px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                $route.path === '/coach/marketplace'
+                $route.path === '/coach/services'
                   ? 'bg-orange-100 text-orange-800'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
               ]"
             >
-              Marketplace
+              Mes Services
             </router-link>
             <!-- <router-link
               to="/coach/bookings"
@@ -263,16 +263,16 @@
             </span>
           </router-link>
           <router-link
-            to="/coach/marketplace"
+            to="/coach/services"
             @click="showMobileMenu = false"
             :class="[
               'block px-3 py-2 rounded-md text-base font-medium',
-              $route.path === '/coach/marketplace'
+              $route.path === '/coach/services'
                 ? 'bg-orange-100 text-orange-800'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
             ]"
           >
-            Marketplace
+            Mes Services
           </router-link>
           <router-link
             to="/coach/bookings"

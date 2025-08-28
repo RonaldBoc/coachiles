@@ -150,7 +150,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 1. Visit `http://localhost:5176/coach/profile` - Should show header, no sidebar
 2. Visit `http://localhost:5176/coach/account` - Should show header, no sidebar
 3. Visit `http://localhost:5176/coach/proposals` - Should show header, no sidebar
-4. Visit `http://localhost:5176/coach/marketplace` - Should show header, no sidebar
+4. Visit `http://localhost:5176/coach/services` - Should show header, no sidebar (old `/coach/marketplace` redirects here)
 
 ### **Session Testing**:
 

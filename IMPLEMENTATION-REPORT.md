@@ -15,7 +15,7 @@
 - **CoachHeader.vue** includes:
   - Mon Profil
   - Propositions (with notification badge)
-  - **Marketplace** ✅
+  - **Mes Services** (canonical path `/coach/services`, legacy `/coach/marketplace` redirects) ✅
   - **Réservations** (Bookings) ✅
   - Paramètres
 
@@ -32,10 +32,11 @@
 - **Constants file**: `/src/constants/locations.ts` with all cities
 - **Smart city filtering**: Only shows cities for selected country
 
-### 5. **Services Page Redirect** ✅
+### 5. **Services Page Routing** ✅
 
-- **Router updated**: `/CoachServices` redirects to `/coach/marketplace`
-- **Old services functionality** integrated into marketplace
+- **Router updated**: canonical path now `/coach/services`
+- **Legacy redirects**: `/coach/marketplace` and `/CoachServices` both redirect to `/coach/services`
+- **Services functionality** lives at the new path
 
 ## 🔧 **Loading Issues Fixed**
 

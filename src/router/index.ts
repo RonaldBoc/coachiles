@@ -35,106 +35,126 @@ import FAQPage from '@/pages/FAQPage.vue'
 
 const routes = [
   { path: '/', redirect: '/coaches' },
-  { path: '/coaches', component: CoachBrowser },
-  { path: '/services', component: ServiceBrowser },
-  { path: '/coach/:id', component: CoachPublicProfile, props: true },
+  { path: '/coaches', component: CoachBrowser, meta: { title: 'Coachs' } },
+  { path: '/services', component: ServiceBrowser, meta: { title: 'Services' } },
+  { path: '/coach/:id', component: CoachPublicProfile, props: true, meta: { title: 'Coach' } },
   {
     path: '/signup',
     component: CoachSignup,
     beforeEnter: redirectIfAuthenticated,
+    meta: { title: 'Inscription' },
   },
   {
     path: '/auth',
     component: AuthForm,
     beforeEnter: redirectIfAuthenticated,
+    meta: { title: 'Connexion' },
   },
   {
     path: '/account/reactivate',
     component: AccountReactivation,
     // No auth guard - this is for deleted accounts
+    meta: { title: 'Réactivation du compte' },
   },
   {
     path: '/coach/onboarding',
     component: CoachOnboarding,
     beforeEnter: requireOnboarding, // Only allow users who need onboarding
+    meta: { title: 'Onboarding' },
   },
   {
     path: '/coach/registration',
     component: CoachRegistration,
     beforeEnter: requireAuthOnly, // Only requires authentication, not coach status
+    meta: { title: 'Inscription Coach' },
   },
   {
     path: '/coach/profile',
     component: CoachProfile,
     beforeEnter: requireAuth,
+    meta: { title: 'Mon Profil' },
   },
   {
     path: '/coach/disabled',
     component: CoachDisabled,
     beforeEnter: requireAuthOnly,
+    meta: { title: 'Compte désactivé' },
   },
   {
     path: '/coach/account',
     component: CoachAccount,
     beforeEnter: requireAuth,
+    meta: { title: 'Paramètres' },
   },
+  // Services (renamed from marketplace) - new canonical path
   {
     path: '/coach/services',
-    redirect: '/coach/marketplace',
-  },
-  {
-    path: '/coach/marketplace',
     component: CoachMarketplace,
     beforeEnter: requireAuth,
+    meta: { title: 'Mes Services' },
+  },
+  // Legacy marketplace path kept as redirect for existing bookmarks
+  {
+    path: '/coach/marketplace',
+    redirect: '/coach/services',
   },
   {
     path: '/coach/marketplace-debug',
     component: CoachMarketplaceDebug,
     beforeEnter: requireAuth,
+    meta: { title: 'Services (Debug)' },
   },
   {
     path: '/coach/marketplace-simple',
     component: CoachMarketplaceSimple,
     beforeEnter: requireAuth,
+    meta: { title: 'Services (Simple)' },
   },
   {
     path: '/coach/bookings',
     component: CoachBookings,
     beforeEnter: requireAuth,
+    meta: { title: 'Réservations' },
   },
   {
     path: '/coach/bookings-debug',
     component: CoachBookingsDebug,
     beforeEnter: requireAuth,
+    meta: { title: 'Réservations (Debug)' },
   },
   {
     path: '/coach/bookings-simple',
     component: CoachBookingsSimple,
     beforeEnter: requireAuth,
+    meta: { title: 'Réservations (Simple)' },
   },
   {
     path: '/coach/proposals',
     component: CoachProposals,
     beforeEnter: requireAuth,
+    meta: { title: 'Propositions' },
   },
   {
     path: '/test-api',
     component: APITestPage,
+    meta: { title: 'API Test' },
   },
   {
     path: '/superadmin',
     component: Superadmin,
     beforeEnter: [requireAuthOnly, requireSuperadmin],
+    meta: { title: 'Superadmin' },
   },
   {
     path: '/demo/account-deletion',
     component: AccountDeletionDemo,
+    meta: { title: 'Suppression de compte (Demo)' },
   },
   { path: '/coach/leads', redirect: '/coach/proposals' },
-  { path: '/success', component: SuccessPage },
-  { path: '/contact', component: ContactPage },
-  { path: '/a-propos', component: AboutPage },
-  { path: '/faq', component: FAQPage },
+  { path: '/success', component: SuccessPage, meta: { title: 'Succès' } },
+  { path: '/contact', component: ContactPage, meta: { title: 'Contact' } },
+  { path: '/a-propos', component: AboutPage, meta: { title: 'À propos' } },
+  { path: '/faq', component: FAQPage, meta: { title: 'FAQ' } },
   // Legacy routes for backward compatibility
   { path: '/CoachProfile', redirect: '/coach/profile' },
   { path: '/CoachAccount', redirect: '/coach/account' },
@@ -156,6 +176,10 @@ const router = createRouter({
 
 // Force scroll-to-top for dynamic public coach profile navigations (SPA transitions)
 router.afterEach((to) => {
+  // Dynamic document title
+  const base = 'Coachiles'
+  const page = (to.meta?.title as string) || ''
+  document.title = page ? `${base} - ${page}` : base
   if (to.path.match(/^\/coach\/[0-9a-fA-F-]{10,}$/)) {
     // Defer to next frame to avoid layout shifts pushing scroll
     requestAnimationFrame(() => {
