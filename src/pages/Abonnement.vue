@@ -27,7 +27,77 @@
         </div>
         <div class="space-y-10">
           <!-- Reuse advanced management component -->
-          <ModernSubscriptionManagement />
+          <ModernSubscriptionManagement :hideBillingHistory="true" />
+          <!-- Receipts / Invoices -->
+          <div
+            v-if="invoices.length"
+            class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl"
+          >
+            <div class="px-4 py-6 sm:p-8">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h2 class="text-base font-semibold text-gray-900">Factures</h2>
+                  <p class="text-sm text-gray-600 mt-1">Historique complet de vos paiements</p>
+                </div>
+                <button
+                  @click="openBillingPortal"
+                  class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Gérer la facturation
+                </button>
+              </div>
+              <div class="overflow-x-auto -mx-4 sm:mx-0">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead>
+                    <tr class="bg-gray-50">
+                      <th class="py-2 pl-4 pr-3 text-left font-medium text-gray-500">Date</th>
+                      <th class="px-3 py-2 text-left font-medium text-gray-500">Description</th>
+                      <th class="px-3 py-2 text-left font-medium text-gray-500">Montant</th>
+                      <th class="px-3 py-2 text-left font-medium text-gray-500">Statut</th>
+                      <th class="px-3 py-2 text-right font-medium text-gray-500">Reçu</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100 bg-white">
+                    <tr v-for="inv in invoices" :key="inv.id">
+                      <td class="py-2 pl-4 pr-3 whitespace-nowrap">{{ formatDate(inv.date) }}</td>
+                      <td class="px-3 py-2 max-w-xs truncate">{{ inv.description }}</td>
+                      <td class="px-3 py-2 font-medium text-gray-900">{{ inv.amount }}€</td>
+                      <td class="px-3 py-2">
+                        <span
+                          :class="statusBadgeClass(inv.status)"
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                          >{{ statusLabel(inv.status) }}</span
+                        >
+                      </td>
+                      <td class="px-3 py-2 text-right">
+                        <button
+                          v-if="inv.invoiceUrl"
+                          @click="downloadInvoice(inv.invoiceUrl)"
+                          class="inline-flex items-center text-blue-600 hover:text-blue-800"
+                          title="Télécharger"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="h-5 w-5"
+                          >
+                            <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" />
+                            <path
+                              d="M7 9a1 1 0 112 0v3.586l1.293-1.293a1 1 0 111.414 1.414l-3.007 3.007a.997.997 0 01-.325.216.997.997 0 01-.764 0 1 1 0 01-.325-.216L5.293 12.707a1 1 0 011.414-1.414L8 12.586V9z"
+                            />
+                            <path
+                              d="M5 3a2 2 0 00-2 2v3a1 1 0 102 0V5h10v3a1 1 0 102 0V5a2 2 0 00-2-2H5z"
+                            />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
           <!-- Extra Pro Value Section -->
           <div
             class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6"
@@ -318,6 +388,39 @@ const subscribe = async () => {
   } else if (subscriptionStore.error) {
     toastError(subscriptionStore.error)
   }
+}
+
+// Invoices / receipts
+const invoices = computed(() => subscriptionStore.billingHistory)
+const statusLabel = (status: string) => {
+  switch (status) {
+    case 'paid':
+      return 'Payée'
+    case 'pending':
+      return 'En attente'
+    case 'failed':
+      return 'Échouée'
+    case 'refunded':
+      return 'Remboursée'
+    default:
+      return status
+  }
+}
+const statusBadgeClass = (status: string) => {
+  return [
+    status === 'paid'
+      ? 'bg-green-100 text-green-800'
+      : status === 'pending'
+        ? 'bg-yellow-100 text-yellow-800'
+        : status === 'failed'
+          ? 'bg-red-100 text-red-800'
+          : 'bg-gray-100 text-gray-800',
+  ]
+}
+const downloadInvoice = (url: string) => window.open(url, '_blank')
+const openBillingPortal = async () => {
+  const ok = await subscriptionStore.openBillingPortal()
+  if (!ok && subscriptionStore.error) toastError(subscriptionStore.error)
 }
 </script>
 

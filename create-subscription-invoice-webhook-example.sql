@@ -1,0 +1,33 @@
+-- Example usage inside a Supabase Edge Function (pseudo-code JS/TS) calling SQL RPC
+-- 1. Ensure you added an RPC wrapper if you prefer not to expose the upsert function directly via anon key.
+-- 2. In your Edge Function, after validating the Stripe signature and receiving an 'invoice.paid' event:
+--
+-- const invoice = event.data.object; // Stripe invoice
+-- const subscription = invoice.subscription; // stripe subscription id
+-- const stripeCustomerId = invoice.customer;
+--
+-- // Fetch subscription row to get coach_id and internal subscription_id
+-- const { data: sub } = await supabaseAdmin
+--   .from('subscriptions')
+--   .select('id, coach_id, stripe_subscription_id')
+--   .eq('stripe_subscription_id', subscription)
+--   .maybeSingle();
+-- if (!sub) return new Response('No matching subscription', { status: 200 });
+--
+-- await supabaseAdmin.rpc('upsert_subscription_invoice', {
+--   p_coach_id: sub.coach_id,
+--   p_subscription_id: sub.id,
+--   p_stripe_invoice_id: invoice.id,
+--   p_stripe_customer_id: stripeCustomerId,
+--   p_hosted_invoice_url: invoice.hosted_invoice_url,
+--   p_pdf_url: invoice.invoice_pdf,
+--   p_amount: invoice.amount_paid,            -- in cents
+--   p_currency: invoice.currency,
+--   p_status: invoice.status,                -- 'paid', 'open', etc.
+--   p_period_start: new Date(invoice.lines.data[0].period.start * 1000).toISOString(),
+--   p_period_end: new Date(invoice.lines.data[0].period.end * 1000).toISOString(),
+--   p_description: invoice.lines.data[0]?.description || 'Abonnement Coachiles',
+--   p_metadata: invoice.metadata || {}
+-- });
+--
+-- Return 200 to Stripe.

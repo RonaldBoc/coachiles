@@ -9,6 +9,7 @@ import CoachBookings from '@/pages/CoachBookings.vue'
 import CoachBookingsDebug from '@/pages/CoachBookingsDebug.vue'
 import CoachBookingsSimple from '@/pages/CoachBookingsSimple.vue'
 import CoachProfile from '@/pages/CoachProfile.vue'
+import CoachDashboard from '@/pages/CoachDashboard.vue'
 import CoachPublicProfile from '@/pages/CoachPublicProfile.vue'
 import CoachProposals from '@/pages/CoachProposals.vue'
 import CoachRegistration from '@/pages/CoachRegistration.vue'
@@ -74,6 +75,12 @@ const routes = [
     component: CoachProfile,
     beforeEnter: requireAuth,
     meta: { title: 'Mon Profil' },
+  },
+  {
+    path: '/coach/dashboard',
+    component: CoachDashboard,
+    beforeEnter: requireAuth,
+    meta: { title: 'Dashboard' },
   },
   {
     path: '/coach/disabled',

@@ -16,6 +16,17 @@
           <!-- Navigation Links -->
           <nav class="hidden md:flex space-x-6">
             <router-link
+              to="/coach/dashboard"
+              :class="[
+                'px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                $route.path === '/coach/dashboard'
+                  ? 'bg-orange-100 text-orange-800'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
+              ]"
+            >
+              Dashboard
+            </router-link>
+            <router-link
               to="/coach/profile"
               :class="[
                 'px-3 py-2 rounded-md text-sm font-medium transition-colors',
@@ -243,6 +254,18 @@
       <!-- Mobile Navigation -->
       <div v-if="showMobileMenu" class="md:hidden border-t border-gray-200 py-4">
         <nav class="space-y-2">
+          <router-link
+            to="/coach/dashboard"
+            @click="showMobileMenu = false"
+            :class="[
+              'block px-3 py-2 rounded-md text-base font-medium',
+              $route.path === '/coach/dashboard'
+                ? 'bg-orange-100 text-orange-800'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
+            ]"
+          >
+            Dashboard
+          </router-link>
           <router-link
             to="/coach/profile"
             @click="showMobileMenu = false"

@@ -246,7 +246,7 @@
 
     <!-- Billing History -->
     <div
-      v-if="subscriptionStore.billingHistory.length > 0"
+      v-if="!props.hideBillingHistory && subscriptionStore.billingHistory.length > 0"
       class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl"
     >
       <div class="px-4 py-6 sm:p-8">
@@ -370,7 +370,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, defineProps } from 'vue'
 import {
   CreditCardIcon,
   CheckIcon,
@@ -393,6 +393,8 @@ import { useToast } from '@/composables/useToast'
 const { success: toastSuccess, error: toastError, info: toastInfo } = useToast()
 
 const subscriptionStore = useModernSubscriptionStore()
+// Optional prop to hide billing history (parent page may render its own receipts section)
+const props = defineProps<{ hideBillingHistory?: boolean }>()
 
 // Modal states
 const showSubscribeModal = ref(false)

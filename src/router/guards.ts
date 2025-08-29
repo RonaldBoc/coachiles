@@ -164,9 +164,9 @@ export const redirectIfAuthenticated: NavigationGuard = async (to, from, next) =
   }
 
   if (authStore.isAuthenticated && authStore.isCoach) {
-    console.log('✅ User already authenticated, redirecting to /coach/profile')
+    console.log('✅ User already authenticated, redirecting to /coach/dashboard')
     // Redirect to coach dashboard
-    next('/coach/profile')
+    next('/coach/dashboard')
   } else {
     next()
   }

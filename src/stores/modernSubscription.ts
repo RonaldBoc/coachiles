@@ -299,25 +299,117 @@ export const useModernSubscriptionStore = defineStore('modernSubscription', () =
         }
       }
 
-      // Load billing history
-      const history = await supabaseSubscriptionApi.getSubscriptionHistory(authStore.coach.id)
-      billingHistory.value = history.map(
-        (h: {
+      // Load invoices from new subscription_invoices table (preferred)
+      const { data: invoiceRows, error: invoiceErr } = await supabase
+        .from('subscription_invoices')
+        .select(
+          'id, amount, currency, status, period_start, period_end, hosted_invoice_url, pdf_url, description',
+        )
+        .eq('coach_id', authStore.coach.id)
+        .order('period_start', { ascending: false })
+
+      if (!invoiceErr && invoiceRows && invoiceRows.length) {
+        interface InvoiceRow {
           id: string
-          price: number
-          created_at: string
-          payment_method?: string
-          subscription_plans: { name: string; plan_type: string }[]
-        }) => ({
-          id: h.id,
-          amount: h.price,
-          currency: 'EUR',
-          status: 'paid', // Assuming paid for now
-          description: `Abonnement ${h.subscription_plans?.[0]?.name || h.subscription_plans?.[0]?.plan_type || 'Premium'} - ${new Date(h.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`,
-          date: new Date(h.created_at),
-          paymentMethod: h.payment_method || undefined,
-        }),
-      )
+          amount: number
+          currency?: string
+          status?: string
+          period_start?: string
+          period_end?: string
+          hosted_invoice_url?: string
+          pdf_url?: string
+          description?: string
+        }
+        billingHistory.value = (invoiceRows as InvoiceRow[]).map((r) => {
+          const rawAmount = r.amount || 0
+          const normalized = rawAmount > 1000 ? Math.round(rawAmount / 100) : rawAmount
+          const status = ['paid', 'pending', 'failed', 'refunded'].includes(r.status || '')
+            ? (r.status as 'paid' | 'pending' | 'failed' | 'refunded')
+            : 'paid'
+          return {
+            id: r.id,
+            amount: normalized,
+            currency: 'EUR' as const,
+            status,
+            description: r.description || 'Abonnement Coachiles',
+            date: new Date(r.period_start || Date.now()),
+            invoiceUrl: r.hosted_invoice_url || r.pdf_url || undefined,
+          }
+        })
+      } else if (!invoiceErr) {
+        // Try payments table (recent integration path) before legacy history
+        const { data: paymentRows, error: paymentsErr } = await supabase
+          .from('payments')
+          .select('id, amount, currency, processed_at, description, metadata')
+          .eq('coach_id', authStore.coach.id)
+          .eq('payment_type', 'subscription')
+          .order('processed_at', { ascending: false })
+          .limit(24)
+        if (!paymentsErr && paymentRows && paymentRows.length) {
+          interface PaymentRow {
+            id: string
+            amount: number
+            currency?: string
+            processed_at?: string
+            description?: string
+            metadata?: Record<string, unknown>
+          }
+          billingHistory.value = (paymentRows as PaymentRow[]).map((p) => ({
+            id: p.id,
+            amount: typeof p.amount === 'number' ? p.amount : parseFloat(p.amount) || 0,
+            currency: 'EUR',
+            status: 'paid' as const,
+            description: p.description || 'Abonnement Coachiles',
+            date: new Date(p.processed_at || Date.now()),
+            invoiceUrl:
+              p.metadata && typeof p.metadata['hostedInvoiceUrl'] === 'string'
+                ? (p.metadata['hostedInvoiceUrl'] as string)
+                : p.metadata && typeof p.metadata['pdfUrl'] === 'string'
+                  ? (p.metadata['pdfUrl'] as string)
+                  : undefined,
+          }))
+        } else {
+          // Fallback legacy history from subscriptions table
+          const history = await supabaseSubscriptionApi.getSubscriptionHistory(authStore.coach.id)
+          billingHistory.value = history.map(
+            (h: {
+              id: string
+              price: number
+              created_at: string
+              payment_method?: string
+              subscription_plans: { name: string; plan_type: string }[]
+            }) => ({
+              id: h.id,
+              amount: h.price,
+              currency: 'EUR',
+              status: 'paid',
+              description: `Abonnement ${h.subscription_plans?.[0]?.name || h.subscription_plans?.[0]?.plan_type || 'Premium'} - ${new Date(h.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`,
+              date: new Date(h.created_at),
+              paymentMethod: h.payment_method || undefined,
+            }),
+          )
+        }
+      } else {
+        // Fallback legacy history from subscriptions table
+        const history = await supabaseSubscriptionApi.getSubscriptionHistory(authStore.coach.id)
+        billingHistory.value = history.map(
+          (h: {
+            id: string
+            price: number
+            created_at: string
+            payment_method?: string
+            subscription_plans: { name: string; plan_type: string }[]
+          }) => ({
+            id: h.id,
+            amount: h.price,
+            currency: 'EUR',
+            status: 'paid',
+            description: `Abonnement ${h.subscription_plans?.[0]?.name || h.subscription_plans?.[0]?.plan_type || 'Premium'} - ${new Date(h.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`,
+            date: new Date(h.created_at),
+            paymentMethod: h.payment_method || undefined,
+          }),
+        )
+      }
 
       // Live Stripe details (default card, upcoming invoice)
       if (currentSubscription.value.isActive) {

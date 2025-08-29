@@ -1,0 +1,451 @@
+<template>
+  <CoachLayout>
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <!-- Greeting & Profile Completion -->
+      <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight text-gray-900">
+            Bonjour, <span>{{ coach?.firstName }}</span>
+          </h1>
+          <p class="mt-2 text-sm text-gray-600">Vue d'ensemble de votre activité sur Coachiles.</p>
+          <div v-if="profileCompletion < 100" class="mt-4 max-w-md">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-medium text-gray-700"
+                >Profil complété à {{ profileCompletion }}%</span
+              >
+              <button
+                v-if="missingSections.length"
+                @click="goToProfile"
+                class="text-xs font-medium text-blue-600 hover:text-blue-700"
+              >
+                Compléter
+              </button>
+            </div>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+              <div
+                class="h-full bg-gradient-to-r from-orange-500 to-blue-600 transition-all"
+                :style="{ width: profileCompletion + '%' }"
+              />
+            </div>
+            <p v-if="missingSections.length" class="mt-1 text-[11px] text-gray-500">
+              À faire: {{ missingSections.map(mapSectionLabel).join(', ') }}
+            </p>
+          </div>
+        </div>
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <button @click="goToProposals" class="quick-action-btn"><span>Propositions</span></button>
+          <button @click="goToServices" class="quick-action-btn"><span>Services</span></button>
+          <button @click="goToSubscription" class="quick-action-btn">
+            <span>Abonnement</span>
+          </button>
+          <button @click="goToSettings" class="quick-action-btn hidden sm:block">
+            <span>Paramètres</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Alerts -->
+      <div class="space-y-4 mb-6">
+        <div
+          v-if="coach && coach.isActive === false"
+          class="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
+          Votre compte coach est désactivé. Certaines fonctionnalités peuvent être limitées.
+        </div>
+        <div
+          v-if="subscriptionBanner"
+          class="rounded-md border border-orange-200 bg-orange-50 p-4 text-sm text-orange-700 flex items-start gap-3"
+        >
+          <div class="flex-1" v-html="subscriptionBanner.message" />
+          <button
+            @click="goToSubscription"
+            class="rounded bg-orange-600 px-3 py-1 text-xs font-medium text-white hover:bg-orange-700"
+          >
+            {{ subscriptionBanner.cta }}
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-10">
+        <KpiCard
+          label="Nouveaux leads"
+          :value="newLeadsCount"
+          icon="leads"
+          :loading="loadingLeads"
+        />
+        <KpiCard
+          label="Services actifs"
+          :value="activeServicesCount"
+          icon="services"
+          :loading="loadingServices"
+        />
+        <KpiCard
+          v-if="subscriptionStatusDisplay"
+          :label="subscriptionStatusDisplay.label"
+          :value="subscriptionStatusDisplay.value"
+          :badge="subscriptionStatusDisplay.badge"
+          icon="subscription"
+        />
+        <KpiCard
+          label="Note moyenne"
+          :value="coach?.rating ? coach.rating.toFixed(1) + '★' : '—'"
+          icon="rating"
+        />
+      </div>
+
+      <!-- Activity Panels -->
+      <div class="grid gap-8 lg:grid-cols-2 mb-12">
+        <DashPanel title="Leads récents" :loading="loadingLeads">
+          <template #default>
+            <ul v-if="recentLeads.length" class="divide-y divide-gray-100">
+              <li v-for="l in recentLeads" :key="l.id" class="py-3 flex items-start gap-3">
+                <div
+                  class="h-8 w-8 flex items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600"
+                >
+                  {{ (l.client_name || 'C').charAt(0).toUpperCase() }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm font-medium text-gray-800 truncate">
+                      {{ l.client_name || 'Client' }}
+                    </p>
+                    <span
+                      :class="statusPillClass(l.status)"
+                      class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium"
+                      >{{ leadStatusLabel(l.status) }}</span
+                    >
+                  </div>
+                  <p class="text-xs text-gray-500 mt-0.5 line-clamp-2" v-if="l.goals">
+                    {{ l.goals }}
+                  </p>
+                  <p class="mt-1 text-[10px] text-gray-400">{{ timeAgo(l.created_at) }}</p>
+                </div>
+              </li>
+            </ul>
+            <div v-else class="text-sm text-gray-500">Aucun lead pour le moment.</div>
+            <div class="mt-4 text-right">
+              <button
+                @click="goToProposals"
+                class="text-xs font-medium text-blue-600 hover:text-blue-700"
+              >
+                Voir tous →
+              </button>
+            </div>
+          </template>
+        </DashPanel>
+        <DashPanel title="Tendance des leads (7j)">
+          <template #default>
+            <div v-if="leadTrend.length" class="h-24 flex items-end gap-1">
+              <div
+                v-for="d in leadTrend"
+                :key="d.date"
+                class="flex-1 bg-gradient-to-t from-blue-200 to-blue-500 rounded-sm relative"
+                :style="{ height: (d.count / maxLeadTrend) * 100 + '%' }"
+              >
+                <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-gray-600">{{
+                  d.count
+                }}</span>
+                <span
+                  class="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px] text-gray-400"
+                  >{{ formatShortDate(d.date) }}</span
+                >
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500">Pas assez de données.</div>
+          </template>
+        </DashPanel>
+      </div>
+
+      <!-- Resources -->
+      <div class="grid gap-6 md:grid-cols-3">
+        <div class="rounded-lg border border-gray-200 bg-white p-5">
+          <h3 class="text-sm font-semibold text-gray-800 mb-2">Prochaines étapes</h3>
+          <ul class="text-xs text-gray-600 space-y-1">
+            <li v-for="s in missingSections" :key="s">• Compléter : {{ mapSectionLabel(s) }}</li>
+            <li v-if="missingSections.length === 0">Tout est prêt 🚀</li>
+          </ul>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-white p-5">
+          <h3 class="text-sm font-semibold text-gray-800 mb-2">Support</h3>
+          <p class="text-xs text-gray-600 mb-3">Besoin d'aide ou d'améliorer votre visibilité ?</p>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button @click="goToFAQ" class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">
+              FAQ
+            </button>
+            <button @click="goToContact" class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">
+              Contact
+            </button>
+          </div>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-white p-5">
+          <h3 class="text-sm font-semibold text-gray-800 mb-2">Avis</h3>
+          <p class="text-xs text-gray-600 mb-3">
+            Note moyenne: <strong>{{ coach?.rating ? coach.rating.toFixed(1) : '—' }}</strong>
+          </p>
+          <button
+            @click="goToSettingsReviews"
+            class="text-xs font-medium text-blue-600 hover:text-blue-700"
+          >
+            Gérer mes avis →
+          </button>
+        </div>
+      </div>
+    </div>
+  </CoachLayout>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, defineComponent, h } from 'vue'
+import CoachLayout from '@/layouts/CoachLayout.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useLeadStore } from '@/stores/leads'
+import { supabaseLeadApi } from '@/services/supabaseLeadApi'
+import { SupabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
+import { useRouter } from 'vue-router'
+
+interface DashboardService {
+  id: string
+  title?: string
+  is_active?: boolean
+}
+interface LeadRowMinimal {
+  id: string
+  created_at: string
+  status?: string
+  client_name?: string
+  goals?: string
+}
+
+const authStore = useAuthStore()
+const leadStore = useLeadStore()
+const router = useRouter()
+const servicesApi = new SupabaseCoachServicesApi()
+
+const services = ref<DashboardService[]>([])
+const loadingServices = ref(false)
+const loadingLeads = ref(false)
+const leadTrendRaw = ref<LeadRowMinimal[]>([])
+
+const coach = computed(() => authStore.coach)
+const activeServicesCount = computed(() => services.value.length)
+const newLeadsCount = computed(() => leadStore.newLeadsCount)
+const recentLeads = computed(() => leadStore.leads.slice(0, 5))
+
+const subscriptionBanner = computed(() => {
+  const status = coach.value?.subscriptionStatus
+  if (!status || status === 'active') return null
+  if (status === 'inactive')
+    return {
+      message:
+        'Votre abonnement est <strong>inactif</strong>. Activez-le pour débloquer toute la visibilité.',
+      cta: 'Activer',
+    }
+  if (status === 'trial')
+    return {
+      message:
+        "Vous êtes en <strong>période d'essai</strong>. Profitez-en pour finaliser votre profil.",
+      cta: 'Gérer',
+    }
+  return null
+})
+const subscriptionStatusDisplay = computed(() => {
+  const status = coach.value?.subscriptionStatus
+  if (!status) return null
+  return {
+    active: { label: 'Abonnement', value: 'Actif', badge: '✔' },
+    trial: { label: 'Abonnement', value: 'Essai', badge: '⏳' },
+    inactive: { label: 'Abonnement', value: 'Inactif', badge: '!' },
+  }[status]
+})
+
+const missingSections = computed(() => {
+  const c = coach.value
+  if (!c) return [] as string[]
+  const missing: string[] = []
+  if (!c.photo) missing.push('photo')
+  if (!c.bio) missing.push('bio')
+  if (!c.specialties || c.specialties.length === 0) missing.push('specialties')
+  if (services.value.length === 0) missing.push('service')
+  return missing
+})
+const profileCompletion = computed(() => {
+  const total = 4
+  return Math.round(((total - missingSections.value.length) / total) * 100)
+})
+
+const leadTrend = computed(() => {
+  const days: Record<string, number> = {}
+  const today = new Date()
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 86400000)
+    days[d.toISOString().slice(0, 10)] = 0
+  }
+  leadTrendRaw.value.forEach((l) => {
+    const key = (l.created_at || '').slice(0, 10)
+    if (key in days) days[key]++
+  })
+  return Object.entries(days).map(([date, count]) => ({ date, count }))
+})
+const maxLeadTrend = computed(() => Math.max(1, ...leadTrend.value.map((d) => d.count)))
+
+const fetchServices = async () => {
+  if (loadingServices.value) return
+  loadingServices.value = true
+  try {
+    const svc = await servicesApi.getCoachServices()
+    services.value = (svc as unknown as DashboardService[]).map((s) => ({
+      id: s.id,
+      title: s.title,
+      is_active: s.is_active,
+    }))
+  } catch (e) {
+    console.warn('Failed to load services', e)
+  } finally {
+    loadingServices.value = false
+  }
+}
+const fetchLeadTrend = async () => {
+  if (!coach.value?.id) return
+  try {
+    const raw = await supabaseLeadApi.getLeadStats(coach.value.id, '7d')
+    leadTrendRaw.value = raw as LeadRowMinimal[]
+  } catch (e) {
+    console.warn('Failed to load lead stats', e)
+  }
+}
+const ensureLeadsLoaded = async () => {
+  if (!coach.value?.id || leadStore.leads.length) return
+  loadingLeads.value = true
+  try {
+    await leadStore.fetchLeads(coach.value.id, { page: 1, limit: 10 })
+  } catch {
+    /* silent */
+  } finally {
+    loadingLeads.value = false
+  }
+}
+
+const goToProfile = () => router.push('/coach/profile')
+const goToProposals = () => router.push('/coach/proposals')
+const goToServices = () => router.push('/coach/services')
+const goToSubscription = () => router.push('/coach/abonnement')
+const goToSettings = () => router.push('/coach/account')
+const goToFAQ = () => router.push('/faq')
+const goToContact = () => router.push('/contact')
+const goToSettingsReviews = () => router.push('/coach/account?tab=reviews')
+
+const timeAgo = (iso: string) => {
+  const date = new Date(iso)
+  const diff = (Date.now() - date.getTime()) / 1000
+  if (diff < 60) return 'Il y a quelques sec.'
+  const mins = Math.floor(diff / 60)
+  if (mins < 60) return `Il y a ${mins} min`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `Il y a ${hrs} h`
+  const days = Math.floor(hrs / 24)
+  return `Il y a ${days} j`
+}
+const statusPillClass = (s: string) =>
+  ({
+    new: 'bg-blue-100 text-blue-700',
+    contacted: 'bg-yellow-100 text-yellow-700',
+    assigned: 'bg-purple-100 text-purple-700',
+    converted: 'bg-green-100 text-green-700',
+  })[s as string] || 'bg-gray-100 text-gray-600'
+const leadStatusLabel = (s: string) =>
+  ({
+    new: 'Nouveau',
+    contacted: 'Contacté',
+    assigned: 'Assigné',
+    converted: 'Converti',
+  })[s as string] || s
+const formatShortDate = (d: string) => d.slice(5).replace('-', '/')
+const mapSectionLabel = (s: string) =>
+  ({
+    photo: 'Photo',
+    bio: 'Bio',
+    specialties: 'Spécialités',
+    service: 'Premier service',
+  })[s] || s
+
+const KpiCard = defineComponent({
+  name: 'KpiCard',
+  props: {
+    label: { type: String, required: true },
+    value: { type: [String, Number], required: false },
+    icon: { type: String, required: false },
+    badge: { type: String, required: false },
+    loading: { type: Boolean, default: false },
+  },
+  setup(props) {
+    return () =>
+      h(
+        'div',
+        {
+          class:
+            'relative overflow-hidden rounded-lg border border-gray-200 bg-white p-5 shadow-sm flex flex-col',
+        },
+        [
+          h('div', { class: 'text-xs font-medium text-gray-500 mb-1 flex items-center gap-2' }, [
+            props.icon
+              ? h('span', {
+                  class:
+                    'inline-block h-2 w-2 rounded-full bg-gradient-to-r from-orange-500 to-blue-600',
+                })
+              : undefined,
+            props.label,
+            props.badge
+              ? h(
+                  'span',
+                  {
+                    class:
+                      'ml-auto inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600',
+                  },
+                  props.badge,
+                )
+              : undefined,
+          ]),
+          h(
+            'div',
+            { class: 'mt-1 text-2xl font-semibold text-gray-900 min-h-[2.25rem]' },
+            props.loading ? '…' : (props.value ?? '—'),
+          ),
+        ],
+      )
+  },
+})
+const DashPanel = defineComponent({
+  name: 'DashPanel',
+  props: { title: { type: String, required: true }, loading: { type: Boolean, default: false } },
+  setup(props, { slots }) {
+    return () =>
+      h(
+        'div',
+        { class: 'rounded-lg border border-gray-200 bg-white p-5 shadow-sm flex flex-col' },
+        [
+          h('div', { class: 'mb-4 flex items-center justify-between' }, [
+            h('h2', { class: 'text-sm font-semibold text-gray-800' }, props.title),
+            props.loading
+              ? h('span', { class: 'text-[10px] text-gray-400' }, 'Chargement…')
+              : undefined,
+          ]),
+          h('div', { class: 'flex-1 min-h-[60px]' }, slots.default ? slots.default() : undefined),
+        ],
+      )
+  },
+})
+
+onMounted(async () => {
+  await ensureLeadsLoaded()
+  await fetchServices()
+  await fetchLeadTrend()
+})
+</script>
+
+<style scoped>
+.quick-action-btn {
+  @apply rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition;
+}
+</style>

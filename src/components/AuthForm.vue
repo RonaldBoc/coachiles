@@ -228,8 +228,8 @@ const handleSubmit = async () => {
 
     // Check if user has completed onboarding (coach profile loaded in signIn)
     if (authStore.isCoach) {
-      console.log('✅ User is an existing coach, redirecting to profile')
-      router.push('/coach/profile')
+      console.log('✅ User is an existing coach, redirecting to dashboard')
+      router.push('/coach/dashboard')
     } else {
       console.log('ℹ️ User needs to complete onboarding')
       router.push('/coach/onboarding')

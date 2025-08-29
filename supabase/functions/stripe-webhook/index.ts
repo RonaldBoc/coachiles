@@ -499,11 +499,65 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq('stripe_subscription_id', stripeSubId)
-        .select('coach_id')
+        .select('id, coach_id')
         .limit(1)
 
       if (updErr) console.error('❌ Failed to sync invoice.payment_succeeded:', updErr)
       else console.log('✅ Synced invoice.payment_succeeded for', stripeSubId)
+
+      // Upsert structured invoice record (subscription_invoices table)
+      try {
+        // Resolve coach + internal subscription UUID
+        const internalSubId: string | null = updatedSubs?.[0]?.id ?? null
+        let coachIdForInvoice: string | null = updatedSubs?.[0]?.coach_id ?? null
+        if (!coachIdForInvoice) {
+          const { data: subRow, error: subErr } = await supabase
+            .from('subscriptions')
+            .select('id, coach_id')
+            .eq('stripe_subscription_id', stripeSubId)
+            .limit(1)
+            .maybeSingle()
+          if (subErr) console.error('⚠️ Failed subscription lookup for invoice upsert:', subErr)
+          coachIdForInvoice = (subRow?.coach_id as string | undefined) || null
+        }
+        if (coachIdForInvoice) {
+          const line = invoice.lines?.data?.[0]
+          const periodStartSec = line?.period?.start || invoice.period_start || null
+          const periodEndSec = line?.period?.end || invoice.period_end || null
+          const periodStart = periodStartSec ? new Date(periodStartSec * 1000).toISOString() : null
+          const periodEnd = periodEndSec ? new Date(periodEndSec * 1000).toISOString() : null
+          const amountCents = invoice.amount_paid ?? invoice.total ?? 0
+          const description =
+            line?.description || invoice.number || `Stripe subscription invoice ${invoice.id}`
+          const status = invoice.status || 'paid'
+          const metadata: Record<string, unknown> = {
+            ...(invoice.metadata || {}),
+            line_metadata: line?.metadata || {},
+            subscription_item_ids: invoice.lines?.data?.map((l) => l.id) || [],
+          }
+          const { error: upsertErr } = await supabase.rpc('upsert_subscription_invoice', {
+            p_coach_id: coachIdForInvoice,
+            p_subscription_id: internalSubId,
+            p_stripe_invoice_id: invoice.id,
+            p_stripe_customer_id: stripeCustomerId,
+            p_hosted_invoice_url: invoice.hosted_invoice_url || null,
+            p_pdf_url: invoice.invoice_pdf || null,
+            p_amount: amountCents,
+            p_currency: invoice.currency || 'eur',
+            p_status: status,
+            p_period_start: periodStart,
+            p_period_end: periodEnd,
+            p_description: description,
+            p_metadata: metadata,
+          })
+          if (upsertErr) console.error('❌ Failed upsert_subscription_invoice:', upsertErr)
+          else console.log('✅ Upserted subscription invoice', invoice.id)
+        } else {
+          console.warn('⚠️ Unable to resolve coach to upsert invoice', invoice.id)
+        }
+      } catch (e) {
+        console.error('⚠️ Unexpected error during invoice upsert:', e)
+      }
 
       // Also record a payment row for this successful subscription invoice
       try {
@@ -594,6 +648,68 @@ serve(async (req) => {
       } catch (e) {
         console.error('⚠️ Unexpected error while recording payment:', e)
       }
+    }
+  }
+
+  // Some Stripe accounts emit 'invoice.paid' (in addition or instead). Upsert invoice here too.
+  if (event.type === 'invoice.paid') {
+    const invoice = event.data.object as Stripe.Invoice
+    const stripeSubId = typeof invoice.subscription === 'string' ? invoice.subscription : null
+    const stripeCustomerId =
+      typeof invoice.customer === 'string'
+        ? (invoice.customer as string)
+        : (invoice.customer as Stripe.Customer | null)?.id || null
+    try {
+      if (stripeSubId) {
+        // Lookup subscription once for coach + internal id
+        const { data: subRow, error: subErr } = await supabase
+          .from('subscriptions')
+          .select('id, coach_id')
+          .eq('stripe_subscription_id', stripeSubId)
+          .limit(1)
+          .maybeSingle()
+        if (subErr) console.error('⚠️ invoice.paid subscription lookup error:', subErr)
+        const coachIdForInvoice = (subRow?.coach_id as string | undefined) || null
+        const internalSubId: string | null = subRow?.id || null
+        if (coachIdForInvoice) {
+          const line = invoice.lines?.data?.[0]
+          const periodStartSec = line?.period?.start || invoice.period_start || null
+          const periodEndSec = line?.period?.end || invoice.period_end || null
+          const periodStart = periodStartSec ? new Date(periodStartSec * 1000).toISOString() : null
+          const periodEnd = periodEndSec ? new Date(periodEndSec * 1000).toISOString() : null
+          const amountCents = invoice.amount_paid ?? invoice.total ?? 0
+          const description =
+            line?.description || invoice.number || `Stripe subscription invoice ${invoice.id}`
+          const status = invoice.status || 'paid'
+          const metadata: Record<string, unknown> = {
+            ...(invoice.metadata || {}),
+            line_metadata: line?.metadata || {},
+            subscription_item_ids: invoice.lines?.data?.map((l) => l.id) || [],
+          }
+          const { error: upsertErr } = await supabase.rpc('upsert_subscription_invoice', {
+            p_coach_id: coachIdForInvoice,
+            p_subscription_id: internalSubId,
+            p_stripe_invoice_id: invoice.id,
+            p_stripe_customer_id: stripeCustomerId,
+            p_hosted_invoice_url: invoice.hosted_invoice_url || null,
+            p_pdf_url: invoice.invoice_pdf || null,
+            p_amount: amountCents,
+            p_currency: invoice.currency || 'eur',
+            p_status: status,
+            p_period_start: periodStart,
+            p_period_end: periodEnd,
+            p_description: description,
+            p_metadata: metadata,
+          })
+          if (upsertErr)
+            console.error('❌ Failed upsert_subscription_invoice (invoice.paid):', upsertErr)
+          else console.log('✅ Upserted subscription invoice (invoice.paid)', invoice.id)
+        } else {
+          console.warn('⚠️ invoice.paid could not resolve coach to upsert invoice', invoice.id)
+        }
+      }
+    } catch (e) {
+      console.error('⚠️ Unexpected error in invoice.paid handler:', e)
     }
   }
 
