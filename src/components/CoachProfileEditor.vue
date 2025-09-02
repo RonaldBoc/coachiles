@@ -471,6 +471,9 @@ async function save() {
     },
     modalities: model.modalities,
   }
+  // Sanitize phone (store null instead of empty string at top-level phone column)
+  const sanitizedPhone =
+    model.contact.phone && model.contact.phone.trim().length ? model.contact.phone.trim() : null
   // Persist (placeholder): update coaches table JSON columns or separate columns.
   // Determine update filter: RLS policy allows update when auth.jwt().email = email.
   // Prefer using email for the filter, fallback to id if provided and policy supports it.
@@ -488,6 +491,7 @@ async function save() {
       experience: payload.activity.experienceYears,
       hourly_rate: model.hourlyRate,
       availability: availabilityArray,
+      phone: sanitizedPhone, // NEW: keep phone column in sync with profile_contact.phone
       profile_personal: payload.personal,
       profile_contact: payload.contact,
       profile_activity: payload.activity,
@@ -663,6 +667,7 @@ watch(
     <!-- Avatar / Profile Photo (optional) -->
     <section
       v-if="props.showAvatarSection !== false"
+      id="profile-photo-section"
       class="bg-white p-6 rounded-xl shadow-sm space-y-4"
     >
       <header class="flex items-center justify-between">
@@ -745,7 +750,7 @@ watch(
       </div>
     </section>
     <!-- Personal Info -->
-    <section class="bg-white p-6 rounded-xl shadow-sm space-y-6">
+    <section id="personal-section" class="bg-white p-6 rounded-xl shadow-sm space-y-6">
       <header>
         <h2 class="text-xl font-bold text-gray-900">Informations personnelles</h2>
         <p class="text-sm text-gray-500 mt-1">Identité et localisation.</p>
@@ -844,7 +849,7 @@ watch(
     </section>
 
     <!-- Contact -->
-    <section class="bg-white p-6 rounded-xl shadow-sm space-y-6">
+    <section id="contact-section" class="bg-white p-6 rounded-xl shadow-sm space-y-6">
       <header>
         <h2 class="text-xl font-bold text-gray-900">Contact</h2>
         <p class="text-sm text-gray-500 mt-1">Comment les clients peuvent vous trouver.</p>
@@ -879,7 +884,7 @@ watch(
     </section>
 
     <!-- Bio -->
-    <section class="bg-white p-6 rounded-xl shadow-sm space-y-6">
+    <section id="bio-section" class="bg-white p-6 rounded-xl shadow-sm space-y-6">
       <header>
         <h2 class="text-xl font-bold text-gray-900">Biographie</h2>
         <p class="text-sm text-gray-500 mt-1">
@@ -902,7 +907,7 @@ watch(
     </section>
 
     <!-- Coach Activity (redesigned) -->
-    <section class="bg-white p-6 rounded-xl shadow-sm space-y-6">
+    <section id="activity-section" class="bg-white p-6 rounded-xl shadow-sm space-y-6">
       <header>
         <h2 class="text-xl font-bold text-gray-900">Activité de coach</h2>
         <p class="text-sm text-gray-500 mt-1">Expérience, diplômes et spécialités.</p>
@@ -1170,7 +1175,7 @@ watch(
     </section>
 
     <!-- Modalités Générales des Cours -->
-    <section class="bg-white p-6 rounded-xl shadow-sm space-y-6">
+    <section id="modalities-section" class="bg-white p-6 rounded-xl shadow-sm space-y-6">
       <header>
         <h2 class="text-xl font-bold text-gray-900">Modalités générales des cours</h2>
         <p class="text-sm text-gray-500 mt-1">

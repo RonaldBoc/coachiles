@@ -34,6 +34,28 @@
         </div>
       </div>
 
+      <!-- Quick In-Page Navigation -->
+      <nav
+        ref="quickNav"
+        class="bg-white/60 backdrop-blur supports-[backdrop-filter]:bg-white/50 border border-gray-200 rounded-xl px-4 py-3 flex flex-wrap gap-2 sticky top-0 z-10"
+        aria-label="Navigation rapide profil"
+      >
+        <button
+          v-for="lnk in quickLinks"
+          :key="lnk.id"
+          type="button"
+          @click="scrollTo(lnk.id)"
+          class="px-3 py-1.5 rounded-full text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          :class="
+            activeSection === lnk.id
+              ? 'bg-blue-600 text-white shadow'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          "
+        >
+          {{ lnk.label }}
+        </button>
+      </nav>
+
       <!-- Unified Editor -->
       <CoachProfileEditor
         v-if="profileData?.id"
@@ -47,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import CoachProfileEditor from '@/components/CoachProfileEditor.vue'
@@ -170,6 +192,61 @@ async function handleHeaderAvatar(e: Event) {
   // reset input value so selecting same file again triggers change
   ;(e.target as HTMLInputElement).value = ''
 }
+
+// Quick navigation
+interface QuickLink {
+  id: string
+  label: string
+}
+const quickLinks: QuickLink[] = [
+  { id: 'personal-section', label: 'Infos perso' },
+  { id: 'contact-section', label: 'Contact' },
+  { id: 'bio-section', label: 'Bio' },
+  { id: 'activity-section', label: 'Activité' },
+  { id: 'modalities-section', label: 'Modalités' },
+]
+const activeSection = ref<string>('personal-section')
+const quickNav = ref<HTMLElement | null>(null)
+
+function currentOffset(): number {
+  // Height of sticky nav plus a small gap
+  const navH = quickNav.value?.offsetHeight || 0
+  return navH + 12
+}
+
+function scrollTo(id: string) {
+  const el = document.getElementById(id)
+  if (!el) return
+  const topTarget = el.getBoundingClientRect().top + window.scrollY - currentOffset()
+  window.scrollTo({ top: topTarget, behavior: 'smooth' })
+}
+
+let scrollHandler: (() => void) | null = null
+onMounted(() => {
+  scrollHandler = () => {
+    const scrollY = window.scrollY + currentOffset() + 1
+    let current = activeSection.value
+    for (const link of quickLinks) {
+      const el = document.getElementById(link.id)
+      if (!el) continue
+      const elTop = el.getBoundingClientRect().top + window.scrollY
+      if (scrollY >= elTop) current = link.id
+    }
+    activeSection.value = current
+  }
+  window.addEventListener('scroll', scrollHandler, { passive: true })
+  // Recompute after initial render sizes settle
+  nextTick(() => scrollHandler && scrollHandler())
+  // If arriving with a hash (e.g., from dashboard pill), perform an adjusted scroll
+  if (window.location.hash) {
+    const id = window.location.hash.slice(1)
+    // Delay slightly to ensure child component rendered
+    setTimeout(() => scrollTo(id), 80)
+  }
+})
+onBeforeUnmount(() => {
+  if (scrollHandler) window.removeEventListener('scroll', scrollHandler)
+})
 </script>
 
 <style scoped></style>

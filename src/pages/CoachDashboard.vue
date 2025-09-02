@@ -10,16 +10,9 @@
           <p class="mt-2 text-sm text-gray-600">Vue d'ensemble de votre activité sur Coachiles.</p>
           <div v-if="completionReady && profileCompletion < 100" class="mt-4 max-w-md">
             <div class="flex items-center justify-between mb-1">
-              <span class="text-xs font-medium text-gray-700"
-                >Profil complété à {{ profileCompletion }}%</span
-              >
-              <button
-                v-if="missingSections.length"
-                @click="goToProfile"
-                class="text-xs font-medium text-blue-600 hover:text-blue-700"
-              >
-                Compléter
-              </button>
+              <span class="text-xs font-medium text-gray-700">
+                Profil complété à {{ profileCompletion }}%
+              </span>
             </div>
             <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200">
               <div
@@ -27,9 +20,28 @@
                 :style="{ width: profileCompletion + '%' }"
               />
             </div>
-            <p v-if="missingSections.length" class="mt-1 text-[11px] text-gray-500">
-              À faire: {{ missingSections.map(mapSectionLabel).join(', ') }}
-            </p>
+            <div v-if="missingSections.length" class="mt-2 flex flex-wrap gap-1">
+              <span
+                v-for="s in missingSections"
+                :key="s"
+                @click="goToMissing(s)"
+                class="inline-flex items-center px-2 py-0.5 rounded bg-blue-50 text-[11px] font-medium text-blue-700 cursor-pointer hover:bg-blue-100 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 relative group"
+                role="button"
+                tabindex="0"
+                @keydown.enter.prevent="goToMissing(s)"
+                @keydown.space.prevent="goToMissing(s)"
+                :aria-describedby="`${s}-tooltip`"
+              >
+                {{ mapSectionLabel(s) }}
+                <!-- Tooltip for each pill -->
+                <span
+                  :id="`${s}-tooltip`"
+                  class="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 z-20 px-2 py-1 rounded bg-gray-900 text-white text-[10px] font-normal whitespace-nowrap opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition"
+                >
+                  {{ missingSectionHint(s) }}
+                </span>
+              </span>
+            </div>
           </div>
         </div>
         <!-- Quick Actions -->
@@ -74,12 +86,14 @@
           :value="newLeadsCount"
           icon="leads"
           :loading="loadingLeads"
+          :onClick="goToProposals"
         />
         <KpiCard
           label="Services actifs"
           :value="activeServicesCount"
           icon="services"
           :loading="loadingServices"
+          :onClick="goToServices"
         />
         <KpiCard
           v-if="subscriptionStatusDisplay"
@@ -87,11 +101,13 @@
           :value="subscriptionStatusDisplay.value"
           :badge="subscriptionStatusDisplay.badge"
           icon="subscription"
+          :onClick="goToSubscription"
         />
         <KpiCard
           label="Note moyenne"
           :value="coach?.rating ? coach.rating.toFixed(1) + '★' : '—'"
           icon="rating"
+          :onClick="scrollToReviews"
         />
       </div>
 
@@ -157,7 +173,7 @@
           </template>
         </DashPanel>
         <!-- Reviews Panel (spans full width under two-column grid) -->
-        <div class="lg:col-span-2">
+        <div id="reviews-section" class="lg:col-span-2">
           <DashPanel title="Avis reçus" :loading="reviewsLoading">
             <template #default>
               <div class="space-y-4">
@@ -254,6 +270,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, defineComponent, h } from 'vue'
+import type { PropType } from 'vue'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useLeadStore } from '@/stores/leads'
@@ -274,6 +291,23 @@ interface LeadRowMinimal {
   status?: string
   client_name?: string
   goals?: string
+}
+// Minimal shape for coach completion checks
+interface CoachCompletionShape {
+  photo?: string | null
+  phone?: string | null
+  website?: string | null
+  instagram?: string | null
+  facebook?: string | null
+  bio?: string | null
+  specialties?: string[] | null
+  // legacy 'diplomas' not used; certifications represent diplomas
+  hourlyRate?: number | null
+  hourly_rate?: number | null
+  modalities?: { availabilityDays?: string[] } | null
+  certifications?: string[] | null
+  subscriptionStatus?: string | null
+  availability?: string | null
 }
 
 const authStore = useAuthStore()
@@ -319,18 +353,48 @@ const subscriptionStatusDisplay = computed(() => {
   }[status]
 })
 
+// Determine which profile sections are incomplete; used for progress/UI pills
 const missingSections = computed(() => {
-  const c = coach.value
-  if (!c) return [] as string[]
+  const c = coach.value as unknown as CoachCompletionShape | null
+  if (!c) return []
   const missing: string[] = []
+
+  // Photo
   if (!c.photo) missing.push('photo')
-  if (!c.bio) missing.push('bio')
-  if (!c.specialties || c.specialties.length === 0) missing.push('specialties')
+
+  // Contact: treat phone existence as sufficient (other fields not yet persisted in auth store)
+  const hasPhone = typeof c.phone === 'string' && c.phone.trim().length > 0
+  if (!hasPhone) missing.push('contact')
+
+  // Bio
+  if (!c.bio || !String(c.bio).trim()) missing.push('bio')
+
+  // Activity: require specialties AND at least one certification (treated as diplomas)
+  const specialtiesOk = Array.isArray(c.specialties) && c.specialties.length > 0
+  const certificationsOk = Array.isArray(c.certifications) && c.certifications.length > 0
+  if (!(specialtiesOk && certificationsOk)) missing.push('activity')
+
+  // Modalities: hourlyRate set (>0) AND at least one availability day
+  const hourly = Number(c.hourlyRate || c.hourly_rate || 0)
+  let availabilityDays: string[] = []
+  if (Array.isArray(c.modalities?.availabilityDays)) {
+    availabilityDays = [...(c.modalities?.availabilityDays as string[])].filter(Boolean)
+  } else if (typeof c.availability === 'string' && c.availability.trim()) {
+    availabilityDays = c.availability
+      .split(',')
+      .map((d: string) => d.trim())
+      .filter(Boolean)
+  }
+  const modalitiesOk = hourly > 0 && availabilityDays.length > 0
+  if (!modalitiesOk) missing.push('modalities')
+
+  // Service (keep existing logic: at least one active service configured)
   if (services.value.length === 0) missing.push('service')
+
   return missing
 })
 const profileCompletion = computed(() => {
-  const total = 4
+  const total = 6 // photo, contact, bio, activity, modalities, service
   return Math.round(((total - missingSections.value.length) / total) * 100)
 })
 
@@ -400,13 +464,28 @@ const ensureLeadsLoaded = async () => {
   }
 }
 
-const goToProfile = () => router.push('/coach/profile')
+// Map missing section keys to their destination routes (with in-page anchors where possible)
+const goToMissing = (key: string) => {
+  const map: Record<string, string> = {
+    photo: '/coach/profile#profile-photo-section',
+    contact: '/coach/profile#contact-section',
+    bio: '/coach/profile#bio-section',
+    activity: '/coach/profile#activity-section',
+    modalities: '/coach/profile#modalities-section',
+    service: '/coach/services',
+  }
+  router.push(map[key] || '/coach/profile')
+}
 const goToProposals = () => router.push('/coach/proposals')
 const goToServices = () => router.push('/coach/services')
 const goToSubscription = () => router.push('/coach/abonnement')
 const goToSettings = () => router.push('/coach/account')
 const goToFAQ = () => router.push('/faq')
 const goToContact = () => router.push('/contact')
+const scrollToReviews = () => {
+  const el = document.getElementById('reviews-section')
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 // Reviews
 interface CoachReviewRow {
@@ -505,10 +584,25 @@ const formatShortDate = (d: string) => d.slice(5).replace('-', '/')
 const mapSectionLabel = (s: string) =>
   ({
     photo: 'Photo',
+    contact: 'Contact',
     bio: 'Bio',
-    specialties: 'Spécialités',
+    activity: 'Activité',
+    modalities: 'Modalités',
     service: 'Premier service',
   })[s] || s
+
+// Tooltip hint per missing section
+const missingSectionHint = (s: string): string =>
+  (
+    ({
+      photo: 'Ajoutez une photo de profil.',
+      contact: 'Ajoutez un numéro de téléphone.',
+      bio: 'Rédigez une biographie.',
+      activity: 'Ajoutez spécialités et au moins une certification.',
+      modalities: 'Définissez tarif horaire + jours disponibles.',
+      service: 'Créez votre premier service.',
+    }) as Record<string, string>
+  )[s] || 'Compléter cette section.'
 
 const KpiCard = defineComponent({
   name: 'KpiCard',
@@ -518,6 +612,7 @@ const KpiCard = defineComponent({
     icon: { type: String, required: false },
     badge: { type: String, required: false },
     loading: { type: Boolean, default: false },
+    onClick: { type: Function as PropType<() => void>, required: false },
   },
   setup(props) {
     return () =>
@@ -525,7 +620,9 @@ const KpiCard = defineComponent({
         'div',
         {
           class:
-            'relative overflow-hidden rounded-lg border border-gray-200 bg-white p-5 shadow-sm flex flex-col',
+            'relative overflow-hidden rounded-lg border border-gray-200 bg-white p-5 shadow-sm flex flex-col ' +
+            (props.onClick ? 'cursor-pointer hover:bg-gray-50 transition' : ''),
+          onClick: props.onClick,
         },
         [
           h('div', { class: 'text-xs font-medium text-gray-500 mb-1 flex items-center gap-2' }, [
