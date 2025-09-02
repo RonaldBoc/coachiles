@@ -210,6 +210,20 @@
                     Paramètres
                   </router-link>
                 </MenuItem>
+                <MenuItem v-if="isSuperadmin" v-slot="{ active }">
+                  <a
+                    href="/superadmin"
+                    target="_blank"
+                    rel="noopener"
+                    :class="[
+                      active ? 'bg-gray-100' : '',
+                      'flex items-center px-4 py-2 text-sm text-gray-700',
+                    ]"
+                  >
+                    <ShieldCheckIcon class="mr-3 h-4 w-4 text-green-600" />
+                    Superadmin
+                  </a>
+                </MenuItem>
                 <MenuItem v-slot="{ active }">
                   <a
                     href="/"
@@ -344,6 +358,16 @@
           >
             Paramètres
           </router-link>
+          <a
+            v-if="isSuperadmin"
+            href="/superadmin"
+            target="_blank"
+            rel="noopener"
+            @click="showMobileMenu = false"
+            class="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          >
+            Superadmin
+          </a>
         </nav>
       </div>
     </div>
@@ -363,7 +387,9 @@ import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
+  ShieldCheckIcon,
 } from '@heroicons/vue/24/outline'
+import { AdminApi } from '@/services/supabaseAdminApi'
 import { useAuthStore } from '@/stores/auth'
 import { useLeadStore } from '@/stores/leads'
 
@@ -376,6 +402,7 @@ const leadStore = useLeadStore()
 
 // Component State
 const showMobileMenu = ref(false)
+const isSuperadmin = ref(false)
 
 // Computed
 const coach = computed(() => authStore.coach)
@@ -502,6 +529,9 @@ const handleClickOutside = (e: MouseEvent) => {
 }
 
 onMounted(() => {
+  AdminApi.isSuperadmin()
+    .then((ok) => (isSuperadmin.value = !!ok))
+    .catch(() => {})
   loadFromStorage()
   // If we have leads already and no known IDs persisted, seed them (without generating unread spam)
   if (previousLeadIds.value.size === 0 && leadStore.leads.length) {
