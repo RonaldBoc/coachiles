@@ -134,11 +134,27 @@
                     {{ coach?.lastName }}</template
                   >
                 </h1>
-                <div v-if="reviews.length > 0" class="flex items-center mb-2">
-                  <StarIcon class="w-5 h-5 text-yellow-400 fill-current" />
-                  <span class="ml-1 text-lg font-semibold text-gray-900">{{ coach?.rating }}</span>
+                <div
+                  v-if="reviews.length > 0"
+                  class="flex items-center mb-2 cursor-pointer select-none group"
+                  role="button"
+                  tabindex="0"
+                  aria-label="Voir les avis du coach"
+                  @click="scrollToReviews"
+                  @keydown.enter.prevent="scrollToReviews"
+                  @keydown.space.prevent="scrollToReviews"
+                >
+                  <StarIcon
+                    class="w-5 h-5 text-yellow-400 fill-current group-hover:scale-110 transition-transform"
+                  />
+                  <span
+                    class="ml-1 text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors"
+                    >{{ coach?.rating }}</span
+                  >
                   <span class="mx-2 text-gray-300">•</span>
-                  <span class="text-gray-600">{{ reviews.length }} avis</span>
+                  <span class="text-gray-600 group-hover:text-orange-600 transition-colors"
+                    >{{ reviews.length }} avis</span
+                  >
                 </div>
                 <p class="text-orange-600 font-medium">{{ coach?.location }}</p>
               </div>
@@ -632,7 +648,7 @@
           </div>
 
           <!-- Reviews Section -->
-          <div class="bg-white rounded-2xl shadow-lg p-8" v-if="coach">
+          <div ref="reviewsSection" class="bg-white rounded-2xl shadow-lg p-8" v-if="coach">
             <div class="flex items-center justify-between mb-6">
               <h2 class="text-2xl font-bold text-gray-900 flex items-center">
                 <StarIcon class="w-6 h-6 text-yellow-400 mr-2" /> Avis récents du coach
@@ -808,11 +824,27 @@
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">
                   {{ coach?.firstName }}
                 </h1>
-                <div v-if="reviews.length > 0" class="flex items-center justify-center mb-2">
-                  <StarIcon class="w-5 h-5 text-yellow-400 fill-current" />
-                  <span class="ml-1 text-lg font-semibold text-gray-900">{{ coach?.rating }}</span>
+                <div
+                  v-if="reviews.length > 0"
+                  class="flex items-center justify-center mb-2 cursor-pointer select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-md"
+                  role="button"
+                  tabindex="0"
+                  aria-label="Voir les avis du coach"
+                  @click="scrollToReviews"
+                  @keydown.enter.prevent="scrollToReviews"
+                  @keydown.space.prevent="scrollToReviews"
+                >
+                  <StarIcon
+                    class="w-5 h-5 text-yellow-400 fill-current transition-transform group-hover:scale-110"
+                  />
+                  <span
+                    class="ml-1 text-lg font-semibold text-gray-900 transition-colors group-hover:text-orange-600"
+                    >{{ coach?.rating }}</span
+                  >
                   <span class="mx-2 text-gray-300">•</span>
-                  <span class="text-gray-600">{{ reviews.length }} avis</span>
+                  <span class="text-gray-600 transition-colors group-hover:text-orange-600"
+                    >{{ reviews.length }} avis</span
+                  >
                 </div>
                 <p class="text-orange-600 font-medium">{{ coach?.location }}</p>
               </div>
@@ -2115,6 +2147,29 @@ const availabilityShortcut = computed(() => {
   if (weekdays.length === 5 && days.length === 5) return 'weekdays'
   return 'custom'
 })
+
+// New code starts here
+const reviewsSection = ref(null)
+
+function scrollToReviews() {
+  const el = reviewsSection.value as HTMLElement | null
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const elemTop = window.scrollY + rect.top
+  const elemHeight = rect.height
+  const vh = window.innerHeight
+  const headerH = headerHeight.value || (headerRef.value?.offsetHeight ?? 0)
+  const elementCenter = elemTop + elemHeight / 2
+  let target = elementCenter - (vh + headerH) / 2
+  if (target < 0) target = 0
+  const maxScroll = document.documentElement.scrollHeight - vh
+  if (target > maxScroll) target = maxScroll
+  window.scrollTo({ top: target, behavior: 'smooth' })
+  // Make section focusable for accessibility (without triggering extra scroll)
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1')
+  el.focus({ preventScroll: true })
+}
+// New code ends here
 </script>
 
 <style scoped>

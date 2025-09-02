@@ -325,13 +325,17 @@
                   >
                     Created
                   </th>
-                  <th class="px-3 py-2"></th>
                 </tr>
               </thead>
               <tbody
                 class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
               >
-                <tr v-for="c in filteredCoaches" :key="c.id">
+                <tr
+                  v-for="c in filteredCoaches"
+                  :key="c.id"
+                  @click="openCoach(c.id)"
+                  class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
                   <td class="px-3 py-2 text-sm text-gray-500">
                     {{ c.first_name || c.firstName }} {{ c.last_name || c.lastName }}
                   </td>
@@ -359,14 +363,6 @@
                     <span v-else>{{ c.subscription_type || '—' }}</span>
                   </td>
                   <td class="px-3 py-2 text-sm text-gray-500">{{ formatDate(c.created_at) }}</td>
-                  <td class="px-3 py-2 text-right">
-                    <button
-                      class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500"
-                      @click="openCoach(c.id)"
-                    >
-                      Manage
-                    </button>
-                  </td>
                 </tr>
               </tbody>
             </table>
@@ -694,64 +690,100 @@
   <div
     v-if="showCoachModal"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    @click.self="showCoachModal = false"
   >
     <div class="w-full max-w-2xl rounded-lg bg-white dark:bg-gray-800 shadow">
       <div class="flex items-center justify-between border-b px-4 py-3">
         <h3 class="text-base font-semibold text-gray-900 dark:text-white">Coach Details</h3>
         <button class="text-gray-500 hover:text-gray-700" @click="showCoachModal = false">✕</button>
       </div>
-      <div class="p-4 space-y-4" v-if="!detailsLoading">
-        <div class="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <div class="text-gray-500 dark:text-gray-400">Name</div>
-            <div class="font-medium text-gray-900 dark:text-gray-100">
-              {{ getCoachName(activeCoachId) }}
-            </div>
-          </div>
-          <div>
-            <div class="text-gray-500 dark:text-gray-400">Current Plan</div>
-            <div class="font-medium text-gray-900 dark:text-gray-100">
-              {{ coachDetails.subscription?.subscription_type || 'free' }}
-              <span
-                v-if="showDaysRemaining(coachDetails.subscription)"
-                class="ml-1 text-xs text-amber-600 dark:text-amber-400"
-              >
-                ({{ daysRemaining(coachDetails.subscription) }}d left)
-              </span>
-            </div>
-          </div>
-          <div>
-            <div class="text-gray-500 dark:text-gray-400">Account Status</div>
-            <div class="font-medium text-gray-900 dark:text-gray-100">
-              <span
-                :class="[
-                  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-                  coachIsActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
-                ]"
-              >
-                {{ coachIsActive ? 'Active' : 'Disabled' }}
-              </span>
-            </div>
-          </div>
-          <div v-if="!coachIsActive">
-            <div class="text-gray-500 dark:text-gray-400">Disabled Reason</div>
-            <div class="font-medium text-gray-900 dark:text-gray-100">
-              {{ disabledReason || '—' }}
-            </div>
-          </div>
-          <div>
-            <div class="text-gray-500 dark:text-gray-400">Current Period</div>
-            <div class="font-medium text-gray-900 dark:text-gray-100">
-              {{ formatDate(coachDetails.subscription?.current_period_start) }} →
-              {{ formatDate(coachDetails.subscription?.current_period_end) }}
-            </div>
-          </div>
+      <div
+        class="p-4 space-y-6 max-h-[80vh] overflow-y-auto relative"
+        v-if="!detailsLoading"
+        ref="coachModalScrollRef"
+        @scroll="onCoachModalScroll"
+      >
+        <!-- Sticky section navigation -->
+        <div
+          class="sticky top-0 z-10 -mx-4 px-4 py-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur border-b flex flex-wrap gap-2 text-[11px]"
+        >
+          <button
+            v-for="s in coachSectionNav"
+            :key="s.id"
+            @click="scrollToSection(s.id)"
+            class="px-2 py-1 rounded border text-xs font-medium hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+            :class="
+              activeCoachSection === s.id
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300'
+            "
+          >
+            {{ s.label }}
+          </button>
         </div>
 
-        <div class="mt-2 border-t pt-4">
-          <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Set Subscription
-          </h4>
+        <!-- Overview -->
+        <section
+          data-section="overview"
+          class="space-y-3"
+          @mouseenter="activeCoachSection = 'overview'"
+        >
+          <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Overview</h4>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <div class="text-gray-500 dark:text-gray-400">Name</div>
+              <div class="font-medium text-gray-900 dark:text-gray-100">
+                {{ getCoachName(activeCoachId) }}
+              </div>
+            </div>
+            <div>
+              <div class="text-gray-500 dark:text-gray-400">Current Plan</div>
+              <div class="font-medium text-gray-900 dark:text-gray-100">
+                {{ coachDetails.subscription?.subscription_type || 'free' }}
+                <span
+                  v-if="showDaysRemaining(coachDetails.subscription)"
+                  class="ml-1 text-xs text-amber-600 dark:text-amber-400"
+                >
+                  ({{ daysRemaining(coachDetails.subscription) }}d left)
+                </span>
+              </div>
+            </div>
+            <div>
+              <div class="text-gray-500 dark:text-gray-400">Account Status</div>
+              <div class="font-medium text-gray-900 dark:text-gray-100">
+                <span
+                  :class="[
+                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                    coachIsActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
+                  ]"
+                >
+                  {{ coachIsActive ? 'Active' : 'Disabled' }}
+                </span>
+              </div>
+            </div>
+            <div v-if="!coachIsActive">
+              <div class="text-gray-500 dark:text-gray-400">Disabled Reason</div>
+              <div class="font-medium text-gray-900 dark:text-gray-100">
+                {{ disabledReason || '—' }}
+              </div>
+            </div>
+            <div>
+              <div class="text-gray-500 dark:text-gray-400">Current Period</div>
+              <div class="font-medium text-gray-900 dark:text-gray-100">
+                {{ formatDate(coachDetails.subscription?.current_period_start) }} →
+                {{ formatDate(coachDetails.subscription?.current_period_end) }}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Subscription -->
+        <section
+          data-section="subscription"
+          class="border-t pt-4 space-y-3"
+          @mouseenter="activeCoachSection = 'subscription'"
+        >
+          <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Subscription</h4>
           <div class="flex flex-wrap items-end gap-3 mb-3">
             <label class="text-sm">
               <span class="mr-2">Plan</span>
@@ -786,10 +818,7 @@
               Save
             </button>
           </div>
-          <div
-            v-if="coachDetails.subscription?.subscription_type === 'premium'"
-            class="mt-2 space-y-2"
-          >
+          <div v-if="coachDetails.subscription?.subscription_type === 'premium'" class="space-y-2">
             <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">
               Cancel Premium Subscription
             </div>
@@ -826,10 +855,108 @@
               <p v-if="cancelSuccess" class="text-xs text-green-600">{{ cancelSuccess }}</p>
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- Coach Leads Section -->
-        <div class="mt-4 border-t pt-4">
+        <!-- Coach Data -->
+        <section
+          data-section="coach-data"
+          class="border-t pt-4"
+          v-if="coachDetails.coach"
+          @mouseenter="activeCoachSection = 'coach-data'"
+        >
+          <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Coach Data</h4>
+          <div class="grid grid-cols-2 gap-3 text-[11px]">
+            <template v-for="(val, key) in coachDetails.coach" :key="String(key)">
+              <div class="text-gray-500 dark:text-gray-400 break-words">{{ key }}</div>
+              <div class="font-medium text-gray-900 dark:text-gray-100 break-words">
+                <template v-if="typeof val === 'object'">{{ JSON.stringify(val) }}</template>
+                <template v-else>{{ String(val) }}</template>
+              </div>
+            </template>
+          </div>
+          <details class="mt-2 text-xs">
+            <summary class="cursor-pointer select-none text-indigo-600 dark:text-indigo-400">
+              Raw JSON
+            </summary>
+            <pre
+              class="mt-2 max-h-60 overflow-auto text-[10px] leading-snug bg-gray-100 dark:bg-gray-900/40 p-2 rounded"
+              >{{ JSON.stringify(coachDetails.coach, null, 2) }}</pre
+            >
+          </details>
+        </section>
+
+        <!-- Coach Services -->
+        <section
+          data-section="services"
+          class="border-t pt-4"
+          @mouseenter="activeCoachSection = 'services'"
+        >
+          <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Coach Services
+          </h4>
+          <div v-if="coachServicesError" class="text-xs text-red-600">{{ coachServicesError }}</div>
+          <div v-else>
+            <div v-if="!coachServices.length" class="text-xs text-gray-500">No services found.</div>
+            <div v-else class="overflow-x-auto max-h-64">
+              <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-[11px]">
+                <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                  <tr>
+                    <th class="px-2 py-1 text-left font-medium">Title</th>
+                    <th class="px-2 py-1 text-left font-medium">Category</th>
+                    <th class="px-2 py-1 text-left font-medium">Solo Price</th>
+                    <th class="px-2 py-1 text-left font-medium">Group Price</th>
+                    <th class="px-2 py-1 text-left font-medium">Duration</th>
+                    <th class="px-2 py-1 text-left font-medium">Flags</th>
+                    <th class="px-2 py-1 text-left font-medium">Active</th>
+                    <th class="px-2 py-1 text-left font-medium">Created</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tr v-for="svc in coachServices" :key="(svc as any).id">
+                    <td class="px-2 py-1 font-medium">{{ (svc as any).title }}</td>
+                    <td class="px-2 py-1">{{ (svc as any).category || '—' }}</td>
+                    <td class="px-2 py-1">{{ (svc as any).solo_price ?? '—' }}</td>
+                    <td class="px-2 py-1">{{ (svc as any).group_price ?? '—' }}</td>
+                    <td class="px-2 py-1">{{ (svc as any).duration ?? '—' }}</td>
+                    <td class="px-2 py-1 text-[10px]">
+                      <span v-if="(svc as any).can_be_online" class="mr-1">Online</span>
+                      <span v-if="(svc as any).can_be_at_home" class="mr-1">Home</span>
+                      <span v-if="(svc as any).can_be_in_public_spaces" class="mr-1">Public</span>
+                      <span v-if="(svc as any).has_free_trial" class="mr-1">Trial</span>
+                    </td>
+                    <td class="px-2 py-1">
+                      <span
+                        :class="
+                          (svc as any).is_active
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-red-600 dark:text-red-400'
+                        "
+                        >{{ (svc as any).is_active ? 'Yes' : 'No' }}</span
+                      >
+                    </td>
+                    <td class="px-2 py-1">{{ formatDate((svc as any).created_at) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <details class="mt-2 text-xs" v-if="coachServices.length">
+              <summary class="cursor-pointer select-none text-indigo-600 dark:text-indigo-400">
+                Raw Services JSON
+              </summary>
+              <pre
+                class="mt-2 max-h-60 overflow-auto text-[10px] leading-snug bg-gray-100 dark:bg-gray-900/40 p-2 rounded"
+                >{{ JSON.stringify(coachServices, null, 2) }}</pre
+              >
+            </details>
+          </div>
+        </section>
+
+        <!-- Coach Leads -->
+        <section
+          data-section="leads"
+          class="border-t pt-4"
+          @mouseenter="activeCoachSection = 'leads'"
+        >
           <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Coach Leads</h4>
           <div v-if="coachLeadsLoading" class="text-xs text-gray-500 dark:text-gray-400 mb-2">
             Loading leads…
@@ -884,9 +1011,8 @@
                     <td class="px-2 py-1">
                       <span
                         class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                        >{{ lead.status }}</span
                       >
-                        {{ lead.status }}
-                      </span>
                     </td>
                     <td class="px-2 py-1 text-gray-500 dark:text-gray-400">
                       {{ formatDate(lead.created_at) }}
@@ -898,9 +1024,8 @@
                             ? 'text-red-600 dark:text-red-400'
                             : 'text-green-600 dark:text-green-400'
                         "
+                        >{{ lead.is_hidden ? 'Yes' : 'No' }}</span
                       >
-                        {{ lead.is_hidden ? 'Yes' : 'No' }}
-                      </span>
                     </td>
                     <td class="px-2 py-1 text-right">
                       <button
@@ -928,9 +1053,14 @@
               </table>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="mt-4 border-t pt-4">
+        <!-- Activation -->
+        <section
+          data-section="activation"
+          class="border-t pt-4"
+          @mouseenter="activeCoachSection = 'activation'"
+        >
           <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
             Account Activation
           </h4>
@@ -959,7 +1089,7 @@
               Enable Coach
             </button>
           </div>
-        </div>
+        </section>
       </div>
       <div v-else class="p-6 text-sm text-gray-500">Loading…</div>
     </div>
@@ -968,6 +1098,7 @@
   <div
     v-if="showLeadModal"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    @click.self="showLeadModal = false"
   >
     <div class="w-full max-w-xl rounded-lg bg-white dark:bg-gray-800 shadow">
       <div class="flex items-center justify-between border-b px-4 py-3">
@@ -982,7 +1113,8 @@
         </h3>
         <button class="text-gray-500 hover:text-gray-700" @click="showLeadModal = false">✕</button>
       </div>
-      <div class="p-4 space-y-4 text-sm" v-if="leadDetails.lead">
+      <div class="p-4 space-y-6 text-sm max-h-[80vh] overflow-y-auto" v-if="leadDetails.lead">
+        <!-- Top Meta Grid -->
         <div class="grid grid-cols-2 gap-4">
           <div>
             <div class="text-gray-500 dark:text-gray-400">Client</div>
@@ -992,13 +1124,13 @@
           </div>
           <div>
             <div class="text-gray-500 dark:text-gray-400">Email</div>
-            <div class="font-medium text-gray-900 dark:text-gray-100">
+            <div class="font-medium text-gray-900 dark:text-gray-100 break-all">
               {{ leadDetails.lead.client_email as string }}
             </div>
           </div>
           <div>
             <div class="text-gray-500 dark:text-gray-400">Status</div>
-            <div class="font-medium text-gray-900 dark:text-gray-100">
+            <div class="font-medium capitalize text-gray-900 dark:text-gray-100">
               {{ leadDetails.lead.status as string }}
             </div>
           </div>
@@ -1008,26 +1140,195 @@
               {{ formatDate(leadDetails.lead.created_at as string) }}
             </div>
           </div>
+          <div v-if="leadDetails.lead.updated_at">
+            <div class="text-gray-500 dark:text-gray-400">Updated</div>
+            <div class="font-medium text-gray-900 dark:text-gray-100">
+              {{ formatDate(leadDetails.lead.updated_at as string) }}
+            </div>
+          </div>
+          <div v-if="leadDetails.lead.coach_id">
+            <div class="text-gray-500 dark:text-gray-400">Coach</div>
+            <div class="font-medium text-gray-900 dark:text-gray-100">
+              {{
+                getCoachName(leadDetails.lead.coach_id as string) ||
+                (leadDetails.lead.coach_id as string)
+              }}
+            </div>
+          </div>
           <div v-if="leadDetails.lead.original_lead_id">
             <div class="text-gray-500 dark:text-gray-400">Original Lead ID</div>
-            <div class="font-mono text-[11px] break-all text-gray-800 dark:text-gray-200">
+            <div class="font-mono text-[11px] break-all">
               {{ leadDetails.lead.original_lead_id as string }}
             </div>
           </div>
           <div v-if="leadDetails.lead.original_coach_id">
             <div class="text-gray-500 dark:text-gray-400">Original Coach ID</div>
-            <div class="font-mono text-[11px] break-all text-gray-800 dark:text-gray-200">
+            <div class="font-mono text-[11px] break-all">
               {{ leadDetails.lead.original_coach_id as string }}
             </div>
           </div>
+          <div v-if="leadDetails.lead.is_hidden !== undefined">
+            <div class="text-gray-500 dark:text-gray-400">Hidden</div>
+            <div
+              :class="
+                (leadDetails.lead.is_hidden as boolean)
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-green-600 dark:text-green-400'
+              "
+            >
+              {{ (leadDetails.lead.is_hidden as boolean) ? 'Yes' : 'No' }}
+            </div>
+          </div>
+          <div v-if="leadDetails.lead.do_not_contact !== undefined">
+            <div class="text-gray-500 dark:text-gray-400">Do Not Contact</div>
+            <div
+              :class="
+                (leadDetails.lead.do_not_contact as boolean)
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-green-600 dark:text-green-400'
+              "
+            >
+              {{ (leadDetails.lead.do_not_contact as boolean) ? 'Yes' : 'No' }}
+            </div>
+          </div>
         </div>
+
+        <!-- Goals / Message -->
+        <div
+          v-if="leadDetails.lead.goals || leadDetails.lead.additional_info"
+          class="border-t pt-4 space-y-4"
+        >
+          <div v-if="leadDetails.lead.goals">
+            <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Goals</h4>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line text-xs leading-relaxed">
+              {{ leadDetails.lead.goals as string }}
+            </p>
+          </div>
+          <div v-if="leadDetails.lead.additional_info">
+            <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+              Client Message
+            </h4>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line text-xs leading-relaxed">
+              {{ leadDetails.lead.additional_info as string }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Parsed Availability / Timeframe -->
+        <div
+          v-if="leadDetails.lead.start_timeframe || leadDetails.lead.availability_days"
+          class="border-t pt-4 grid grid-cols-2 gap-4"
+        >
+          <div v-if="leadDetails.lead.start_timeframe">
+            <div class="text-gray-500 dark:text-gray-400">Start Timeframe</div>
+            <div class="font-medium text-gray-900 dark:text-gray-100">
+              {{ leadDetails.lead.start_timeframe as string }}
+            </div>
+          </div>
+          <div v-if="leadDetails.lead.availability_days">
+            <div class="text-gray-500 dark:text-gray-400">Availability Days</div>
+            <div class="font-medium text-gray-900 dark:text-gray-100 text-xs">
+              {{
+                Array.isArray(leadDetails.lead.availability_days)
+                  ? (leadDetails.lead.availability_days as string[]).join(', ')
+                  : (leadDetails.lead.availability_days as string)
+              }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div v-if="leadDetails.lead.location" class="border-t pt-4">
+          <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Location</h4>
+          <div class="text-xs text-gray-700 dark:text-gray-300">
+            <template v-if="parsedLeadLocation">
+              <div class="font-medium">
+                {{ parsedLeadLocation.city
+                }}<span v-if="parsedLeadLocation.region">, {{ parsedLeadLocation.region }}</span
+                ><span v-if="parsedLeadLocation.country"> ({{ parsedLeadLocation.country }})</span>
+              </div>
+              <div
+                v-if="parsedLeadLocation.raw"
+                class="text-[10px] mt-1 text-gray-500 dark:text-gray-400 break-all"
+              >
+                Raw: {{ parsedLeadLocation.raw }}
+              </div>
+            </template>
+            <template v-else>
+              <div class="break-all">{{ leadDetails.lead.location as string }}</div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Chosen Services -->
+        <div v-if="leadDetails.lead.chosen_services" class="border-t pt-4">
+          <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Chosen Services
+          </h4>
+          <div class="space-y-2">
+            <template v-for="(svc, idx) in parsedChosenServices" :key="idx">
+              <div
+                class="rounded border border-gray-200 dark:border-gray-700 p-2 bg-gray-50 dark:bg-gray-700/30"
+              >
+                <div
+                  class="flex justify-between text-xs font-medium text-gray-800 dark:text-gray-200"
+                >
+                  <span>{{ svc.title || 'Service' }}</span>
+                  <span
+                    v-if="svc.modality"
+                    class="text-[10px] px-1 rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-600/30 dark:text-indigo-300"
+                    >{{ svc.modality }}</span
+                  >
+                </div>
+                <div
+                  v-if="svc.frequency || svc.duration"
+                  class="mt-1 text-[11px] text-gray-500 flex flex-wrap gap-x-2"
+                >
+                  <span v-if="svc.frequency">Freq: {{ svc.frequency }}</span>
+                  <span v-if="svc.duration">Durée: {{ svc.duration }}m</span>
+                </div>
+                <div v-if="svc.days && svc.days.length" class="mt-1 text-[11px] text-gray-500">
+                  Jours: {{ svc.days.join(', ') }}
+                </div>
+                <div
+                  v-if="svc.locations && svc.locations.length"
+                  class="mt-1 text-[11px] text-gray-500"
+                >
+                  Lieux: {{ svc.locations.join(', ') }}
+                </div>
+                <div v-if="svc.notes" class="mt-1 text-[11px] text-gray-500 whitespace-pre-line">
+                  {{ svc.notes }}
+                </div>
+              </div>
+            </template>
+            <div v-if="!parsedChosenServices.length" class="text-xs text-gray-500 italic">
+              No parsable services data.
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw Data (debug) -->
+        <details class="border-t pt-4 group">
+          <summary
+            class="cursor-pointer text-xs font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-1 select-none"
+          >
+            <span class="group-open:rotate-90 inline-block transition-transform">▶</span>
+            Raw Lead Object
+          </summary>
+          <pre
+            class="mt-2 max-h-60 overflow-auto text-[10px] leading-snug bg-gray-100 dark:bg-gray-900/40 p-2 rounded"
+            >{{ prettyLead }}</pre
+          >
+        </details>
+
+        <!-- Duplication Section -->
         <div class="border-t pt-4">
           <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
             Duplicate Lead To Other Coaches
           </h4>
           <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            Select one or more coaches to create a new copy of this lead assigned to them. The
-            duplicated leads will start in status "new". The original lead stays unchanged.
+            Select one or more coaches to create a new copy of this lead assigned to them.
+            Duplicated leads start with status "new". Original remains unchanged.
           </p>
           <div class="space-y-2">
             <div class="flex flex-wrap gap-2 max-h-40 overflow-auto pr-1">
@@ -1163,6 +1464,92 @@ const duplicatingLead = ref(false)
 const coachMap = ref<Map<string, string>>(new Map())
 const coachSubs = ref<Map<string, CoachSubscriptionSummary>>(new Map())
 
+// --- Lead detail parsing helpers ---
+interface ParsedService {
+  title: string
+  modality: string
+  frequency: string
+  duration: string | number
+  days: string[]
+  locations: string[]
+  notes: string
+}
+
+const parsedLeadLocation = computed(() => {
+  const raw = (leadDetails.value.lead?.location as string | undefined) || ''
+  if (!raw) return null
+  try {
+    const obj = typeof raw === 'string' ? JSON.parse(raw) : raw
+    if (obj && typeof obj === 'object') {
+      return {
+        city: obj.city || obj.town || obj.ville || '',
+        region: obj.region || obj.state || obj.departement || '',
+        country: obj.country || obj.pays || '',
+        raw: raw.length > 160 ? raw.slice(0, 160) + '…' : raw,
+      }
+    }
+  } catch {
+    return { city: '', region: '', country: '', raw }
+  }
+  return null
+})
+
+const parsedChosenServices = computed<ParsedService[]>(() => {
+  const raw = leadDetails.value.lead?.chosen_services as unknown
+  if (!raw) return []
+  let data: unknown
+  try {
+    if (typeof raw === 'string') data = JSON.parse(raw)
+    else data = raw
+  } catch {
+    return []
+  }
+  if (!Array.isArray(data)) return []
+  // Normalize basic fields
+  return (data as Record<string, unknown>[]).map((s) => {
+    const anyS = s as Record<string, unknown>
+    const getStr = (...keys: string[]): string => {
+      for (const k of keys) {
+        const v = anyS[k]
+        if (typeof v === 'string' && v.trim()) return v
+      }
+      return ''
+    }
+    const daysRaw = anyS['days']
+    const locRaw = anyS['locations']
+    const toList = (val: unknown): string[] => {
+      if (Array.isArray(val)) return val.filter((x) => typeof x === 'string') as string[]
+      if (typeof val === 'string')
+        return val
+          .split(/[;,]/)
+          .map((d) => d.trim())
+          .filter(Boolean)
+      return []
+    }
+    const duration = ((): string | number => {
+      for (const k of ['duration', 'length', 'minutes']) {
+        const v = anyS[k]
+        if (typeof v === 'number') return v
+        if (typeof v === 'string' && v.trim()) return v
+      }
+      return ''
+    })()
+    return {
+      title: getStr('title', 'name', 'service'),
+      modality: getStr('modality', 'mode', 'type'),
+      frequency: getStr('frequency', 'freq'),
+      duration,
+      days: toList(daysRaw),
+      locations: toList(locRaw),
+      notes: getStr('notes', 'comment', 'description'),
+    }
+  })
+})
+
+const prettyLead = computed(() => {
+  return JSON.stringify(leadDetails.value.lead, null, 2)
+})
+
 const deletionLogs = ref<DeletionLogRow[]>([])
 const deletionLogsError = ref<string | null>(null)
 
@@ -1232,6 +1619,9 @@ const coachDetails = ref<{
   subscription: CoachSubscriptionSummary | null
   payments: PaymentRow[]
 }>({ coach: null, subscription: null, payments: [] })
+// Coach services (admin)
+const coachServices = ref<unknown[]>([])
+const coachServicesError = ref<string | null>(null)
 const coachLeads = ref<AdminLead[]>([]) // added
 const coachLeadsLoading = ref(false) // added
 const coachLeadsError = ref<string | null>(null) // added
@@ -1253,6 +1643,37 @@ const disabledReason = computed(() => {
   const c = coaches.value.find((x) => x.id === activeCoachId.value)
   return c?.disabled_reason ?? null
 })
+
+// Coach modal section navigation
+const coachSectionNav = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'subscription', label: 'Subscription' },
+  { id: 'coach-data', label: 'Coach Data' },
+  { id: 'services', label: 'Services' },
+  { id: 'leads', label: 'Leads' },
+  { id: 'activation', label: 'Activation' },
+]
+const activeCoachSection = ref<string>('overview')
+const coachModalScrollRef = ref<HTMLElement | null>(null)
+function scrollToSection(id: string) {
+  const root = coachModalScrollRef.value
+  if (!root) return
+  const el = root.querySelector(`[data-section="${id}"]`) as HTMLElement | null
+  if (!el) return
+  const top = el.offsetTop - 8 // small offset for sticky header
+  root.scrollTo({ top, behavior: 'smooth' })
+}
+function onCoachModalScroll() {
+  const root = coachModalScrollRef.value
+  if (!root) return
+  const sections = Array.from(root.querySelectorAll('[data-section]')) as HTMLElement[]
+  const scrollPos = root.scrollTop + 60 // account for sticky nav height
+  let current = 'overview'
+  for (const s of sections) {
+    if (s.offsetTop <= scrollPos) current = s.dataset.section || current
+  }
+  activeCoachSection.value = current
+}
 
 function showDaysRemaining(sub?: CoachSubscriptionSummary | null) {
   if (!sub) return false
@@ -1410,6 +1831,12 @@ async function openCoach(coachId: string) {
     coachLeads.value = leadsRes.data
   }
   coachLeadsLoading.value = false
+  // Load services
+  coachServicesError.value = null
+  coachServices.value = []
+  const svc = await AdminApi.getCoachServices(coachId)
+  if (svc.error) coachServicesError.value = svc.error
+  else coachServices.value = svc.data
 }
 
 async function saveSubscription() {

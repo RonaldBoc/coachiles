@@ -360,6 +360,82 @@ export const AdminApi = {
       }
     }
   },
+  async getCoachServices(coachId: string): Promise<{
+    data: {
+      id: string
+      coach_id: string
+      title: string
+      description: string | null
+      can_be_solo: boolean
+      can_be_group: boolean
+      solo_price: number | null
+      group_price: number | null
+      solo_price_unit?: string | null
+      group_price_unit?: string | null
+      category: string | null
+      sub_category: string | null
+      domain: string | null
+      duration: number | null
+      can_be_at_home: boolean | null
+      can_be_online: boolean | null
+      can_be_in_public_spaces: boolean | null
+      custom_place: unknown | null
+      has_free_trial: boolean | null
+      free_trial_modalities: string | null
+      cancellation_policy: string | null
+      use_profile_availability: boolean | null
+      custom_availability: unknown | null
+      is_active: boolean | null
+      created_at: string | null
+      updated_at: string | null
+    }[]
+    error?: string
+  }> {
+    try {
+      if (this._superadminCache === null) await this.isSuperadmin()
+      if (!this._superadminCache) throw new Error('forbidden')
+      // Fetch all services (active & inactive) for fuller picture
+      const { data, error } = await supabase
+        .from('coach_services')
+        .select('*')
+        .eq('coach_id', coachId)
+        .order('created_at', { ascending: false })
+        .limit(200)
+      if (error) throw error
+      return {
+        data: (data || []) as unknown as {
+          id: string
+          coach_id: string
+          title: string
+          description: string | null
+          can_be_solo: boolean
+          can_be_group: boolean
+          solo_price: number | null
+          group_price: number | null
+          solo_price_unit?: string | null
+          group_price_unit?: string | null
+          category: string | null
+          sub_category: string | null
+          domain: string | null
+          duration: number | null
+          can_be_at_home: boolean | null
+          can_be_online: boolean | null
+          can_be_in_public_spaces: boolean | null
+          custom_place: unknown | null
+          has_free_trial: boolean | null
+          free_trial_modalities: string | null
+          cancellation_policy: string | null
+          use_profile_availability: boolean | null
+          custom_availability: unknown | null
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }[],
+      }
+    } catch (err) {
+      return { data: [], error: err instanceof Error ? err.message : 'Failed to load services' }
+    }
+  },
   async setCoachSubscription(
     coachId: string,
     planType: 'free' | 'premium',
