@@ -8,7 +8,7 @@
             Bonjour, <span>{{ coach?.firstName }}</span>
           </h1>
           <p class="mt-2 text-sm text-gray-600">Vue d'ensemble de votre activité sur Coachiles.</p>
-          <div v-if="profileCompletion < 100" class="mt-4 max-w-md">
+          <div v-if="completionReady && profileCompletion < 100" class="mt-4 max-w-md">
             <div class="flex items-center justify-between mb-1">
               <span class="text-xs font-medium text-gray-700"
                 >Profil complété à {{ profileCompletion }}%</span
@@ -253,7 +253,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, defineComponent, h } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, defineComponent, h } from 'vue'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useLeadStore } from '@/stores/leads'
@@ -285,6 +285,7 @@ const services = ref<DashboardService[]>([])
 const loadingServices = ref(false)
 const loadingLeads = ref(false)
 const leadTrendRaw = ref<LeadRowMinimal[]>([])
+const completionReady = ref(false)
 
 const coach = computed(() => authStore.coach)
 const activeServicesCount = computed(() => services.value.length)
@@ -348,6 +349,8 @@ const leadTrend = computed(() => {
 })
 const maxLeadTrend = computed(() => Math.max(1, ...leadTrend.value.map((d) => d.count)))
 
+let completionDelayTimer: number | null = null
+
 const fetchServices = async () => {
   if (loadingServices.value) return
   loadingServices.value = true
@@ -362,6 +365,18 @@ const fetchServices = async () => {
     console.warn('Failed to load services', e)
   } finally {
     loadingServices.value = false
+    // Delay showing the completion bar by 5s if profile incomplete
+    if (completionDelayTimer) {
+      clearTimeout(completionDelayTimer)
+    }
+    if (profileCompletion.value < 100) {
+      completionDelayTimer = window.setTimeout(() => {
+        completionReady.value = true
+      }, 3000)
+    } else {
+      // Even if complete we can mark ready immediately (bar won't render anyway)
+      completionReady.value = true
+    }
   }
 }
 const fetchLeadTrend = async () => {
@@ -567,6 +582,10 @@ onMounted(async () => {
   await fetchServices()
   await fetchLeadTrend()
   await loadMyReviews()
+})
+
+onBeforeUnmount(() => {
+  if (completionDelayTimer) clearTimeout(completionDelayTimer)
 })
 </script>
 
