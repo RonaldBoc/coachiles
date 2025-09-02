@@ -50,76 +50,168 @@
         </p>
       </div>
 
-      <!-- Search Bar -->
-      <div class="max-w-2xl mx-auto mb-12">
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-            <svg
-              v-if="!isLoading"
-              class="h-6 w-6 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      <!-- Compact Search + Country Chips Row -->
+      <div class="max-w-3xl mx-auto mb-12">
+        <div class="flex flex-wrap gap-3 justify-center items-center">
+          <!-- Expanding Search Control -->
+          <div ref="searchContainerRef" class="relative">
+            <div
+              :class="[
+                'group flex items-center border-2 rounded-full bg-white shadow-sm transition-all duration-300 overflow-hidden',
+                isSearchOpen
+                  ? 'w-full md:w-72 px-3 py-2 border-orange-300'
+                  : 'w-12 h-12 justify-center border-gray-200 hover:border-orange-300 cursor-pointer',
+              ]"
+              @click="handleSearchWrapperClick"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <!-- Loading spinner when searching -->
-            <svg
-              v-else
-              class="animate-spin h-6 w-6 text-orange-500"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
+              <!-- Icon -->
+              <svg
+                class="h-5 w-5 text-gray-500 flex-shrink-0 transition-colors duration-300 group-hover:text-orange-500"
+                fill="none"
                 stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <!-- Selected specialty chip -->
+              <span
+                v-if="isSearchOpen && selectedSpecialty"
+                class="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium"
+                @click.stop
+              >
+                {{ selectedSpecialty }}
+                <button
+                  type="button"
+                  class="ml-1 hover:text-orange-900"
+                  aria-label="Retirer la spécialité"
+                  @click.stop="removeSelectedSpecialtyChip"
+                >
+                  ✕
+                </button>
+              </span>
+              <!-- Input (appears only when open) -->
+              <input
+                v-if="isSearchOpen && !selectedSpecialty"
+                ref="searchInputRef"
+                v-model="searchQuery"
+                type="text"
+                inputmode="search"
+                placeholder="Filtrer les spécialités..."
+                class="ml-3 flex-1 bg-transparent outline-none text-base md:text-sm font-medium placeholder-gray-400"
+                @keydown.esc.stop.prevent="closeSearch"
+                @click.stop
+              />
+              <!-- Close button inside when open -->
+              <button
+                v-if="isSearchOpen && !selectedSpecialty && searchQuery"
+                @click.stop="clearSearchQuery"
+                class="ml-2 text-gray-400 hover:text-gray-600 transition-colors"
+                type="button"
+                aria-label="Effacer"
+              >
+                ✕
+              </button>
+            </div>
+            <!-- Dropdown Panel -->
+            <transition name="fade">
+              <div
+                v-if="isSearchOpen && showDropdown"
+                class="absolute left-0 mt-2 w-80 max-h-80 overflow-y-auto bg-white rounded-2xl shadow-lg border border-gray-100 p-3 z-50"
+                @click.stop
+              >
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-xs font-semibold uppercase tracking-wide text-gray-500"
+                    >Spécialités ({{ filteredSpecialtyCount }})</span
+                  >
+                  <button
+                    type="button"
+                    class="text-xs text-orange-600 hover:underline"
+                    v-if="selectedSpecialty"
+                    @click="clearSelectedSpecialty"
+                  >
+                    Réinitialiser
+                  </button>
+                </div>
+                <ul class="space-y-3">
+                  <li v-for="group in groupedFilteredSpecialties" :key="group.category">
+                    <p
+                      class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1 px-1"
+                    >
+                      {{ group.category }}
+                    </p>
+                    <ul class="space-y-1">
+                      <li
+                        v-for="spec in group.specialties"
+                        :key="group.category + '-' + spec"
+                        @click="selectSpecialtyFromDropdown(spec)"
+                        :class="[
+                          'px-3 py-2 rounded-xl text-sm flex items-center gap-2 cursor-pointer transition-colors',
+                          selectedSpecialty === spec
+                            ? 'bg-orange-100 text-orange-700 font-semibold'
+                            : 'hover:bg-orange-50 text-gray-700',
+                        ]"
+                      >
+                        <span class="flex-1">{{ spec }}</span>
+                        <svg
+                          v-if="selectedSpecialty === spec"
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4 text-orange-600"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="3"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </li>
+                    </ul>
+                  </li>
+                  <li
+                    v-if="groupedFilteredSpecialties.length === 0"
+                    class="px-3 py-6 text-center text-xs text-gray-400"
+                  >
+                    Aucune spécialité trouvée
+                  </li>
+                </ul>
+                <div class="mt-3 border-t pt-3">
+                  <p class="text-[11px] leading-snug text-gray-400">
+                    Tapez pour filtrer les spécialités ou sélectionnez-en une pour appliquer le
+                    filtre.
+                  </p>
+                </div>
+              </div>
+            </transition>
           </div>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Recherchez par nom, spécialité, ou ville..."
-            class="w-full pl-14 pr-6 py-5 text-lg border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-orange-200 focus:border-orange-400 bg-white shadow-lg placeholder-gray-400 font-medium"
-          />
-        </div>
-        <!-- Country Filter Chips -->
-        <div class="mt-4 flex flex-wrap gap-3 justify-center">
+
+          <!-- Country Filter Chips -->
           <button
             v-for="c in countryChips"
             :key="c.code"
             type="button"
             @click="toggleCountry(c.code)"
             :class="[
-              'px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all duration-200 flex items-center gap-2',
+              'px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold border-2 transition-all duration-200 flex items-center gap-2',
               selectedCountry === c.code
                 ? 'bg-gradient-to-r from-orange-500 to-blue-600 text-white border-transparent shadow'
                 : 'bg-white text-gray-700 border-gray-200 hover:border-orange-300 hover:text-gray-900',
             ]"
           >
-            <span>{{ c.emoji }}</span>
+            <span class="text-base md:text-lg">{{ c.emoji }}</span>
             <span>{{ c.label }}</span>
           </button>
         </div>
       </div>
 
       <!-- Category Stickers Bar (dynamic based on coaches' actual specialties) -->
-      <div class="mb-16" v-if="specialtyOptions.length">
+      <div class="mb-12" v-if="specialtyOptions.length">
+        <h2 class="text-base md:text-lg font-bold text-gray-800 tracking-tight mb-1">
+          Catégories populaires
+        </h2>
         <div
           class="overflow-x-auto scrollbar-hide select-none"
           ref="specialtyScrollRef"
@@ -132,11 +224,11 @@
           @touchend="onSpecialtyDragEnd"
           :class="isSpecialtyDragging ? 'cursor-grabbing' : 'cursor-grab'"
         >
-          <div class="flex space-x-4 pb-4 w-max min-w-full pt-4">
+          <div class="flex space-x-3 md:space-x-4 w-max min-w-full pt-2 pb-3 md:pt-4 md:pb-4">
             <button
               @click="selectedSpecialty = ''"
               :class="[
-                'flex-shrink-0 px-6 py-3 rounded-full font-bold text-sm transition-all duration-200 transform hover:scale-105',
+                'flex-shrink-0 px-4 py-2 md:px-6 md:py-3 rounded-full font-bold text-xs md:text-sm transition-all duration-200 transform hover:scale-105',
                 selectedSpecialty === ''
                   ? 'bg-gradient-to-r from-orange-500 to-blue-600 text-white shadow-lg'
                   : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-orange-300',
@@ -149,7 +241,7 @@
               :key="spec.name"
               @click="selectedSpecialty = spec.name"
               :class="[
-                'flex-shrink-0 px-6 py-3 rounded-full font-bold text-sm transition-all duration-200 transform hover:scale-105 whitespace-nowrap',
+                'flex-shrink-0 px-4 py-2 md:px-6 md:py-3 rounded-full font-bold text-xs md:text-sm transition-all duration-200 transform hover:scale-105 whitespace-nowrap',
                 selectedSpecialty === spec.name
                   ? 'bg-gradient-to-r from-orange-500 to-blue-600 text-white shadow-lg'
                   : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-orange-300',
@@ -164,30 +256,37 @@
 
       <!-- Results Count -->
       <div class="flex justify-between items-center mb-8">
-        <p class="text-lg text-gray-600 font-medium">
+        <p class="text-sm md:text-lg text-gray-600 font-medium">
           <template v-if="isLoading && coaches.length === 0">
             <span class="animate-pulse bg-gray-200 rounded w-40 h-6 inline-block"></span>
           </template>
           <template v-else>
             {{ filteredCoaches.length }} coach{{ filteredCoaches.length > 1 ? 'es' : '' }}
-            {{ selectedSpecialty ? `en ${selectedSpecialty}` : 'disponibles' }}
+            <template v-if="selectedSpecialty">en {{ selectedSpecialty }}</template>
+            <template v-else>disponible{{ filteredCoaches.length > 1 ? 's' : '' }}</template>
+            <template v-if="selectedCountry"> en {{ displayCountry }}</template>
           </template>
         </p>
-        <div class="flex items-center space-x-3">
-          <span class="text-sm text-gray-500 font-medium">Trier par:</span>
-          <select
-            v-model="sortBy"
-            class="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-orange-200 focus:border-orange-400 bg-white"
+        <div>
+          <button
+            type="button"
+            @click="clearFilters"
+            :disabled="!hasActiveFilters"
+            class="px-4 py-2 rounded-full text-xs md:text-sm font-medium border-2 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            :class="
+              hasActiveFilters
+                ? 'border-orange-300 text-orange-600 hover:bg-orange-50'
+                : 'border-gray-200 text-gray-400'
+            "
+            aria-label="Réinitialiser les filtres"
           >
-            <option value="rating">⭐ Note</option>
-            <option value="experience">🎯 Expérience</option>
-            <option value="name">📝 Nom</option>
-          </select>
+            Réinitialiser
+          </button>
         </div>
       </div>
 
       <!-- Coach Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-5 sm:px-0">
         <!-- Loading skeleton cards -->
         <template v-if="isLoading && coaches.length === 0">
           <div
@@ -400,6 +499,7 @@ import { useRouter } from 'vue-router'
 import { StarIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
 import { useCoachStore } from '@/stores/coach'
+import { SPECIALTY_OPTIONS } from '@/constants/coachOptions'
 import { supabase } from '@/utils/supabase'
 
 // Router
@@ -419,6 +519,98 @@ const measureHeader = () => {
 
 const coaches = ref<Coach[]>([])
 const searchQuery = ref('')
+// Compact expanding search UI state
+const isSearchOpen = ref(false)
+const showDropdown = ref(false)
+const searchContainerRef = ref<HTMLElement | null>(null)
+const searchInputRef = ref<HTMLInputElement | null>(null)
+// Grouped specialty options (categories + specialties) for dropdown
+// Helper: accent/diacritic-insensitive normalization
+const normalizeStr = (str: string) =>
+  str
+    .normalize('NFD') // split accented characters
+    .replace(/\p{Diacritic}/gu, '') // remove all diacritic marks (Unicode property class)
+    .toLowerCase()
+
+const groupedFilteredSpecialties = computed(() => {
+  const raw = searchQuery.value.trim()
+  const q = normalizeStr(raw)
+  return SPECIALTY_OPTIONS.map((group) => {
+    const specs = q
+      ? group.specialties.filter((s) => normalizeStr(s).includes(q))
+      : group.specialties.slice()
+    return { category: group.category, specialties: specs }
+  }).filter((g) => g.specialties.length > 0)
+})
+const filteredSpecialtyCount = computed(() =>
+  groupedFilteredSpecialties.value.reduce((acc, g) => acc + g.specialties.length, 0),
+)
+
+const openSearch = () => {
+  if (!isSearchOpen.value) {
+    isSearchOpen.value = true
+    nextTick(() => searchInputRef.value?.focus())
+  }
+}
+const closeSearch = () => {
+  isSearchOpen.value = false
+}
+const handleSearchWrapperClick = () => {
+  if (!isSearchOpen.value) {
+    openSearch()
+    showDropdown.value = true
+    return
+  }
+  // If already open and no dropdown (chip mode), reopen dropdown to change selection
+  if (isSearchOpen.value && !showDropdown.value) {
+    if (!selectedSpecialty.value) {
+      showDropdown.value = true
+      nextTick(() => searchInputRef.value?.focus())
+    } else {
+      // Click when chip present: open dropdown to change
+      showDropdown.value = true
+      // Show input by clearing selectedSpecialty? Keep specialty; allow selecting another directly
+    }
+  }
+}
+const clearSearchQuery = () => {
+  searchQuery.value = ''
+  nextTick(() => searchInputRef.value?.focus())
+}
+const clearSelectedSpecialty = () => {
+  selectedSpecialty.value = ''
+  // Re-trigger search after clearing
+  debouncedSearch(searchQuery.value, selectedSpecialty.value, sortBy.value)
+  showDropdown.value = true
+  nextTick(() => searchInputRef.value?.focus())
+}
+const removeSelectedSpecialtyChip = () => {
+  clearSelectedSpecialty()
+}
+const selectSpecialtyFromDropdown = (spec: string) => {
+  selectedSpecialty.value = spec
+  searchQuery.value = '' // reset filter text
+  showDropdown.value = false // keep bar open, hide dropdown
+  debouncedSearch('', selectedSpecialty.value, sortBy.value)
+}
+// No commitSearch: typing doesn't trigger backend fetch; only selecting specialty does
+
+// Click outside to close search (but keep country chips intact)
+const onClickOutside = (e: MouseEvent) => {
+  if (!isSearchOpen.value) return
+  const target = e.target as HTMLElement
+  if (searchContainerRef.value && !searchContainerRef.value.contains(target)) {
+    if (showDropdown.value) {
+      showDropdown.value = false
+      return
+    }
+    // If no specialty selected, allow closing fully
+    if (!selectedSpecialty.value) {
+      closeSearch()
+    }
+  }
+}
+document.addEventListener('click', onClickOutside)
 const selectedSpecialty = ref('')
 // Country (territory) filter (single select for now)
 const selectedCountry = ref<string>('')
@@ -501,6 +693,13 @@ const specialtyOptions = computed(() => {
     .slice()
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
     .map((item) => ({ ...item, emoji: specialtyEmojiMap[item.name] || '⭐' }))
+})
+
+// Human-readable country label for result count
+const displayCountry = computed(() => {
+  if (!selectedCountry.value) return ''
+  const found = countryChips.find((c) => c.code === selectedCountry.value)
+  return found ? found.label : selectedCountry.value
 })
 
 // Fetch all active coaches specialties once (or on demand) for stable category list
@@ -614,19 +813,23 @@ const isCoachCertified = (coachId: string): boolean => {
   return coachSubscriptions.value.get(coachId) || false
 }
 
-// Computed - return coaches from store, apply client-side country filter fallback (in case backend territory filter fails)
+// Computed - apply client-side country & specialty filters (robust if backend misses specialty)
 const filteredCoaches = computed(() => {
-  if (!selectedCountry.value) return coaches.value
-  return coaches.value.filter((c) => c.territory === selectedCountry.value)
+  return coaches.value.filter((c) => {
+    if (selectedCountry.value && c.territory !== selectedCountry.value) return false
+    if (selectedSpecialty.value && !c.specialties?.includes(selectedSpecialty.value)) return false
+    return true
+  })
 })
 
 // Search coaches using the coach store (which uses Supabase)
-const searchCoaches = async (query: string, specialty: string, sort: string, page: number = 1) => {
-  console.log('🔍 searchCoaches called with:', { query, specialty, sort, page })
+const searchCoaches = async (_query: string, specialty: string, sort: string, page: number = 1) => {
+  // _query ignored (UI input only filters specialties locally)
+  console.log('🔍 searchCoaches called with:', { specialty, sort, page })
   isLoading.value = true
 
   try {
-    console.log('🔍 Searching coaches with:', { query, specialty, sort, page })
+    console.log('🔍 Searching coaches with:', { specialty, sort, page })
 
     // Prepare filters object
     const filters: {
@@ -640,17 +843,9 @@ const searchCoaches = async (query: string, specialty: string, sort: string, pag
       limit: pageSize.value,
     }
 
-    // Add search query if provided
-    if (query && query.trim()) {
-      filters.search = query.trim()
-      console.log('🔍 Added search filter:', filters.search)
-    }
+    // Search query from text input intentionally ignored (specialty filtering only)
 
-    // Add specialty filter if selected
-    if (specialty) {
-      filters.specialties = [specialty]
-      console.log('🔍 Added specialty filter:', filters.specialties)
-    }
+    // Specialty now filtered client-side to avoid inconsistent server behavior
 
     // Add territory filter if selected (backend matches profile_personal->>territory)
     if (selectedCountry.value) {
@@ -704,20 +899,20 @@ const searchCoaches = async (query: string, specialty: string, sort: string, pag
 }
 
 // Debounced search function
-const debouncedSearch = (query: string, specialty: string, sort: string) => {
+const debouncedSearch = (_query: string, specialty: string, sort: string) => {
   if (searchDebounceTimer.value) {
     clearTimeout(searchDebounceTimer.value)
   }
 
   searchDebounceTimer.value = window.setTimeout(() => {
-    searchCoaches(query, specialty, sort, 1)
+    searchCoaches('', specialty, sort, 1)
   }, 300) // 300ms delay
 }
 
 // Load more coaches for pagination
 const loadMoreCoaches = () => {
   if (hasMore.value && !isLoading.value) {
-    searchCoaches(searchQuery.value, selectedSpecialty.value, sortBy.value, currentPage.value + 1)
+    searchCoaches('', selectedSpecialty.value, sortBy.value, currentPage.value + 1)
   }
 }
 
@@ -735,7 +930,13 @@ const navigateToCoachProfileWithContact = (coach: Coach) => {
 const clearFilters = () => {
   searchQuery.value = ''
   selectedSpecialty.value = ''
+  selectedCountry.value = ''
+  // Trigger search refresh
+  debouncedSearch('', '', sortBy.value)
 }
+
+// Active filters state
+const hasActiveFilters = computed(() => !!(selectedSpecialty.value || selectedCountry.value))
 
 // Scroll handler to toggle condensed header
 const handleScroll = () => {
@@ -745,8 +946,8 @@ const handleScroll = () => {
 }
 
 // Watchers
-watch([searchQuery, selectedSpecialty, sortBy, selectedCountry], ([query, specialty, sort]) => {
-  debouncedSearch(query, specialty, sort)
+watch([selectedSpecialty, sortBy, selectedCountry], ([specialty, sort]) => {
+  debouncedSearch('', specialty, sort)
 })
 
 // Lifecycle
@@ -759,7 +960,7 @@ onMounted(async () => {
   })
 
   // Initialize with the first load of coaches
-  await searchCoaches(searchQuery.value, selectedSpecialty.value, sortBy.value, 1)
+  await searchCoaches('', selectedSpecialty.value, sortBy.value, 1)
   // Load global specialty frequencies (not tied to current filters)
   loadGlobalSpecialties()
   window.addEventListener('scroll', handleScroll, { passive: true })
@@ -771,6 +972,7 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
   window.removeEventListener('resize', measureHeader)
+  document.removeEventListener('click', onClickOutside)
 })
 
 watch(isCondensedHeader, async () => {
@@ -839,6 +1041,19 @@ h1 {
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+/* Fade transition for dropdown */
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 @keyframes shimmer {
