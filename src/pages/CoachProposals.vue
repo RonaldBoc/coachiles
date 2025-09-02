@@ -232,9 +232,9 @@
                       {{ getLeadGoals(lead) }}
                     </div>
                     <div v-if="lead.chosen_services?.length" class="text-sm text-gray-500">
-                      {{ lead.chosen_services.slice(0, 2).join(', ') }}
-                      <span v-if="lead.chosen_services.length > 2">
-                        +{{ lead.chosen_services.length - 2 }}
+                      {{ normalizeChosenServices(lead.chosen_services).slice(0, 2).join(', ') }}
+                      <span v-if="normalizeChosenServices(lead.chosen_services).length > 2">
+                        +{{ normalizeChosenServices(lead.chosen_services).length - 2 }}
                       </span>
                     </div>
                   </td>
@@ -336,7 +336,7 @@
               <div v-if="selectedLead?.chosen_services?.length">
                 <div class="text-gray-500">Services choisis</div>
                 <div class="font-medium text-gray-900 text-xs">
-                  {{ selectedLead!.chosen_services.join(', ') }}
+                  {{ normalizeChosenServices(selectedLead!.chosen_services).join(', ') }}
                 </div>
               </div>
               <div>
@@ -523,6 +523,19 @@ const statusOptions = [
 const canAccessLeadDetails = (lead: Lead): boolean => {
   if (coachSubscriptionType.value !== 'free') return true
   return unlockedLeads.value.has(lead.id)
+}
+
+// Normalize chosen_services which may be an array of strings (legacy) or array of objects
+// Returns array of service title strings for display
+function normalizeChosenServices(raw: Lead['chosen_services'] | undefined | null): string[] {
+  if (!raw) return []
+  const arr = raw as unknown[]
+  if (!Array.isArray(arr)) return []
+  if (arr.length === 0) return []
+  if (typeof arr[0] === 'string') return arr as string[]
+  return (arr as { title?: string }[])
+    .map((o) => (o && typeof o.title === 'string' ? o.title : null))
+    .filter((v): v is string => !!v)
 }
 
 const getLeadName = (lead: Lead): string => {

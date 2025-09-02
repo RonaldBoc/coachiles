@@ -19,6 +19,8 @@ interface DbCoachService {
   can_be_group: boolean
   solo_price: number | null
   group_price: number | null
+  solo_price_unit?: 'per_hour' | 'per_session' | null
+  group_price_unit?: 'per_hour' | 'per_session' | null
   category: string
   sub_category: string | null
   domain: string | null
@@ -45,6 +47,8 @@ interface DbCoachServiceInsert {
   can_be_group: boolean
   solo_price: number | null
   group_price: number | null
+  solo_price_unit?: 'per_hour' | 'per_session' | null
+  group_price_unit?: 'per_hour' | 'per_session' | null
   category: string
   sub_category: string | null
   domain?: string | null
@@ -261,6 +265,8 @@ export class SupabaseCoachServicesApi {
       canBeGroup: dbService.can_be_group,
       soloPrice: dbService.solo_price,
       groupPrice: dbService.group_price,
+      soloPriceUnit: dbService.solo_price_unit || 'per_session',
+      groupPriceUnit: dbService.group_price_unit || 'per_session',
       category: dbService.category,
       subCategory: dbService.sub_category || undefined,
       domain: dbService.domain || undefined,
@@ -300,6 +306,8 @@ export class SupabaseCoachServicesApi {
       can_be_group: serviceData.canBeGroup,
       solo_price: serviceData.soloPrice,
       group_price: serviceData.groupPrice,
+      solo_price_unit: serviceData.soloPriceUnit || 'per_session',
+      group_price_unit: serviceData.groupPriceUnit || 'per_session',
       category: serviceData.category,
       sub_category: serviceData.subCategory || null,
       domain: (serviceData as { domain?: string }).domain || null,

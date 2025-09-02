@@ -156,6 +156,62 @@
             <div v-else class="text-sm text-gray-500">Pas assez de données.</div>
           </template>
         </DashPanel>
+        <!-- Reviews Panel (spans full width under two-column grid) -->
+        <div class="lg:col-span-2">
+          <DashPanel title="Avis reçus" :loading="reviewsLoading">
+            <template #default>
+              <div class="space-y-4">
+                <div v-if="!reviewsLoading && !myReviews.length" class="text-sm text-gray-500">
+                  Aucun avis pour le moment.
+                </div>
+                <div v-for="r in myReviews" :key="r.id" class="border rounded p-3 bg-gray-50/50">
+                  <div class="flex flex-wrap gap-2 justify-between items-start">
+                    <div class="text-sm font-medium">
+                      {{ r.clientName }} • {{ r.rating }}★
+                      <span
+                        class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600"
+                        >{{ r.moderationStatus }}</span
+                      >
+                      <span
+                        v-if="!r.isPublished"
+                        class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700"
+                        >En attente</span
+                      >
+                    </div>
+                    <div class="text-[10px] text-gray-400">
+                      {{ new Date(r.createdAt).toLocaleDateString() }}
+                    </div>
+                  </div>
+                  <div class="mt-1 text-sm whitespace-pre-wrap">{{ r.comment || '—' }}</div>
+                  <div
+                    v-if="r.coachResponse"
+                    class="mt-2 text-xs p-2 bg-blue-50 rounded border border-blue-100"
+                  >
+                    <div class="font-semibold mb-1">Votre réponse</div>
+                    <div class="whitespace-pre-wrap">{{ r.coachResponse }}</div>
+                  </div>
+                  <div v-else class="mt-2">
+                    <textarea
+                      v-model="reviewReply[r.id]"
+                      rows="2"
+                      placeholder="Répondre (une seule réponse possible)"
+                      class="w-full text-xs rounded border-gray-300"
+                    ></textarea>
+                    <div class="mt-1 flex justify-end">
+                      <button
+                        @click="submitResponse(r)"
+                        class="px-3 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                        :disabled="!(reviewReply[r.id] || '').trim()"
+                      >
+                        Envoyer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </DashPanel>
+        </div>
       </div>
 
       <!-- Resources -->
@@ -179,7 +235,7 @@
             </button>
           </div>
         </div>
-        <div class="rounded-lg border border-gray-200 bg-white p-5">
+        <!-- <div class="rounded-lg border border-gray-200 bg-white p-5">
           <h3 class="text-sm font-semibold text-gray-800 mb-2">Avis</h3>
           <p class="text-xs text-gray-600 mb-3">
             Note moyenne: <strong>{{ coach?.rating ? coach.rating.toFixed(1) : '—' }}</strong>
@@ -190,7 +246,7 @@
           >
             Gérer mes avis →
           </button>
-        </div>
+        </div> -->
       </div>
     </div>
   </CoachLayout>
@@ -204,6 +260,8 @@ import { useLeadStore } from '@/stores/leads'
 import { supabaseLeadApi } from '@/services/supabaseLeadApi'
 import { SupabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
 import { useRouter } from 'vue-router'
+import { supabaseReviewApi } from '@/services/supabaseReviewApi'
+import { supabase } from '@/utils/supabase'
 
 interface DashboardService {
   id: string
@@ -334,7 +392,74 @@ const goToSubscription = () => router.push('/coach/abonnement')
 const goToSettings = () => router.push('/coach/account')
 const goToFAQ = () => router.push('/faq')
 const goToContact = () => router.push('/contact')
-const goToSettingsReviews = () => router.push('/coach/account?tab=reviews')
+
+// Reviews
+interface CoachReviewRow {
+  id: string
+  createdAt: Date
+  rating: number
+  comment?: string
+  clientName: string
+  coachResponse?: string
+  coachRespondedAt?: Date
+  moderationStatus: string
+  isPublished: boolean
+  coach_response_hidden?: boolean
+}
+const myReviews = ref<CoachReviewRow[]>([])
+const reviewsLoading = ref(false)
+const reviewReply = ref<Record<string, string>>({})
+
+async function loadMyReviews() {
+  try {
+    reviewsLoading.value = true
+    const { data: user } = await supabase.auth.getUser()
+    let coachId = user.user?.id || null
+    if (user.user?.email) {
+      const { data: coachRow } = await supabase
+        .from('coaches')
+        .select('id')
+        .eq('email', user.user.email)
+        .maybeSingle()
+      if (coachRow?.id) coachId = coachRow.id
+    }
+    if (!coachId) return
+    const rows = await supabaseReviewApi.getCoachReviews(coachId, {
+      includeUnpublished: true,
+      limit: 100,
+    })
+    myReviews.value = rows.map((r) => ({
+      id: r.id,
+      createdAt: r.createdAt,
+      rating: r.rating,
+      comment: r.comment,
+      clientName: r.clientName,
+      coachResponse: r.coachResponse,
+      coachRespondedAt: r.coachRespondedAt,
+      moderationStatus: r.moderationStatus,
+      isPublished: r.isPublished,
+    }))
+  } finally {
+    reviewsLoading.value = false
+  }
+}
+
+async function submitResponse(review: CoachReviewRow) {
+  const text = (reviewReply.value[review.id] || '').trim()
+  if (!text) return
+  try {
+    const { error } = await supabase
+      .from('reviews')
+      .update({ coach_response: text, coach_responded_at: new Date().toISOString() })
+      .eq('id', review.id)
+      .is('coach_response', null)
+    if (error) throw error
+    await loadMyReviews()
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Erreur en envoyant la réponse'
+    alert(msg)
+  }
+}
 
 const timeAgo = (iso: string) => {
   const date = new Date(iso)
@@ -441,6 +566,7 @@ onMounted(async () => {
   await ensureLeadsLoaded()
   await fetchServices()
   await fetchLeadTrend()
+  await loadMyReviews()
 })
 </script>
 

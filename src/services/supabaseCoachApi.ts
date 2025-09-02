@@ -145,6 +145,36 @@ function mapSupabaseToCoach(supabaseData: CoachesTable): Coach {
     hourlyRate: supabaseData.hourly_rate || 50,
     languages: supabaseData.languages || ['Français'],
     modalities: supabaseData.modalities || undefined,
+    territory: (() => {
+      // Attempt to parse profile_personal if string
+      let territory: string | undefined
+      const raw = (supabaseData as unknown as { profile_personal?: unknown }).profile_personal as
+        | string
+        | { territory?: string }
+        | undefined
+      if (raw) {
+        if (typeof raw === 'string') {
+          try {
+            const parsed = JSON.parse(raw)
+            if (parsed && typeof parsed.territory === 'string') territory = parsed.territory
+          } catch {
+            // ignore
+          }
+        } else if (typeof raw === 'object' && typeof raw.territory === 'string') {
+          territory = raw.territory
+        }
+      }
+      if (!territory) {
+        // Fallback: derive from first location label
+        const loc0 = supabaseData.locations?.[0]
+        if (loc0) {
+          if (/martinique/i.test(loc0)) territory = 'martinique'
+          else if (/guadeloupe/i.test(loc0)) territory = 'guadeloupe'
+          else if (/guyane/i.test(loc0)) territory = 'guyane'
+        }
+      }
+      return territory
+    })(),
     profile_activity: supabaseData.profile_activity
       ? {
           ...supabaseData.profile_activity,
@@ -173,6 +203,7 @@ export const supabaseCoachApi = {
     rateMax?: number
     languages?: string[]
     search?: string
+    territory?: string
   }) => {
     try {
       let query = supabase.from('coaches').select('*').eq('is_active', true)
@@ -195,6 +226,11 @@ export const supabaseCoachApi = {
       }
       if (params?.search) {
         query = query.or(`first_name.ilike.%${params.search}%,bio.ilike.%${params.search}%`)
+      }
+      if (params?.territory) {
+        const territory = params.territory
+        console.log('🧪 Territory filter (data query):', territory)
+        query = query.ilike('profile_personal', `%${territory}%`)
       }
 
       // Apply pagination
@@ -228,6 +264,11 @@ export const supabaseCoachApi = {
         countQuery = countQuery.or(
           `first_name.ilike.%${params.search}%,bio.ilike.%${params.search}%`,
         )
+      }
+      if (params?.territory) {
+        const territory = params.territory
+        console.log('🧪 Territory filter (count query):', territory)
+        countQuery = countQuery.ilike('profile_personal', `%${territory}%`)
       }
 
       const { count, error: countError } = await countQuery

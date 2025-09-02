@@ -46,7 +46,7 @@
           </span>
         </h1>
         <p class="text-xl text-gray-600 font-medium">
-          Atteignez vos objectifs avec les meilleurs coachs de Martinique
+          Atteignez vos objectifs avec les meilleurs coachs des Antilles
         </p>
       </div>
 
@@ -98,11 +98,40 @@
             class="w-full pl-14 pr-6 py-5 text-lg border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-orange-200 focus:border-orange-400 bg-white shadow-lg placeholder-gray-400 font-medium"
           />
         </div>
+        <!-- Country Filter Chips -->
+        <div class="mt-4 flex flex-wrap gap-3 justify-center">
+          <button
+            v-for="c in countryChips"
+            :key="c.code"
+            type="button"
+            @click="toggleCountry(c.code)"
+            :class="[
+              'px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all duration-200 flex items-center gap-2',
+              selectedCountry === c.code
+                ? 'bg-gradient-to-r from-orange-500 to-blue-600 text-white border-transparent shadow'
+                : 'bg-white text-gray-700 border-gray-200 hover:border-orange-300 hover:text-gray-900',
+            ]"
+          >
+            <span>{{ c.emoji }}</span>
+            <span>{{ c.label }}</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Category Stickers Bar -->
-      <div class="mb-16">
-        <div class="overflow-x-auto scrollbar-hide">
+      <!-- Category Stickers Bar (dynamic based on coaches' actual specialties) -->
+      <div class="mb-16" v-if="specialtyOptions.length">
+        <div
+          class="overflow-x-auto scrollbar-hide select-none"
+          ref="specialtyScrollRef"
+          @mousedown="onSpecialtyDragStart"
+          @mousemove="onSpecialtyDragMove"
+          @mouseup="onSpecialtyDragEnd"
+          @mouseleave="onSpecialtyDragEnd"
+          @touchstart.passive="onSpecialtyTouchStart"
+          @touchmove.prevent="onSpecialtyTouchMove"
+          @touchend="onSpecialtyDragEnd"
+          :class="isSpecialtyDragging ? 'cursor-grabbing' : 'cursor-grab'"
+        >
           <div class="flex space-x-4 pb-4 w-max min-w-full pt-4">
             <button
               @click="selectedSpecialty = ''"
@@ -116,17 +145,18 @@
               🎯 Tous
             </button>
             <button
-              v-for="specialty in coachCategories"
-              :key="specialty.name"
-              @click="selectedSpecialty = specialty.name"
+              v-for="spec in specialtyOptions"
+              :key="spec.name"
+              @click="selectedSpecialty = spec.name"
               :class="[
                 'flex-shrink-0 px-6 py-3 rounded-full font-bold text-sm transition-all duration-200 transform hover:scale-105 whitespace-nowrap',
-                selectedSpecialty === specialty.name
+                selectedSpecialty === spec.name
                   ? 'bg-gradient-to-r from-orange-500 to-blue-600 text-white shadow-lg'
                   : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-orange-300',
               ]"
+              :title="spec.count + (spec.count > 1 ? ' coachs' : ' coach')"
             >
-              {{ specialty.emoji }} {{ specialty.name }}
+              {{ spec.emoji }} {{ spec.name }}
             </button>
           </div>
         </div>
@@ -235,13 +265,13 @@
               </div>
 
               <!-- Availability badge -->
-              <div class="absolute top-4 left-4">
+              <!-- <div class="absolute top-4 left-4">
                 <span
                   class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
                 >
                   Disponible
                 </span>
-              </div>
+              </div> -->
 
               <!-- Certification badge (for coaches with active subscription) -->
               <div v-if="isCoachCertified(coach.id)" class="absolute top-4 right-4">
@@ -390,11 +420,58 @@ const measureHeader = () => {
 const coaches = ref<Coach[]>([])
 const searchQuery = ref('')
 const selectedSpecialty = ref('')
+// Country (territory) filter (single select for now)
+const selectedCountry = ref<string>('')
+// We only have 3 territories currently
+const countryChips = [
+  { code: 'martinique', label: 'Martinique', emoji: '🇲🇶' },
+  { code: 'guadeloupe', label: 'Guadeloupe', emoji: '🇬🇵' },
+  { code: 'guyane', label: 'Guyane', emoji: '🇬🇫' },
+]
+const toggleCountry = (code: string) => {
+  selectedCountry.value = selectedCountry.value === code ? '' : code
+}
 const sortBy = ref('rating')
 const isLoading = ref(false)
 const searchDebounceTimer = ref<number | null>(null)
+// Debug state removed
 const coachSubscriptions = ref<Map<string, boolean>>(new Map()) // Track which coaches have active subscriptions
 const coachReviewCounts = ref<Map<string, number>>(new Map()) // Approved review counts per coach
+// Drag scroll state for specialty bar
+const specialtyScrollRef = ref<HTMLElement | null>(null)
+const isSpecialtyDragging = ref(false)
+let specialtyDragStartX = 0
+let specialtyDragScrollLeft = 0
+
+const onSpecialtyDragStart = (e: MouseEvent) => {
+  if (!specialtyScrollRef.value) return
+  isSpecialtyDragging.value = true
+  specialtyDragStartX = e.pageX - specialtyScrollRef.value.offsetLeft
+  specialtyDragScrollLeft = specialtyScrollRef.value.scrollLeft
+}
+const onSpecialtyDragMove = (e: MouseEvent) => {
+  if (!isSpecialtyDragging.value || !specialtyScrollRef.value) return
+  const x = e.pageX - specialtyScrollRef.value.offsetLeft
+  const walk = x - specialtyDragStartX
+  specialtyScrollRef.value.scrollLeft = specialtyDragScrollLeft - walk
+}
+const onSpecialtyDragEnd = () => {
+  isSpecialtyDragging.value = false
+}
+const onSpecialtyTouchStart = (e: TouchEvent) => {
+  if (!specialtyScrollRef.value) return
+  isSpecialtyDragging.value = true
+  specialtyDragStartX = e.touches[0].pageX - specialtyScrollRef.value.offsetLeft
+  specialtyDragScrollLeft = specialtyScrollRef.value.scrollLeft
+}
+const onSpecialtyTouchMove = (e: TouchEvent) => {
+  if (!isSpecialtyDragging.value || !specialtyScrollRef.value) return
+  const x = e.touches[0].pageX - specialtyScrollRef.value.offsetLeft
+  const walk = x - specialtyDragStartX
+  specialtyScrollRef.value.scrollLeft = specialtyDragScrollLeft - walk
+}
+// Global specialty frequencies among all active coaches
+const globalSpecialtyFrequency = ref<{ name: string; count: number }[]>([])
 
 // Pagination for database approach
 const currentPage = ref(1)
@@ -403,19 +480,59 @@ const totalCoaches = ref(0)
 const hasMore = ref(true)
 
 // Coach categories with emojis
-const coachCategories = [
-  { name: 'Fitness', emoji: '💪' },
-  { name: 'Musculation', emoji: '🏋️' },
-  { name: 'Yoga', emoji: '🧘' },
-  { name: 'Méditation', emoji: '🧠' },
-  { name: 'Nutrition', emoji: '🥗' },
-  { name: 'Perte de poids', emoji: '⚖️' },
-  { name: 'Remise en forme', emoji: '🎯' },
-  { name: 'Relaxation', emoji: '😌' },
-  { name: 'Bien-être', emoji: '✨' },
-  { name: 'Course à pied', emoji: '🏃' },
-  { name: 'Préparation physique', emoji: '🏆' },
-]
+// Emoji mapping for known specialties (fallback star)
+const specialtyEmojiMap: Record<string, string> = {
+  Fitness: '💪',
+  Musculation: '🏋️',
+  Yoga: '🧘',
+  Méditation: '🧠',
+  Nutrition: '🥗',
+  'Perte de poids': '⚖️',
+  'Remise en forme': '🎯',
+  Relaxation: '😌',
+  'Bien-être': '✨',
+  'Course à pied': '🏃',
+  'Préparation physique': '🏆',
+}
+
+// Dynamic specialty options derived from all active coaches (stable, independent of current filter)
+const specialtyOptions = computed(() => {
+  return globalSpecialtyFrequency.value
+    .slice()
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .map((item) => ({ ...item, emoji: specialtyEmojiMap[item.name] || '⭐' }))
+})
+
+// Fetch all active coaches specialties once (or on demand) for stable category list
+const loadGlobalSpecialties = async () => {
+  try {
+    // Select only id & specialties for active coaches to minimize payload
+    const { data, error } = await supabase
+      .from('coaches')
+      .select('id, specialties')
+      .eq('is_active', true)
+    if (error) {
+      console.error('❌ Error loading global specialties:', error)
+      return
+    }
+    const freq: Record<string, number> = {}
+    interface CoachRow {
+      id: string
+      specialties?: string[] | null
+    }
+    ;(data as CoachRow[] | null)?.forEach((row) => {
+      if (Array.isArray(row.specialties)) {
+        row.specialties.forEach((s) => {
+          if (!s) return
+          freq[s] = (freq[s] || 0) + 1
+        })
+      }
+    })
+    globalSpecialtyFrequency.value = Object.entries(freq).map(([name, count]) => ({ name, count }))
+  } catch (e) {
+    console.error('❌ Unexpected error computing global specialties:', e)
+  }
+}
 // Helper function to get coach pricing
 // const getCoachPrice = (coach: Coach): number => {
 //   // Base price calculation based on experience and rating
@@ -497,9 +614,10 @@ const isCoachCertified = (coachId: string): boolean => {
   return coachSubscriptions.value.get(coachId) || false
 }
 
-// Computed - simply return coaches from store (filtering is done on server)
+// Computed - return coaches from store, apply client-side country filter fallback (in case backend territory filter fails)
 const filteredCoaches = computed(() => {
-  return coaches.value
+  if (!selectedCountry.value) return coaches.value
+  return coaches.value.filter((c) => c.territory === selectedCountry.value)
 })
 
 // Search coaches using the coach store (which uses Supabase)
@@ -516,6 +634,7 @@ const searchCoaches = async (query: string, specialty: string, sort: string, pag
       limit: number
       search?: string
       specialties?: string[]
+      territory?: string
     } = {
       page,
       limit: pageSize.value,
@@ -531,6 +650,12 @@ const searchCoaches = async (query: string, specialty: string, sort: string, pag
     if (specialty) {
       filters.specialties = [specialty]
       console.log('🔍 Added specialty filter:', filters.specialties)
+    }
+
+    // Add territory filter if selected (backend matches profile_personal->>territory)
+    if (selectedCountry.value) {
+      filters.territory = selectedCountry.value
+      console.log('🔍 Added territory filter:', filters.territory)
     }
 
     console.log('📡 Calling coachStore.fetchCoaches with filters:', filters)
@@ -551,6 +676,8 @@ const searchCoaches = async (query: string, specialty: string, sort: string, pag
     } else {
       coaches.value = [...coaches.value, ...coachStore.coaches]
     }
+
+    // Debug snippet generation removed
 
     totalCoaches.value = coachStore.total
     hasMore.value = coachStore.coaches.length === pageSize.value // Has more if we got a full page
@@ -618,7 +745,7 @@ const handleScroll = () => {
 }
 
 // Watchers
-watch([searchQuery, selectedSpecialty, sortBy], ([query, specialty, sort]) => {
+watch([searchQuery, selectedSpecialty, sortBy, selectedCountry], ([query, specialty, sort]) => {
   debouncedSearch(query, specialty, sort)
 })
 
@@ -633,6 +760,8 @@ onMounted(async () => {
 
   // Initialize with the first load of coaches
   await searchCoaches(searchQuery.value, selectedSpecialty.value, sortBy.value, 1)
+  // Load global specialty frequencies (not tied to current filters)
+  loadGlobalSpecialties()
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('resize', measureHeader, { passive: true })
   handleScroll()

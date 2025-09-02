@@ -39,6 +39,7 @@ export const useCoachStore = defineStore('coach', () => {
     minRating?: number
     page?: number
     limit?: number
+    territory?: string
   }) => {
     try {
       console.log('🔍 Fetching coaches with filters:', filters)

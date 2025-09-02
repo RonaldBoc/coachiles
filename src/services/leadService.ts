@@ -6,6 +6,9 @@ export class LeadService {
   static async createLead(data: {
     client_name: string
     client_email: string
+    client_phone?: string
+    client_age?: number
+    client_gender?: 'male' | 'female' | 'other' | 'prefer_not_say'
     coach_id?: string
     session_id?: string
   }): Promise<Lead | null> {
@@ -15,6 +18,9 @@ export class LeadService {
         .insert({
           client_name: data.client_name,
           client_email: data.client_email,
+          client_phone: data.client_phone, // now captured at step 1
+          client_age: data.client_age,
+          client_gender: data.client_gender,
           coach_id: data.coach_id,
           session_id: data.session_id,
           status: 'new',
@@ -159,15 +165,33 @@ export class LeadService {
     coachId?: string | null,
   ): Promise<Lead | null> {
     try {
+      // Support structured chosen_services (jsonb) or legacy string[]
+      type ChosenServiceObj = {
+        title: string
+        modalities?: string[]
+        locations?: string[]
+        days?: number[]
+      }
+      let preferredPayload: ChosenServiceObj[] | string[] | null = null
+      const raw =
+        (data as unknown as { chosen_services?: unknown; preferred_coaching?: unknown })
+          .chosen_services ??
+        (data as unknown as { chosen_services?: unknown; preferred_coaching?: unknown })
+          .preferred_coaching
+      if (raw) {
+        if (Array.isArray(raw) && raw.length) {
+          if (typeof raw[0] === 'object') {
+            preferredPayload = raw as ChosenServiceObj[] // jsonb structured
+          } else {
+            preferredPayload = raw as string[] // simple titles
+          }
+        } else if (Array.isArray(raw)) {
+          preferredPayload = []
+        }
+      }
       const { data: finalized, error } = await supabase.rpc('leads_finalize_public', {
         p_lead_id: leadId,
-        // NOTE: Backend RPC still expects p_preferred_coaching; mapping chosen_services -> p_preferred_coaching until RPC is renamed
-        p_preferred_coaching:
-          (data as unknown as { chosen_services?: string[]; preferred_coaching?: string[] })
-            .chosen_services ??
-          (data as unknown as { chosen_services?: string[]; preferred_coaching?: string[] })
-            .preferred_coaching ??
-          null,
+        p_preferred_coaching: preferredPayload,
         p_experience: data.experience ?? null,
         p_goals: data.goals ?? null,
         p_availability: data.availability ?? null,
@@ -177,7 +201,18 @@ export class LeadService {
       })
 
       if (error) {
-        console.error('Error finalizing lead via RPC:', error)
+        console.error('Error finalizing lead via RPC:', error, {
+          payload: {
+            p_lead_id: leadId,
+            p_preferred_coaching: preferredPayload,
+            p_experience: data.experience ?? null,
+            p_goals: data.goals ?? null,
+            p_availability: data.availability ?? null,
+            p_start_timeframe: data.start_timeframe ?? null,
+            p_additional_info: data.additional_info ?? null,
+            p_coach_id: coachId ?? null,
+          },
+        })
         return null
       }
 

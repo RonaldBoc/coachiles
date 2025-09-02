@@ -35,8 +35,17 @@ export interface Lead {
   client_name: string
   client_email: string
   client_phone?: string
+  client_age?: number
+  client_gender?: 'male' | 'female' | 'other' | 'prefer_not_say'
   location?: string
-  chosen_services?: readonly string[]
+  chosen_services?:
+    | readonly string[]
+    | ReadonlyArray<{
+        title: string
+        modalities?: string[]
+        locations?: string[]
+        days?: number[]
+      }>
   goals?: string
   experience?: string
   availability?: string

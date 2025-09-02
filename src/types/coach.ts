@@ -21,6 +21,7 @@ export interface Coach {
   isActive: boolean
   hourlyRate?: number // hourly rate in euros
   languages?: string[] // spoken languages
+  territory?: string // extracted territory code (e.g., martinique)
   // Modalities (course modalities/preferences)
   modalities?: {
     availabilityDays?: string[]

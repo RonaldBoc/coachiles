@@ -176,8 +176,8 @@
           <!-- About / Profile Section -->
           <div class="bg-white rounded-2xl shadow-lg p-8">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              À propos de {{ coach?.firstName
-              }}<template v-if="hasPremiumSubscription && coach?.lastName">
+              À propos de {{ coach?.firstName }}
+              <template v-if="hasPremiumSubscription && coach?.lastName">
                 {{ coach?.lastName }}</template
               >
             </h2>
@@ -234,20 +234,45 @@
                 </div>
               </div>
               <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Expérience</h3>
-                <div class="space-y-3">
-                  <div class="flex items-center justify-between">
-                    <span class="text-gray-600">Années d'expérience</span>
-                    <span class="font-semibold text-gray-900">{{ coach?.experience }} ans</span>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Expérience & parcours</h3>
+                <div class="space-y-5">
+                  <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                      <span class="text-gray-600">Années d'expérience</span>
+                      <span class="font-semibold text-gray-900">{{ coach?.experience }} ans</span>
+                    </div>
+                    <!-- <div class="flex items-center justify-between">
+                      <span class="text-gray-600">Élèves accompagnés</span>
+                      <span class="font-semibold text-gray-900">{{ coach?.totalClients }}+</span>
+                    </div> -->
                   </div>
-                  <!-- <div class="flex items-center justify-between">
-                    <span class="text-gray-600">Élèves accompagnés</span>
-                    <span class="font-semibold text-gray-900">{{ coach?.totalClients }}+</span>
-                  </div> -->
-                  <!-- <div class="flex items-center justify-between">
-                    <span class="text-gray-600">Spécialisation</span>
-                    <span class="font-semibold text-gray-900">Tous niveaux</span>
-                  </div> -->
+                  <div
+                    v-if="
+                      coach?.profile_activity?.workExperiences &&
+                      coach.profile_activity.workExperiences.length
+                    "
+                  >
+                    <ul class="space-y-2">
+                      <li
+                        v-for="(exp, idx) in coach.profile_activity.workExperiences"
+                        :key="idx"
+                        class="flex items-start gap-3"
+                      >
+                        <svg
+                          class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clip-rule="evenodd"
+                          />
+                        </svg>
+                        <span class="text-gray-700 leading-snug">{{ exp }}</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -277,38 +302,7 @@
                   </span>
                 </div>
               </div>
-              <!-- Professional Work Experiences -->
-              <div
-                v-if="
-                  coach?.profile_activity?.workExperiences &&
-                  coach.profile_activity.workExperiences.length
-                "
-                class="mt-10"
-              >
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                  Expériences professionnelles
-                </h3>
-                <ul class="space-y-3">
-                  <li
-                    v-for="(exp, idx) in coach.profile_activity.workExperiences"
-                    :key="idx"
-                    class="flex items-start gap-3"
-                  >
-                    <svg
-                      class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <span class="text-gray-700 leading-snug">{{ exp }}</span>
-                  </li>
-                </ul>
-              </div>
+              <!-- Professional Work Experiences moved into combined experience section above -->
             </div>
           </div>
 
@@ -507,8 +501,8 @@
             </div>
           </div>
 
-          <!-- Location & Delivery -->
-          <div class="bg-white rounded-2xl shadow-lg p-4 sm:p-8">
+          <!-- Modalités des cours -->
+          <div v-if="hasModalitesContent" class="bg-white rounded-2xl shadow-lg p-4 sm:p-8">
             <button
               type="button"
               class="w-full flex items-center justify-between sm:cursor-default group"
@@ -565,9 +559,7 @@
                         </div>
                       </div>
                     </template>
-                    <p v-if="!hasAnyLocation" class="text-sm text-gray-500 italic">
-                      Aucun lieu spécifié pour le moment.
-                    </p>
+                    <!-- Hide empty state when no locations; overall section hidden if nothing configured -->
                   </div>
                 </div>
 
@@ -635,9 +627,7 @@
                   </div>
                 </div>
               </div>
-              <p v-else class="text-sm text-gray-500 italic mt-2">
-                Modalités en cours de configuration.
-              </p>
+              <!-- No else fallback: entire section hidden when no content -->
             </div>
           </div>
 
@@ -795,7 +785,8 @@
                   <img
                     :src="coach?.photo || '/default-avatar.png'"
                     :alt="`${coach?.firstName}`"
-                    class="w-24 h-24 rounded-full object-cover mb-4"
+                    class="w-32 h-32 rounded-full object-cover mb-4 cursor-pointer transition-transform duration-200 hover:scale-[1.03]"
+                    @click="openImagePreview"
                   />
                   <!-- Certification badge (desktop) -->
                   <div v-if="isAdminCertified" class="absolute -top-2 -right-2">
@@ -814,7 +805,7 @@
                     </span>
                   </div>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">
                   {{ coach?.firstName }}
                 </h1>
                 <div v-if="reviews.length > 0" class="flex items-center justify-center mb-2">
@@ -1467,6 +1458,39 @@
       </Dialog>
     </TransitionRoot>
     <AppFooter />
+    <!-- Fullscreen Image Preview -->
+    <transition name="fade">
+      <div
+        v-if="showImagePreview"
+        class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        @click="closeImagePreview"
+      >
+        <div class="relative max-w-3xl w-full" @click.stop>
+          <button
+            class="absolute -top-10 right-0 text-white/80 hover:text-white p-2"
+            @click="closeImagePreview"
+            aria-label="Fermer l'aperçu"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+          <img
+            :src="coach?.photo || '/default-avatar.png'"
+            :alt="`${coach?.firstName}`"
+            class="w-full h-auto rounded-2xl shadow-2xl object-contain max-h-[80vh]"
+          />
+          <p class="mt-3 text-center text-sm text-white/70 select-none">
+            Cliquer à l'extérieur pour fermer
+          </p>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -1506,6 +1530,15 @@ const showServiceModal = ref(false)
 const selectedService = ref<CoachService | null>(null)
 const isLoading = ref(false)
 const isLoadingServices = ref(false)
+// Image preview modal
+const showImagePreview = ref(false)
+const openImagePreview = () => {
+  if (!coach.value?.photo) return
+  showImagePreview.value = true
+}
+const closeImagePreview = () => {
+  showImagePreview.value = false
+}
 // Premium subscription gates last name & direct contact info (not publicly shown yet)
 const hasPremiumSubscription = ref<boolean>(false)
 // Certified badge now represents having an active premium subscription (NOT diploma validation)
@@ -1543,11 +1576,22 @@ const dayShort: Record<string, string> = {
   Saturday: 'Sam',
   Sunday: 'Dim',
 }
-type LocationEntry = { enabled?: boolean; details?: string }
-const hasAnyLocation = computed(() => {
-  const locs = coach.value?.modalities?.locations as Record<string, LocationEntry> | undefined
-  if (!locs) return false
-  return Object.values(locs).some((l) => !!l?.enabled)
+
+// Determine if there is any meaningful modalities content to show
+interface ModalitiesLike {
+  locations?: Record<string, { enabled?: boolean; details?: string }>
+  freeTrial?: { enabled?: boolean; details?: string }
+  availabilityDays?: string[]
+  cancellationPolicy?: string
+}
+const hasModalitesContent = computed(() => {
+  const m = coach.value?.modalities as ModalitiesLike | undefined
+  if (!m) return false
+  const hasLocations = !!m.locations && Object.values(m.locations).some((l) => l?.enabled)
+  const hasFreeTrial = !!m.freeTrial?.enabled
+  const hasAvailability = Array.isArray(m.availabilityDays) && m.availabilityDays.length > 0
+  const hasCancellation = !!m.cancellationPolicy
+  return hasLocations || hasFreeTrial || hasAvailability || hasCancellation
 })
 
 // Bio paragraphs: split on blank lines, trim each, filter empties

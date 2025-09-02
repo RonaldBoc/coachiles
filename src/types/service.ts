@@ -10,6 +10,8 @@ export interface CoachService {
   canBeGroup: boolean
   soloPrice: number | null
   groupPrice: number | null
+  soloPriceUnit?: 'per_hour' | 'per_session'
+  groupPriceUnit?: 'per_hour' | 'per_session'
 
   // Category & Classification
   category: string // From coach's specialties
@@ -60,6 +62,8 @@ export interface ServiceFormData {
   canBeGroup: boolean
   soloPrice: number | null
   groupPrice: number | null
+  soloPriceUnit?: 'per_hour' | 'per_session'
+  groupPriceUnit?: 'per_hour' | 'per_session'
   category: string
   // Removed from UI; keeping for backward compatibility in code paths
   subCategory: string

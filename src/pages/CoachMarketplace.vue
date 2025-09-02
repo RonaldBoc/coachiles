@@ -101,7 +101,13 @@
                     placeholder="Prix en €"
                     class="w-32 px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  <span class="ml-2 text-sm text-gray-500">€ / séance</span>
+                  <select
+                    v-model="serviceForm.soloPriceUnit"
+                    class="ml-2 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  >
+                    <option value="per_session">€/ séance</option>
+                    <option value="per_hour">€/ heure</option>
+                  </select>
                 </div>
 
                 <label class="flex items-center">
@@ -119,7 +125,13 @@
                     placeholder="Prix en €"
                     class="w-32 px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                  <span class="ml-2 text-sm text-gray-500">€ / personne</span>
+                  <select
+                    v-model="serviceForm.groupPriceUnit"
+                    class="ml-2 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  >
+                    <option value="per_session">€/ séance</option>
+                    <option value="per_hour">€/ heure</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -528,11 +540,21 @@
                   </div>
                   <div v-if="service.canBeSolo">
                     <span class="text-gray-500">Prix solo:</span>
-                    <div class="font-medium">{{ service.soloPrice }}€</div>
+                    <div class="font-medium">
+                      {{ service.soloPrice }}€
+                      <span class="text-xs text-gray-500"
+                        >/{{ service.soloPriceUnit === 'per_hour' ? 'heure' : 'séance' }}</span
+                      >
+                    </div>
                   </div>
                   <div v-if="service.canBeGroup">
                     <span class="text-gray-500">Prix groupe:</span>
-                    <div class="font-medium">{{ service.groupPrice }}€</div>
+                    <div class="font-medium">
+                      {{ service.groupPrice }}€
+                      <span class="text-xs text-gray-500"
+                        >/{{ service.groupPriceUnit === 'per_hour' ? 'heure' : 'séance' }}</span
+                      >
+                    </div>
                   </div>
                 </div>
 
@@ -632,6 +654,8 @@ const serviceForm = ref<ServiceFormData>({
   canBeGroup: false,
   soloPrice: null,
   groupPrice: null,
+  soloPriceUnit: 'per_session',
+  groupPriceUnit: 'per_session',
   category: '',
   subCategory: '',
   duration: 60,
@@ -743,6 +767,8 @@ const editService = (service: CoachService) => {
     canBeGroup: service.canBeGroup,
     soloPrice: service.soloPrice,
     groupPrice: service.groupPrice,
+    soloPriceUnit: service.soloPriceUnit || 'per_session',
+    groupPriceUnit: service.groupPriceUnit || 'per_session',
     category: service.category,
     subCategory: service.subCategory || '',
     duration: service.duration,
@@ -784,6 +810,8 @@ const resetServiceForm = () => {
     canBeGroup: false,
     soloPrice: null,
     groupPrice: null,
+    soloPriceUnit: 'per_session',
+    groupPriceUnit: 'per_session',
     category: '',
     subCategory: '',
     duration: 60,
