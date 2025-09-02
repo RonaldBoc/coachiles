@@ -3,421 +3,296 @@
     <div class="min-h-screen bg-gray-50">
       <!-- Header -->
       <div class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div class="flex-1">
-              <h1 class="text-2xl font-bold text-gray-900">Mes Leads</h1>
-              <p class="mt-1 text-sm text-gray-600">
-                Gérez vos opportunités clients et suivez vos conversions
-              </p>
-            </div>
-          </div>
-
-          <!-- TESTING: Subscription Toggle Button (REMOVE IN PRODUCTION) -->
-          <!-- <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-sm font-medium text-red-800">🧪 TESTING MODE</h3>
-                <p class="text-sm text-red-700">
-                  Current subscription: <strong>{{ coachSubscriptionType }}</strong>
-                </p>
-              </div>
-              <button
-                @click="toggleSubscriptionForTesting"
-                class="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
-                :disabled="isLoading"
-              >
-                <span v-if="!isLoading">
-                  {{
-                    coachSubscriptionType === 'free'
-                      ? '🧪 Activate Premium (DB)'
-                      : '🧪 Cancel to Free (DB)'
-                  }}
-                </span>
-                <span v-else>🔄 Updating...</span>
-              </button>
-            </div>
-          </div> -->
-
-          <!-- Subscription Notice -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          <!-- Loading State -->
           <div
-            v-if="isSubscriptionLimited"
-            class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg"
+            v-if="isLoading"
+            class="bg-white rounded-lg shadow-sm p-6 text-center text-sm text-gray-500"
           >
-            <div class="flex items-start">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <h3 class="text-sm font-medium text-yellow-800">Compte Gratuit - Accès Limité</h3>
-                <div class="mt-2 text-sm text-yellow-700">
-                  <p>
-                    Vous avez débloqué {{ unlockedLeadsCount }} sur {{ maxUnlockedLeads }} leads
-                    gratuits. Les autres leads sont masqués jusqu'à ce que vous passiez à un compte
-                    premium.
-                  </p>
-                </div>
-                <div class="mt-4">
-                  <div class="-mx-2 -my-1.5 flex">
-                    <button
-                      type="button"
-                      class="bg-yellow-50 px-2 py-1.5 rounded-md text-sm font-medium text-yellow-800 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-yellow-50 focus:ring-yellow-600"
-                      @click="upgradeAccount"
+            Chargement des leads...
+          </div>
+          <!-- Leads Table -->
+          <div v-else class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th
+                      class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      Passer à Premium
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Filters -->
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div class="flex flex-col sm:flex-row gap-4">
-            <!-- Search -->
-            <div class="flex-1">
-              <label for="search" class="sr-only">Rechercher</label>
-              <input
-                id="search"
-                v-model="searchQuery"
-                type="text"
-                placeholder="Rechercher par objectifs, lieu..."
-                class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <!-- Status Filter -->
-            <div class="sm:w-48">
-              <select
-                v-model="selectedStatus"
-                class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option v-for="option in statusOptions" :key="option.value" :value="option.value">
-                  {{ option.label }} ({{ getStatusCount(option.value) }})
-                </option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Loading State -->
-        <div v-if="isLoading" class="bg-white rounded-lg shadow-sm p-8">
-          <div class="flex items-center justify-center">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span class="ml-2 text-gray-600">Chargement des leads...</span>
-          </div>
-        </div>
-
-        <!-- Empty State -->
-        <div v-else-if="!filteredLeads.length" class="bg-white rounded-lg shadow-sm p-8">
-          <div class="text-center">
-            <div class="mx-auto h-12 w-12 text-gray-400">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8l-4 4m0-4l4 4"
-                />
-              </svg>
-            </div>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun lead trouvé</h3>
-            <p class="mt-1 text-sm text-gray-500">
-              {{
-                selectedStatus === 'all'
-                  ? "Vous n'avez pas encore de leads."
-                  : 'Aucun lead ne correspond aux filtres sélectionnés.'
-              }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Leads Table -->
-        <div v-else class="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th
-                    class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      Client
+                    </th>
+                    <th
+                      class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Status
+                    </th>
+                    <th
+                      class="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Objectifs
+                    </th>
+                    <th
+                      class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Lieu
+                    </th>
+                    <th
+                      class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Créé le
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr
+                    v-for="lead in filteredLeads"
+                    :key="lead.id"
+                    class="hover:bg-blue-50 cursor-pointer transition-colors"
+                    @click="viewLead(lead)"
+                    tabindex="0"
+                    @keydown.enter.prevent="viewLead(lead)"
+                    @keydown.space.prevent="viewLead(lead)"
+                    aria-label="Voir le lead"
                   >
-                    Client
-                  </th>
-                  <th
-                    class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                  <th
-                    class="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Objectifs
-                  </th>
-                  <th
-                    class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Lieu
-                  </th>
-                  <th
-                    class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Créé le
-                  </th>
-                  <th
-                    class="px-3 py-2 sm:px-6 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="lead in filteredLeads" :key="lead.id" class="hover:bg-gray-50">
-                  <!-- Client -->
-                  <td class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                      <div class="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
-                        <div
-                          class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-500 flex items-center justify-center"
-                        >
-                          <span class="text-sm font-medium text-white">
-                            {{ getLeadInitial(lead) }}
-                          </span>
-                        </div>
-                      </div>
-                      <div class="ml-3 sm:ml-4">
+                    <td class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
+                      <div>
                         <div class="text-xs sm:text-sm font-medium text-gray-900 leading-tight">
                           {{ getLeadName(lead) }}
                         </div>
                         <div
-                          class="text-[11px] sm:text-sm text-gray-500 truncate max-w-[120px] sm:max-w-none"
+                          class="text-[11px] sm:text-sm text-gray-500 truncate max-w-[160px] sm:max-w-none"
                         >
                           {{ getLeadEmail(lead) }}
                         </div>
                       </div>
-                      <div v-if="isNewLead(lead)" class="ml-2">
-                        <span
-                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
-                        >
-                          NEW
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-
-                  <!-- Status -->
-                  <td class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
-                    <span
-                      :class="[
-                        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                        getStatusColor(lead.status),
-                      ]"
-                    >
-                      {{ getStatusLabel(lead.status) }}
-                    </span>
-                  </td>
-
-                  <!-- Objectifs (hidden on mobile) -->
-                  <td class="hidden sm:table-cell px-6 py-4">
-                    <div class="text-sm text-gray-900">
-                      {{ getLeadGoals(lead) }}
-                    </div>
-                    <div v-if="lead.chosen_services?.length" class="text-sm text-gray-500">
-                      {{ normalizeChosenServices(lead.chosen_services).slice(0, 2).join(', ') }}
-                      <span v-if="normalizeChosenServices(lead.chosen_services).length > 2">
-                        +{{ normalizeChosenServices(lead.chosen_services).length - 2 }}
-                      </span>
-                    </div>
-                  </td>
-
-                  <!-- Lieu -->
-                  <td
-                    class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900"
-                  >
-                    {{ formatLocation(lead.location) }}
-                  </td>
-
-                  <!-- Créé le -->
-                  <td
-                    class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-[11px] sm:text-sm text-gray-500"
-                  >
-                    <div class="leading-tight">{{ formatDate(lead.created_at) }}</div>
-                    <div class="text-[10px] sm:text-xs">{{ getTimeAgo(lead.created_at) }}</div>
-                  </td>
-
-                  <!-- Actions -->
-                  <td
-                    class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium"
-                  >
-                    <Menu as="div" class="relative inline-block text-left">
-                      <div>
-                        <MenuButton
-                          class="flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
-                        >
-                          <EllipsisVerticalIcon class="h-5 w-5" />
-                        </MenuButton>
-                      </div>
-
-                      <transition
-                        enter-active-class="transition ease-out duration-100"
-                        enter-from-class="transform opacity-0 scale-95"
-                        enter-to-class="transform opacity-100 scale-100"
-                        leave-active-class="transition ease-in duration-75"
-                        leave-from-class="transform opacity-100 scale-100"
-                        leave-to-class="transform opacity-0 scale-95"
+                    </td>
+                    <td class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
+                      <span
+                        :class="[
+                          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                          getStatusColor(lead.status),
+                        ]"
+                        >{{ getStatusLabel(lead.status) }}</span
                       >
-                        <MenuItems
-                          class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                    </td>
+                    <td class="hidden sm:table-cell px-6 py-4">
+                      <!-- Show services if any were chosen, otherwise show goals -->
+                      <div v-if="lead.chosen_services?.length" class="text-sm text-gray-900">
+                        {{ getLeadServiceTitles(lead).slice(0, 2).join(', ') }}
+                        <span v-if="getLeadServiceTitles(lead).length > 2" class="text-gray-500"
+                          >+{{ getLeadServiceTitles(lead).length - 2 }}</span
                         >
-                          <MenuItem v-slot="{ active }">
-                            <button
-                              @click="viewLead(lead)"
-                              :class="[
-                                active ? 'bg-gray-100' : '',
-                                'flex w-full items-center px-4 py-2 text-sm text-gray-700',
-                              ]"
-                            >
-                              <EyeIcon class="mr-3 h-4 w-4" />
-                              {{
-                                canAccessLeadDetails(lead)
-                                  ? 'Voir les détails'
-                                  : 'Débloquer (Premium)'
-                              }}
-                            </button>
-                          </MenuItem>
-
-                          <!-- (Additional status actions could be added here) -->
-                        </MenuItems>
-                      </transition>
-                    </Menu>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                      </div>
+                      <div v-else class="text-sm text-gray-900">
+                        {{ getLeadGoals(lead) }}
+                      </div>
+                    </td>
+                    <td
+                      class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900"
+                    >
+                      {{ formatLocation(lead.location) }}
+                    </td>
+                    <td
+                      class="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-[11px] sm:text-sm text-gray-500"
+                    >
+                      <div class="leading-tight">{{ formatDate(lead.created_at) }}</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </div>
-      <!-- Lead Details Modal -->
-      <div
-        v-if="selectedLead"
-        class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
-        @click.self="selectedLead = null"
-      >
-        <div class="w-full max-w-lg bg-white rounded-lg shadow-lg overflow-hidden">
-          <div class="flex items-center justify-between px-4 py-3 border-b">
-            <h2 class="text-lg font-semibold text-gray-900">Détails du Lead</h2>
-            <button @click="selectedLead = null" class="text-gray-500 hover:text-gray-700">
-              ✕
-            </button>
-          </div>
-          <div class="p-4 space-y-4 text-sm">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <div class="text-gray-500">Nom</div>
-                <div class="font-medium text-gray-900">{{ getLeadName(selectedLead!) }}</div>
-              </div>
-              <div>
-                <div class="text-gray-500">Email</div>
-                <div class="font-medium text-gray-900">{{ getLeadEmail(selectedLead!) }}</div>
-              </div>
-              <div>
-                <div class="text-gray-500">Lieu</div>
-                <div class="font-medium text-gray-900">{{ selectedLead!.location || '—' }}</div>
-              </div>
-              <div v-if="selectedLead?.chosen_services?.length">
-                <div class="text-gray-500">Services choisis</div>
-                <div class="font-medium text-gray-900 text-xs">
-                  {{ normalizeChosenServices(selectedLead!.chosen_services).join(', ') }}
-                </div>
-              </div>
-              <div>
-                <div class="text-gray-500">Créé le</div>
-                <div class="font-medium text-gray-900">
-                  {{ formatDate(selectedLead!.created_at) }}
-                </div>
-              </div>
-            </div>
-            <div>
-              <div class="text-gray-500 mb-1">Objectifs</div>
-              <div class="text-gray-900 whitespace-pre-wrap">{{ getLeadGoals(selectedLead!) }}</div>
-            </div>
-            <div v-if="canAccessLeadDetails(selectedLead!)">
-              <div class="text-gray-500 mb-1">Données complètes</div>
-              <div class="space-y-1">
-                <div v-if="selectedLead!.client_phone">
-                  <span class="font-medium">Téléphone:</span> {{ selectedLead!.client_phone }}
-                </div>
-                <div v-if="selectedLead!.goals">
-                  <span class="font-medium">Objectifs:</span> {{ selectedLead!.goals }}
-                </div>
-                <div v-if="selectedLead!.additional_info">
-                  <span class="font-medium">Infos sup.:</span> {{ selectedLead!.additional_info }}
-                </div>
-              </div>
-              <!-- Chosen services already shown above; removed coach offered services block -->
-
-              <!-- Coach Note -->
-              <div class="mt-4">
-                <label class="text-gray-500 mb-1 block text-sm">Note coach (privée)</label>
-                <textarea
-                  v-model="coachNoteDraft"
-                  rows="3"
-                  class="w-full text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 resize-y"
-                  placeholder="Vos notes sur ce lead..."
-                />
-                <div class="mt-2 flex items-center gap-2">
-                  <button
-                    @click="saveCoachNote"
-                    :disabled="isSavingNote"
-                    class="px-3 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {{ isSavingNote ? 'Sauvegarde...' : 'Sauvegarder' }}
-                  </button>
-                  <span v-if="noteError" class="text-xs text-red-600">{{ noteError }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-else class="p-3 rounded bg-yellow-50 text-yellow-800 text-xs">
-              Plus de détails disponibles avec un compte Premium.
-            </div>
-            <div class="pt-2 flex justify-end">
-              <button
-                @click="selectedLead = null"
-                class="px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300"
-              >
-                Fermer
-              </button>
-            </div>
-            <div class="pt-4 border-t">
-              <h3 class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                Mettre à jour le statut
-              </h3>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="status in availableStatusUpdates"
-                  :key="status.value"
-                  @click="changeLeadStatus(status.value)"
-                  :disabled="isUpdatingStatus || status.value === selectedLead!.status"
-                  :class="[
-                    'px-3 py-1 rounded text-xs font-medium border transition',
-                    status.value === selectedLead!.status
-                      ? 'bg-gray-200 text-gray-600 cursor-default'
-                      : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300',
-                  ]"
-                >
-                  {{ status.label }}
+          <!-- Revamped Lead Details Modal -->
+          <div
+            v-if="selectedLead"
+            class="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
+            @click.self="selectedLead = null"
+          >
+            <div
+              class="w-full max-w-lg max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Détails du lead"
+            >
+              <div class="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                <h2 class="text-lg font-semibold text-gray-900">Détails du Lead</h2>
+                <button @click="selectedLead = null" class="text-gray-500 hover:text-gray-700">
+                  ✕
                 </button>
               </div>
-              <div v-if="statusError" class="mt-2 text-xs text-red-600">{{ statusError }}</div>
+              <div class="p-4 space-y-6 text-sm overflow-y-auto flex-1 min-h-0">
+                <section>
+                  <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    Profil
+                  </h3>
+                  <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                      <div class="text-gray-500">Nom</div>
+                      <div class="font-medium text-gray-900">{{ getLeadName(selectedLead!) }}</div>
+                    </div>
+                    <div
+                      v-if="
+                        selectedLead!.client_age !== null && selectedLead!.client_age !== undefined
+                      "
+                    >
+                      <div class="text-gray-500">Âge</div>
+                      <div class="font-medium text-gray-900">
+                        {{ selectedLead!.client_age }} ans
+                      </div>
+                    </div>
+                    <div v-if="selectedLead!.client_gender">
+                      <div class="text-gray-500">Genre</div>
+                      <div class="font-medium text-gray-900">
+                        {{ formatGender((selectedLead as any).client_gender) }}
+                      </div>
+                    </div>
+                    <div v-if="(selectedLead as any).experience">
+                      <div class="text-gray-500">Expérience</div>
+                      <div class="font-medium text-gray-900">
+                        {{ formatExperience((selectedLead as any).experience) }}
+                      </div>
+                    </div>
+                    <div v-if="availabilityDaysLabel !== '-'" class="col-span-2">
+                      <div class="text-gray-500">Disponibilités</div>
+                      <div class="font-medium text-gray-900">{{ availabilityDaysLabel }}</div>
+                    </div>
+                    <div class="col-span-2">
+                      <div class="text-gray-500">Objectifs</div>
+                      <div class="font-medium text-gray-900 whitespace-pre-wrap">
+                        {{ getLeadGoals(selectedLead!) }}
+                      </div>
+                    </div>
+                    <div v-if="(selectedLead as any).start_timeframe" class="col-span-2">
+                      <div class="text-gray-500">Démarrage</div>
+                      <div class="font-medium text-gray-900">
+                        {{ (selectedLead as any).start_timeframe }}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section v-if="selectedLead!.additional_info">
+                  <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    Message du client
+                  </h3>
+                  <div class="p-3 bg-gray-50 rounded text-sm whitespace-pre-wrap text-gray-700">
+                    {{ selectedLead!.additional_info }}
+                  </div>
+                </section>
+                <section>
+                  <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    Contact
+                  </h3>
+                  <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                      <div class="text-gray-500">Email</div>
+                      <div class="font-medium text-gray-900 break-all">
+                        {{ getLeadEmail(selectedLead!) }}
+                      </div>
+                    </div>
+                    <div>
+                      <div class="text-gray-500">Téléphone</div>
+                      <div class="font-medium text-gray-900">
+                        {{ selectedLead!.client_phone || '—' }}
+                      </div>
+                    </div>
+                    <div class="col-span-2">
+                      <div class="text-gray-500">Lieu</div>
+                      <div class="font-medium text-gray-900">
+                        {{ formatLocation(selectedLead!.location as any) }}
+                      </div>
+                    </div>
+                    <div class="col-span-2">
+                      <div class="text-gray-500">Créé le</div>
+                      <div class="font-medium text-gray-900">
+                        {{ formatDate(selectedLead!.created_at) }}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section>
+                  <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    Services sélectionnés par ce lead
+                  </h3>
+                  <div v-if="detailedChosenServices.length" class="space-y-2">
+                    <div
+                      v-for="(svc, i) in detailedChosenServices"
+                      :key="i"
+                      class="border rounded p-2 bg-gray-50"
+                    >
+                      <div class="text-[11px] font-semibold text-gray-800 truncate">
+                        {{ svc.title }}
+                      </div>
+                      <div
+                        class="text-[11px] text-gray-600 mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5"
+                      >
+                        <span><span class="text-gray-400">Jours:</span> {{ svc.daysLabel }}</span>
+                        <span v-if="svc.modalitiesLabel !== '-'"
+                          ><span class="text-gray-400">Modalités:</span>
+                          {{ svc.modalitiesLabel }}</span
+                        >
+                        <span v-if="svc.locationsLabel !== '-'"
+                          ><span class="text-gray-400">Lieux:</span> {{ svc.locationsLabel }}</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="text-xs text-gray-500 italic">Aucun service sélectionné</div>
+                </section>
+                <section>
+                  <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    Note coach
+                  </h3>
+                  <div>
+                    <textarea
+                      v-model="coachNoteDraft"
+                      rows="3"
+                      class="w-full text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 resize-y"
+                      placeholder="Vos notes sur ce lead..."
+                    />
+                    <div class="mt-2 flex items-center gap-2">
+                      <button
+                        @click="saveCoachNote"
+                        :disabled="isSavingNote"
+                        class="px-3 py-1.5 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {{ isSavingNote ? 'Sauvegarde...' : 'Sauvegarder' }}
+                      </button>
+                      <span v-if="noteError" class="text-xs text-red-600">{{ noteError }}</span>
+                    </div>
+                  </div>
+                </section>
+                <section class="pt-2 border-t">
+                  <h3 class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+                    Mettre à jour le statut
+                  </h3>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="status in availableStatusUpdates"
+                      :key="status.value"
+                      @click="changeLeadStatus(status.value)"
+                      :disabled="isUpdatingStatus || status.value === selectedLead!.status"
+                      :class="[
+                        'px-3 py-1 rounded text-xs font-medium border transition',
+                        status.value === selectedLead!.status
+                          ? 'bg-gray-200 text-gray-600 cursor-default'
+                          : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300',
+                      ]"
+                    >
+                      {{ status.label }}
+                    </button>
+                  </div>
+                  <div v-if="statusError" class="mt-2 text-xs text-red-600">{{ statusError }}</div>
+                </section>
+                <div class="flex justify-end">
+                  <button
+                    @click="selectedLead = null"
+                    class="px-4 py-2 rounded bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300"
+                  >
+                    Fermer
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -429,8 +304,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue'
-import { EllipsisVerticalIcon, EyeIcon } from '@heroicons/vue/24/outline'
+// Removed dropdown actions menu imports
 import { useAuthStore } from '@/stores/auth'
 import type { Lead } from '@/types/Lead'
 import CoachLayout from '@/layouts/CoachLayout.vue'
@@ -461,14 +335,12 @@ const coachSubscriptionType = ref<string>('free') // Track actual subscription s
 
 // Computed
 const currentCoach = computed(() => authStore.coach)
-const isSubscriptionLimited = computed(() => coachSubscriptionType.value === 'free')
-const maxUnlockedLeads = computed(() => (isSubscriptionLimited.value ? 2 : Infinity))
 
 // Reactive unlocked leads based on subscription
 const unlockedLeads = computed(() => {
   const unlockedSet = new Set<string>()
-  // consider only non-hidden leads
-  const visibleLeads = leads.value.filter((l) => !l.is_hidden)
+  // consider only non-hidden, non do_not_contact leads
+  const visibleLeads = leads.value.filter((l) => !l.is_hidden && !l.do_not_contact)
   if (coachSubscriptionType.value !== 'free') {
     visibleLeads.forEach((lead) => unlockedSet.add(lead.id))
   } else {
@@ -481,11 +353,9 @@ const unlockedLeads = computed(() => {
   return unlockedSet
 })
 
-const unlockedLeadsCount = computed(() => unlockedLeads.value.size)
-
 // Filtered leads
 const filteredLeads = computed(() => {
-  let filtered = leads.value.filter((l) => !l.is_hidden)
+  let filtered = leads.value.filter((l) => !l.is_hidden && !l.do_not_contact)
 
   // Filter by status
   if (selectedStatus.value !== 'all') {
@@ -509,33 +379,10 @@ const filteredLeads = computed(() => {
   return filtered
 })
 
-// Status options
-const statusOptions = [
-  { value: 'all', label: 'Tous les statuts' },
-  { value: 'new', label: 'Nouvelles' },
-  { value: 'assigned', label: 'Assignées' },
-  { value: 'contacted', label: 'Contactées' },
-  { value: 'converted', label: 'Converties' },
-  { value: 'closed', label: 'Fermées' },
-]
-
 // Helper functions
 const canAccessLeadDetails = (lead: Lead): boolean => {
   if (coachSubscriptionType.value !== 'free') return true
   return unlockedLeads.value.has(lead.id)
-}
-
-// Normalize chosen_services which may be an array of strings (legacy) or array of objects
-// Returns array of service title strings for display
-function normalizeChosenServices(raw: Lead['chosen_services'] | undefined | null): string[] {
-  if (!raw) return []
-  const arr = raw as unknown[]
-  if (!Array.isArray(arr)) return []
-  if (arr.length === 0) return []
-  if (typeof arr[0] === 'string') return arr as string[]
-  return (arr as { title?: string }[])
-    .map((o) => (o && typeof o.title === 'string' ? o.title : null))
-    .filter((v): v is string => !!v)
 }
 
 const getLeadName = (lead: Lead): string => {
@@ -552,13 +399,6 @@ const getLeadEmail = (lead: Lead): string => {
   return '***@***.***'
 }
 
-const getLeadInitial = (lead: Lead): string => {
-  if (canAccessLeadDetails(lead)) {
-    return lead.client_name?.charAt(0)?.toUpperCase() || '?'
-  }
-  return '?'
-}
-
 const getLeadGoals = (lead: Lead): string => {
   if (canAccessLeadDetails(lead)) {
     return lead.goals || '-'
@@ -566,17 +406,16 @@ const getLeadGoals = (lead: Lead): string => {
   return 'Objectifs masqués (Premium requis)'
 }
 
-const getStatusCount = (status: string): number => {
-  const visible = leads.value.filter((l) => !l.is_hidden)
-  if (status === 'all') return visible.length
-  return visible.filter((lead) => lead.status === status).length
-}
-
-const isNewLead = (lead: Lead): boolean => {
-  const now = new Date()
-  const createdAt = new Date(lead.created_at)
-  const diffHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
-  return diffHours < 24 && lead.status === 'new'
+// Return array of service titles (chosen services) for a lead – empty if none or not accessible
+const getLeadServiceTitles = (lead: Lead): string[] => {
+  if (!canAccessLeadDetails(lead)) return []
+  try {
+    return parseChosenServicesDetailed(lead.chosen_services)
+      .map((s) => s.title)
+      .filter(Boolean)
+  } catch {
+    return []
+  }
 }
 
 const formatDate = (date: string): string => {
@@ -585,23 +424,6 @@ const formatDate = (date: string): string => {
     month: '2-digit',
     year: '2-digit',
   }).format(new Date(date))
-}
-
-const getTimeAgo = (date: string): string => {
-  const now = new Date()
-  const diffMinutes = Math.floor((now.getTime() - new Date(date).getTime()) / (1000 * 60))
-
-  if (diffMinutes < 60) {
-    return `Il y a ${diffMinutes}min`
-  }
-
-  const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) {
-    return `Il y a ${diffHours}h`
-  }
-
-  const diffDays = Math.floor(diffHours / 24)
-  return `Il y a ${diffDays}j`
 }
 
 const getStatusColor = (status: string): string => {
@@ -625,6 +447,136 @@ const getStatusLabel = (status: string): string => {
   }
   return labels[status as keyof typeof labels] || status
 }
+
+// Formatting helpers for extended details
+const formatGender = (gender?: string | null): string => {
+  if (!gender) return '-'
+  const map: Record<string, string> = {
+    male: 'Homme',
+    female: 'Femme',
+    other: 'Autre',
+  }
+  return map[gender.toLowerCase()] || capitalizeFirst(gender)
+}
+
+const formatExperience = (exp?: string | null): string => {
+  if (!exp) return '-'
+  const map: Record<string, string> = {
+    debutant: 'Débutant',
+    intermediaire: 'Intermédiaire',
+    avance: 'Avancé',
+    expert: 'Expert',
+  }
+  return map[exp.toLowerCase()] || capitalizeFirst(exp)
+}
+
+// Chosen services detailed parsing
+interface ChosenServiceDetailed {
+  title: string
+  days?: number[]
+  locations?: string[]
+  modalities?: string[]
+  daysLabel?: string
+  locationsLabel?: string
+  modalitiesLabel?: string
+}
+
+function parseChosenServicesDetailed(
+  raw: Lead['chosen_services'] | undefined | null,
+): ChosenServiceDetailed[] {
+  if (!raw) return []
+  let data: unknown
+  if (typeof raw === 'string') {
+    try {
+      data = JSON.parse(raw)
+    } catch {
+      return []
+    }
+  } else {
+    data = raw
+  }
+  if (!Array.isArray(data)) return []
+  return (data as unknown[])
+    .map((item) => {
+      if (!item) return null
+      if (typeof item === 'string') {
+        return { title: item } as ChosenServiceDetailed
+      }
+      if (typeof item === 'object') {
+        const obj = item as Record<string, unknown>
+        const days = Array.isArray(obj.days)
+          ? (obj.days.filter((d): d is number => typeof d === 'number') as number[])
+          : undefined
+        const locations = Array.isArray(obj.locations)
+          ? (obj.locations.filter((l): l is string => typeof l === 'string') as string[])
+          : undefined
+        const modalities = Array.isArray(obj.modalities)
+          ? (obj.modalities.filter((m): m is string => typeof m === 'string') as string[])
+          : undefined
+        return {
+          title: typeof obj.title === 'string' ? (obj.title as string) : '(Service)',
+          days,
+          locations,
+          modalities,
+        } as ChosenServiceDetailed
+      }
+      return null
+    })
+    .filter((v): v is ChosenServiceDetailed => !!v)
+}
+
+const dayLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+const formatServiceDays = (days?: number[]) => {
+  if (!days || !days.length) return '-'
+  return days.map((d) => (d >= 0 && d < dayLabels.length ? dayLabels[d] : String(d))).join(', ')
+}
+
+const formatServiceLocations = (locs?: string[]) => {
+  if (!locs || !locs.length) return '-'
+  const map: Record<string, string> = {
+    public_spaces: 'Espaces publics',
+    home: 'Domicile',
+    gym: 'Salle',
+    online: 'En ligne',
+  }
+  return locs.map((l) => map[l] || capitalizeFirst(l.replace(/_/g, ' '))).join(', ')
+}
+
+const formatServiceModalities = (mods?: string[]) => {
+  if (!mods || !mods.length) return '-'
+  const map: Record<string, string> = {
+    group: 'Groupe',
+    individual: 'Individuel',
+    duo: 'Duo',
+  }
+  return mods.map((m) => map[m] || capitalizeFirst(m)).join(', ')
+}
+
+// Computed enriched chosen services for the selected lead
+const detailedChosenServices = computed(() => {
+  if (!selectedLead.value) return [] as ChosenServiceDetailed[]
+  return parseChosenServicesDetailed(selectedLead.value.chosen_services).map((svc) => ({
+    ...svc,
+    daysLabel: formatServiceDays(svc.days),
+    locationsLabel: formatServiceLocations(svc.locations),
+    modalitiesLabel: formatServiceModalities(svc.modalities),
+  }))
+})
+
+// Aggregate availability days across chosen services (unique) or fallback to textual availability
+const availabilityDaysLabel = computed(() => {
+  if (!selectedLead.value) return '-'
+  const services = parseChosenServicesDetailed(selectedLead.value.chosen_services)
+  const daySet = new Set<number>()
+  services.forEach((s) => s.days?.forEach((d) => typeof d === 'number' && daySet.add(d)))
+  if (daySet.size === 0) {
+    return selectedLead.value.availability || '-'
+  }
+  return Array.from(daySet)
+    .sort((a, b) => a - b)
+    .map((d) => (d >= 0 && d < dayLabels.length ? dayLabels[d] : String(d)))
+    .join(', ')
+})
 
 // Normalization helper (lowercase, remove diacritics & apostrophes, compress whitespace)
 const normalizeCity = (raw: string) =>
@@ -749,11 +701,60 @@ const getIslandCodeByCity = (city?: string | null): string | null => {
   return CITY_ISLAND_CODE[norm] || null
 }
 
-const formatLocation = (location?: string | null): string => {
+// Accept legacy plain string, JSON string, or object { city, country }
+const formatLocation = (
+  location?: string | { city?: string | null; country?: string | null } | null,
+): string => {
   if (!location) return '-'
-  const code = getIslandCodeByCity(location)
-  if (code && !location.toUpperCase().includes(`, ${code}`)) return `${location}, ${code}`
-  return location
+
+  let city: string | undefined
+  let country: string | undefined
+
+  if (typeof location === 'string') {
+    const trimmed = location.trim()
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        if (parsed && typeof parsed === 'object') {
+          city = typeof parsed.city === 'string' ? parsed.city : undefined
+          country = typeof parsed.country === 'string' ? parsed.country : undefined
+        }
+      } catch {
+        // not JSON, treat as plain city string
+        city = location
+      }
+    } else {
+      city = location
+    }
+  } else if (typeof location === 'object') {
+    city = location.city || undefined
+    country = location.country || undefined
+  }
+
+  if (!city && !country) return '-'
+
+  // Derive island code from city if possible
+  const code = city ? getIslandCodeByCity(city) : null
+
+  // Map backend country identifiers to display labels
+  const countryDisplayMap: Record<string, string> = {
+    martinique: 'Martinique',
+    guadeloupe: 'Guadeloupe',
+    guyane: 'Guyane',
+    'guyane française': 'Guyane',
+  }
+  const countryLabel = country
+    ? countryDisplayMap[country.toLowerCase()] || capitalizeFirst(country)
+    : code || undefined
+
+  if (city && countryLabel) return `${city}, ${countryLabel}`
+  if (city) return code ? `${city}, ${code}` : city
+  return countryLabel || '-'
+}
+
+function capitalizeFirst(str: string): string {
+  if (!str) return str
+  return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
 // Actions
@@ -907,6 +908,20 @@ watch(
       }
     }
   },
+)
+
+// If a selected lead becomes do_not_contact or hidden, close the modal
+watch(
+  () => leads.value.map((l) => ({ id: l.id, hidden: l.is_hidden, dnc: l.do_not_contact })),
+  () => {
+    if (selectedLead.value) {
+      const latest = leads.value.find((l) => l.id === selectedLead.value!.id)
+      if (!latest || latest.is_hidden || latest.do_not_contact) {
+        selectedLead.value = null
+      }
+    }
+  },
+  { deep: true },
 )
 
 // React immediately to route query changes (navigation from notification)
