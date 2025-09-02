@@ -27,17 +27,6 @@
               Dashboard
             </router-link>
             <router-link
-              to="/coach/profile"
-              :class="[
-                'px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                $route.path === '/coach/profile'
-                  ? 'bg-orange-100 text-orange-800'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
-              ]"
-            >
-              Mon Profil
-            </router-link>
-            <router-link
               to="/coach/proposals"
               :class="[
                 'px-3 py-2 rounded-md text-sm font-medium transition-colors relative',
@@ -55,6 +44,18 @@
                 {{ newProposalsCount }}
               </span>
             </router-link>
+            <router-link
+              to="/coach/profile"
+              :class="[
+                'px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                $route.path === '/coach/profile'
+                  ? 'bg-orange-100 text-orange-800'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
+              ]"
+            >
+              Mon Profil
+            </router-link>
+
             <router-link
               to="/coach/services"
               :class="[

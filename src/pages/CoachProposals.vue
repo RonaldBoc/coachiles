@@ -3,16 +3,117 @@
     <div class="min-h-screen bg-gray-50">
       <!-- Header -->
       <div class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div class="flex-1">
+              <h1 class="text-2xl font-bold text-gray-900">Mes Leads</h1>
+              <p class="mt-1 text-sm text-gray-600">
+                Gérez vos opportunités clients et suivez vos conversions.
+              </p>
+            </div>
+          </div>
+
+          <!-- Subscription Notice (free plan limit) -->
+          <div
+            v-if="subscriptionLoaded && isSubscriptionLimited"
+            class="mt-5 p-4 bg-yellow-50 border border-yellow-200 rounded-lg"
+          >
+            <div class="flex items-start gap-3">
+              <svg
+                class="h-5 w-5 text-yellow-400 flex-shrink-0"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <div class="flex-1">
+                <h3 class="text-sm font-medium text-yellow-800">Compte Gratuit - Accès Limité</h3>
+                <p class="mt-1 text-xs sm:text-sm text-yellow-700 leading-relaxed">
+                  Vous avez débloqué {{ unlockedLeadsCount }} sur {{ maxUnlockedLeads }} leads
+                  gratuits. Les autres leads sont masqués jusqu'à ce que vous passiez à un compte
+                  premium.
+                </p>
+                <div class="mt-3">
+                  <button
+                    type="button"
+                    class="bg-yellow-600 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-600"
+                    @click="upgradeAccount"
+                  >
+                    Passer à Premium
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="mt-6 bg-white rounded-lg shadow-sm p-5">
+            <div class="flex flex-col sm:flex-row gap-4">
+              <!-- Search -->
+              <div class="flex-1">
+                <label for="search" class="sr-only">Rechercher</label>
+                <input
+                  id="search"
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Rechercher par objectifs, lieu..."
+                  class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <!-- Status Filter -->
+              <div class="sm:w-48">
+                <select
+                  v-model="selectedStatus"
+                  class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+                    {{ option.label }} ({{ getStatusCount(option.value) }})
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <!-- Loading State -->
           <div
             v-if="isLoading"
-            class="bg-white rounded-lg shadow-sm p-6 text-center text-sm text-gray-500"
+            class="mt-6 bg-white rounded-lg shadow-sm p-8 text-center text-sm text-gray-600"
           >
-            Chargement des leads...
+            <div class="flex items-center justify-center gap-2">
+              <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+              <span>Chargement des leads...</span>
+            </div>
+          </div>
+          <!-- Empty State -->
+          <div
+            v-else-if="!filteredLeads.length"
+            class="mt-6 bg-white rounded-lg shadow-sm p-8 text-center"
+          >
+            <div class="mx-auto h-10 w-10 text-gray-400 mb-2">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8l-4 4m0-4l4 4"
+                />
+              </svg>
+            </div>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun lead trouvé</h3>
+            <p class="mt-1 text-sm text-gray-500">
+              {{
+                selectedStatus === 'all'
+                  ? "Vous n'avez pas encore de leads."
+                  : 'Aucun lead ne correspond aux filtres sélectionnés.'
+              }}
+            </p>
           </div>
           <!-- Leads Table -->
-          <div v-else class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div v-else class="mt-6 bg-white rounded-lg shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -332,6 +433,12 @@ const noteError = ref<string | null>(null)
 const selectedStatus = ref('all')
 const searchQuery = ref('')
 const coachSubscriptionType = ref<string>('free') // Track actual subscription status
+const subscriptionLoaded = ref(false)
+
+// Subscription limits (constants for free tier)
+const maxUnlockedLeads = 2 // free tier lead unlock limit
+const unlockedLeadsCount = computed(() => unlockedLeads.value.size)
+const isSubscriptionLimited = computed(() => coachSubscriptionType.value === 'free')
 
 // Computed
 const currentCoach = computed(() => authStore.coach)
@@ -446,6 +553,20 @@ const getStatusLabel = (status: string): string => {
     closed: 'Fermée',
   }
   return labels[status as keyof typeof labels] || status
+}
+
+// Status filter options for UI
+const statusOptions = [
+  { value: 'all', label: 'Tous' },
+  { value: 'new', label: 'Nouveaux' },
+  { value: 'assigned', label: 'Assignés' },
+  { value: 'contacted', label: 'Contactés' },
+  { value: 'converted', label: 'Convertis' },
+  { value: 'closed', label: 'Fermés' },
+]
+const getStatusCount = (status: string) => {
+  if (status === 'all') return leads.value.filter((l) => !l.is_hidden && !l.do_not_contact).length
+  return leads.value.filter((l) => l.status === status && !l.is_hidden && !l.do_not_contact).length
 }
 
 // Formatting helpers for extended details
@@ -791,6 +912,7 @@ const loadLeads = async () => {
     console.error('❌ Failed to load leads or subscription status:', error)
   } finally {
     isLoading.value = false
+    subscriptionLoaded.value = true
   }
 }
 
