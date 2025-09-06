@@ -560,15 +560,15 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <span class="text-gray-500">Catégorie:</span>
-                    <div class="font-medium">{{ service.category }}</div>
+                    <div class="font-medium dark:text-gray-500">{{ service.category }}</div>
                   </div>
                   <div>
                     <span class="text-gray-500">Durée:</span>
-                    <div class="font-medium">{{ service.duration }} min</div>
+                    <div class="font-medium dark:text-gray-500">{{ service.duration }} min</div>
                   </div>
                   <div v-if="service.canBeSolo">
                     <span class="text-gray-500">Prix solo:</span>
-                    <div class="font-medium">
+                    <div class="font-medium dark:text-gray-500">
                       {{ service.soloPrice }}€
                       <span class="text-xs text-gray-500"
                         >/{{ service.soloPriceUnit === 'per_hour' ? 'heure' : 'séance' }}</span
@@ -577,7 +577,7 @@
                   </div>
                   <div v-if="service.canBeGroup">
                     <span class="text-gray-500">Prix groupe:</span>
-                    <div class="font-medium">
+                    <div class="font-medium dark:text-gray-500">
                       {{ service.groupPrice }}€
                       <span class="text-xs text-gray-500"
                         >/{{ service.groupPriceUnit === 'per_hour' ? 'heure' : 'séance' }}</span

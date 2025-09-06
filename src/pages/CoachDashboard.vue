@@ -225,7 +225,7 @@
                       v-model="reviewReply[r.id]"
                       rows="2"
                       placeholder="Répondre (une seule réponse possible)"
-                      class="w-full text-xs rounded border-gray-300"
+                      class="dark:text-gray-900 w-full text-xs rounded border-gray-300"
                     ></textarea>
                     <div class="mt-1 flex justify-end">
                       <button

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { XMarkIcon, ArrowUpTrayIcon, GlobeAltIcon } from '@heroicons/vue/24/outline'
+import UnifiedSelect from '@/components/inputs/UnifiedSelect.vue'
 import { supabase } from '@/utils/supabase'
 import {
   LANGUAGE_OPTIONS,
@@ -96,6 +97,11 @@ interface CoachDbRow {
   experience_years?: number | null
   availability?: string[]
   hourly_rate?: number | null
+  subscription_type?: string | null
+  subscription_status?: string | null
+  has_active_subscription?: boolean | null
+  subscription_is_active?: boolean | null
+  plan_name?: string | null
   profile_personal?: Partial<CoachProfilePayload['personal']>
   profile_contact?: Partial<CoachProfilePayload['contact']>
   profile_activity?: Partial<CoachProfilePayload['activity']>
@@ -111,11 +117,43 @@ type InitialData = {
   modalities?: Partial<ModalitiesData>
 }
 
-const props = defineProps<{
-  initialCoachId?: string
-  initialData?: InitialData
-  showAvatarSection?: boolean // if false, parent handles avatar editing
-}>()
+const props = withDefaults(
+  defineProps<{
+    initialCoachId?: string
+    initialData?: InitialData
+    showAvatarSection?: boolean // if false, parent handles avatar editing
+    isPremium?: boolean // current coach subscription status
+    hasActiveSubscription?: boolean // explicit active subscription flag (override)
+    planName?: string // explicit plan name (override)
+  }>(),
+  {
+    isPremium: false,
+    hasActiveSubscription: false,
+  },
+)
+// Normalize premium flag (supports boolean, numeric-like or string values from parent)
+const showPremiumUpsell = computed(() => {
+  // Priority: explicit prop wins; else fall back to hydrated subscription state
+  const explicit = props.isPremium as unknown
+  if (explicit === true) return false
+  if (typeof explicit === 'string') {
+    const norm = (explicit as string).trim().toLowerCase()
+    if (['true', '1', 'yes', 'on', 'premium', 'actif', 'active'].includes(norm)) return false
+  }
+  if (typeof explicit === 'number' && (explicit as number) === 1) return false
+  // Explicit subscription props override (even if isPremium not set)
+  if (props.hasActiveSubscription) return false
+  if (props.planName && props.planName.toLowerCase().includes('premium')) return false
+  // Hydrated subscription state
+  if (subscriptionState.value.isPremiumHydrated) return false
+  if (subscriptionState.value.isActive) return false
+  if (
+    subscriptionState.value.planName &&
+    subscriptionState.value.planName.toLowerCase().includes('premium')
+  )
+    return false
+  return true
+})
 const emit = defineEmits<{ (e: 'saved', payload: CoachProfilePayload): void }>()
 
 // Storage bucket (configurable via env). Create this bucket in Supabase Storage if it does not exist.
@@ -125,6 +163,17 @@ interface ViteEnvMeta {
 }
 const metaEnv = (import.meta as unknown as ViteEnvMeta).env || {}
 const DIPLOMA_BUCKET = metaEnv.VITE_SUPABASE_DIPLOMA_BUCKET || 'diploma-proofs'
+
+// Subscription reactive state (derived from DB)
+const subscriptionState = ref({
+  subscriptionType: null as string | null,
+  subscriptionStatus: null as string | null,
+  isActive: false,
+  hasActive: false,
+  planName: null as string | null,
+  isPremiumHydrated: false,
+})
+// (Legacy flags removed after refactor to view-based subscription fetch)
 
 // Days of week (French abbreviations)
 const weekDays = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
@@ -606,24 +655,50 @@ async function hydrateFromDatabase() {
   isHydrating.value = true
   hydrateError.value = null
   try {
-    let builder = supabase
-      .from('coaches')
-      .select(
-        'id,email,first_name,last_name,languages,specialties,certifications,experience_years,hourly_rate,availability,profile_personal,profile_contact,profile_activity,modalities,bio,avatar_url',
-      )
-    if (model.contact.email) {
-      builder = builder.eq('email', model.contact.email)
-    } else if (props.initialCoachId) {
-      builder = builder.eq('id', props.initialCoachId)
-    }
+    const baseCols =
+      'id,email,first_name,last_name,languages,specialties,certifications,experience_years,hourly_rate,availability,profile_personal,profile_contact,profile_activity,modalities,bio,avatar_url'
+    let builder = supabase.from('coaches').select(baseCols)
+    if (model.contact.email) builder = builder.eq('email', model.contact.email)
+    else if (props.initialCoachId) builder = builder.eq('id', props.initialCoachId)
+
     const { data, error } = await builder.maybeSingle<CoachDbRow>()
     if (error) {
       hydrateError.value = error.message
+      console.error('[hydrate] error base profile:', error)
       return
     }
     if (!data) return
     // Personal
     currentCoachId.value = data.id
+    // Subscription hydration via view
+    try {
+      const subRes = await supabase
+        .from('coaches_current_subscription')
+        .select('subscription_type, has_active_subscription, plan_name')
+        .eq('id', data.id)
+        .maybeSingle<{
+          subscription_type?: string | null
+          has_active_subscription?: boolean | null
+          plan_name?: string | null
+        }>()
+      if (!subRes.error && subRes.data) {
+        subscriptionState.value.subscriptionType = subRes.data.subscription_type || null
+        subscriptionState.value.hasActive = !!subRes.data.has_active_subscription
+        subscriptionState.value.planName = subRes.data.plan_name || null
+        subscriptionState.value.isActive = subscriptionState.value.hasActive
+        subscriptionState.value.isPremiumHydrated =
+          subscriptionState.value.hasActive &&
+          ['premium', 'pro', 'premium coach'].includes(
+            (
+              subscriptionState.value.subscriptionType ||
+              subscriptionState.value.planName ||
+              ''
+            ).toLowerCase(),
+          )
+      }
+    } catch (subErr) {
+      console.warn('[hydrate] subscription view fetch failed', subErr)
+    }
     // Pricing
     if (typeof data.hourly_rate === 'number') {
       model.hourlyRate = Number(data.hourly_rate)
@@ -857,40 +932,41 @@ watch(
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Genre</label>
-          <select
+          <UnifiedSelect
             v-model="model.personal.gender"
-            class="dark:text-gray-900 mt-1 w-full rounded-md border-gray-300"
-          >
-            <option value="">Sélectionner</option>
-            <option v-for="g in GENDER_OPTIONS" :key="g.value" :value="g.value">
-              {{ g.label }}
-            </option>
-          </select>
+            :options="[
+              { value: '', label: 'Sélectionner', disabled: true },
+              ...GENDER_OPTIONS.map((g) => ({ value: g.value, label: g.label })),
+            ]"
+            placeholder="Sélectionner"
+          />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Territoire</label>
-          <select
+          <UnifiedSelect
             v-model="model.personal.territory"
-            class="dark:text-gray-900 mt-1 w-full rounded-md border-gray-300"
-          >
-            <option value="">Sélectionner</option>
-            <option v-for="t in TERRITORY_KEYS" :key="t" :value="t">
-              {{ getCountryLabel(t) }}
-            </option>
-          </select>
+            :options="[
+              { value: '', label: 'Sélectionner', disabled: true },
+              ...TERRITORY_KEYS.map((t) => ({ value: t, label: getCountryLabel(t) })),
+            ]"
+            placeholder="Sélectionner"
+          />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Ville</label>
-          <select
+          <UnifiedSelect
             v-model="model.personal.city"
-            class="dark:text-gray-900 mt-1 w-full rounded-md border-gray-300"
             :disabled="!model.personal.territory"
-          >
-            <option value="">
-              {{ model.personal.territory ? 'Sélectionner' : 'Choisir un territoire' }}
-            </option>
-            <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
-          </select>
+            :options="[
+              {
+                value: '',
+                label: model.personal.territory ? 'Sélectionner' : 'Choisir un territoire',
+                disabled: true,
+              },
+              ...cityOptions.map((c) => ({ value: c, label: c })),
+            ]"
+            :placeholder="model.personal.territory ? 'Sélectionner' : 'Choisir un territoire'"
+          />
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-medium text-gray-700">Langues parlées</label>
@@ -910,26 +986,24 @@ watch(
               </button>
             </span>
           </div>
-          <select
-            class="mt-2 w-full rounded-md border-gray-300 dark:text-gray-900"
+          <UnifiedSelect
+            v-model="model.personal.languagesRaw"
+            :options="[
+              { value: '', label: 'Ajouter une langue', disabled: true },
+              ...LANGUAGE_OPTIONS.map((l) => ({
+                value: l,
+                label: l,
+                disabled: languages.includes(l),
+              })),
+            ]"
+            placeholder="Ajouter une langue"
             @change="
-              (e: Event) => {
-                const v = (e.target as HTMLSelectElement).value
-                addLanguage(v)
-                ;(e.target as HTMLSelectElement).value = ''
+              (v) => {
+                if (v && !languages.includes(String(v))) addLanguage(String(v))
+                model.personal.languagesRaw = ''
               }
             "
-          >
-            <option value="">Ajouter une langue</option>
-            <option
-              v-for="opt in LANGUAGE_OPTIONS"
-              :key="opt"
-              :value="opt"
-              :disabled="languages.includes(opt)"
-            >
-              {{ opt }}
-            </option>
-          </select>
+          />
         </div>
       </div>
     </section>
@@ -939,6 +1013,16 @@ watch(
       <header>
         <h2 class="text-xl font-bold text-gray-900">Contact</h2>
         <p class="text-sm text-gray-500 mt-1">Comment les clients peuvent vous trouver.</p>
+        <!-- Premium upsell shown only for non-premium users -->
+        <p v-if="showPremiumUpsell" class="mt-1 text-[11px] text-amber-600">
+          Cette section de contact détaillée est visible uniquement pour les utilisateurs
+          <strong>Premium</strong>.
+          <a
+            href="/subscription"
+            class="underline font-medium hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-sm"
+            >Passer Premium</a
+          >
+        </p>
       </header>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
@@ -1239,7 +1323,7 @@ watch(
               <div
                 v-for="(exp, idx) in model.activity.workExperiences"
                 :key="idx"
-                class="group flex items-start justify-between gap-3 rounded-md bg-white border px-3 py-2 text-xs"
+                class="dark:text-gray-900 group flex items-start justify-between gap-3 rounded-md bg-white border px-3 py-2 text-xs"
               >
                 <span class="flex-1 leading-snug">{{ exp }}</span>
                 <button
@@ -1284,21 +1368,19 @@ watch(
             </p>
           </div>
           <div class="space-y-2">
-            <select
+            <UnifiedSelect
               v-model="selectedDiplomaOption"
+              :options="[
+                { value: '', label: 'Ajouter un diplôme', disabled: true },
+                ...ALL_CERTIFICATIONS.map((o) => ({
+                  value: o,
+                  label: o,
+                  disabled: model.activity.diplomas.some((d) => d.title === o),
+                })),
+              ]"
+              placeholder="Ajouter un diplôme"
               @change="addDiplomaFromSelect"
-              class="dark:text-gray-900 w-full rounded-md border-gray-300 text-sm"
-            >
-              <option value="">Ajouter un diplôme</option>
-              <option
-                v-for="opt in ALL_CERTIFICATIONS"
-                :key="opt"
-                :value="opt"
-                :disabled="model.activity.diplomas.some((d) => d.title === opt)"
-              >
-                {{ opt }}
-              </option>
-            </select>
+            />
             <div class="flex gap-2">
               <input
                 v-model="model.activity.newDiplomaTitle"

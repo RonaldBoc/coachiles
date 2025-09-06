@@ -272,7 +272,7 @@
             type="button"
             @click="clearFilters"
             :disabled="!hasActiveFilters"
-            class="px-4 py-2 rounded-full text-xs md:text-sm font-medium border-2 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            class="dark:text-gray-900 px-4 py-2 rounded-full text-xs md:text-sm font-medium border-2 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
             :class="
               hasActiveFilters
                 ? 'border-orange-300 text-orange-600 hover:bg-orange-50'

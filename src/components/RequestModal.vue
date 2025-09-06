@@ -92,7 +92,7 @@
                     v-model="form.firstName"
                     type="text"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                    class="dark:text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
                     placeholder="Votre prénom"
                   />
                 </div>
@@ -102,7 +102,7 @@
                     v-model="form.lastName"
                     type="text"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                    class="dark:text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
                     placeholder="Votre nom"
                   />
                 </div>
@@ -117,22 +117,24 @@
                     min="15"
                     max="120"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                    class="no-spinner dark:text-gray-900 px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
                   />
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Genre *</label>
-                  <select
+                  <UnifiedSelect
                     v-model="form.gender"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                  >
-                    <option value="">Sélectionnez</option>
-                    <option value="male">Homme</option>
-                    <option value="female">Femme</option>
-                    <option value="other">Autre</option>
-                    <option value="prefer_not_say">Je préfère ne pas répondre</option>
-                  </select>
+                    :options="[
+                      { value: '', label: 'Sélectionner', disabled: true },
+                      { value: 'male', label: 'Homme' },
+                      { value: 'female', label: 'Femme' },
+                      { value: 'other', label: 'Autre' },
+                      { value: 'prefer_not_say', label: 'Je préfère ne pas répondre' },
+                    ]"
+                    placeholder="Sélectionner"
+                    teleport
+                    :dropdown-offset="6"
+                  />
                 </div>
               </div>
 
@@ -142,7 +144,7 @@
                   v-model="form.email"
                   type="email"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                  class="dark:text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
                   placeholder="votre@email.com"
                 />
               </div>
@@ -178,9 +180,12 @@
                     <input
                       v-model="form.phone"
                       type="tel"
-                      class="flex-1 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm"
+                      class="dark:text-gray-900 flex-1 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm"
                       placeholder="601020304"
-                      inputmode="tel"
+                      inputmode="numeric"
+                      maxlength="10"
+                      @input="onPhoneInput"
+                      @keypress="onPhoneKeypress"
                       autocomplete="tel"
                     />
                   </div>
@@ -208,9 +213,6 @@
                     </li>
                   </ul>
                 </div>
-                <p class="mt-1 text-[11px] text-gray-500">
-                  Format international enregistré automatiquement.
-                </p>
               </div>
 
               <div class="flex justify-end pt-4">
@@ -231,31 +233,38 @@
               <!-- Country Selection -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Pays *</label>
-                <select
+                <UnifiedSelect
                   v-model="form.country"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Sélectionnez votre pays</option>
-                  <option v-for="(label, key) in countryOptions" :key="key" :value="key">
-                    {{ label }}
-                  </option>
-                </select>
+                  :options="[
+                    { value: '', label: 'Sélectionner un pays', disabled: true },
+                    ...Object.entries(countryOptions).map(([k, v]) => ({
+                      value: k,
+                      label: v as string,
+                    })),
+                  ]"
+                  placeholder="Sélectionner un pays"
+                  teleport
+                  :dropdown-offset="6"
+                />
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Ville *</label>
-                <select
+                <UnifiedSelect
                   v-model="form.location"
                   :disabled="!form.country"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">Sélectionnez votre ville</option>
-                  <option v-for="city in availableCities" :key="city" :value="city">
-                    {{ city }}
-                  </option>
-                </select>
+                  :options="[
+                    {
+                      value: '',
+                      label: form.country ? 'Sélectionner une ville' : 'Choisir un pays',
+                      disabled: true,
+                    },
+                    ...availableCities.map((c) => ({ value: c, label: c })),
+                  ]"
+                  :placeholder="form.country ? 'Sélectionner une ville' : 'Choisir un pays'"
+                  teleport
+                  :dropdown-offset="6"
+                />
               </div>
 
               <div class="flex justify-between pt-4">
@@ -303,7 +312,7 @@
                         class="mr-3 h-4 w-4 rounded text-orange-500 focus:ring-orange-500"
                       />
                       <div class="flex-1">
-                        <div class="font-medium">{{ service.title }}</div>
+                        <div class="dark:text-gray-900 font-medium">{{ service.title }}</div>
                         <div class="text-xs text-gray-500">{{ service.duration }} min</div>
                       </div>
                       <!-- <div class="text-sm font-medium text-gray-700">
@@ -356,7 +365,7 @@
                               v-model="serviceSelections[service.id].solo"
                               class="mr-1 h-3 w-3 text-orange-500 focus:ring-orange-500"
                             />
-                            <span>
+                            <span class="dark:text-gray-900">
                               Cours particuliers
                               <span v-if="service.soloPrice != null" class="text-gray-500">
                                 ({{
@@ -378,7 +387,7 @@
                               v-model="serviceSelections[service.id].group"
                               class="mr-1 h-3 w-3 text-orange-500 focus:ring-orange-500"
                             />
-                            <span>
+                            <span class="dark:text-gray-900">
                               Cours en groupe
                               <span v-if="service.groupPrice != null" class="text-gray-500">
                                 ({{
@@ -417,7 +426,7 @@
                               v-model="serviceSelections[service.id].locations.atHome"
                               class="mr-1 h-3 w-3 text-orange-500 focus:ring-orange-500"
                             />
-                            <span>À domicile</span>
+                            <span class="dark:text-gray-900">À domicile</span>
                           </label>
                           <label
                             v-if="service.canBeOnline"
@@ -428,7 +437,7 @@
                               v-model="serviceSelections[service.id].locations.online"
                               class="mr-1 h-3 w-3 text-orange-500 focus:ring-orange-500"
                             />
-                            <span>En ligne</span>
+                            <span class="dark:text-gray-900">En ligne</span>
                           </label>
                           <label
                             v-if="service.canBeInPublicSpaces"
@@ -439,7 +448,7 @@
                               v-model="serviceSelections[service.id].locations.publicSpaces"
                               class="mr-1 h-3 w-3 text-orange-500 focus:ring-orange-500"
                             />
-                            <span>Lieux publics</span>
+                            <span class="dark:text-gray-900">Lieux publics</span>
                           </label>
                           <label
                             v-if="service.customPlace"
@@ -450,7 +459,9 @@
                               v-model="serviceSelections[service.id].locations.customPlace"
                               class="mr-1 h-3 w-3 text-orange-500 focus:ring-orange-500"
                             />
-                            <span>{{ service.customPlace.label || 'Autre lieu' }}</span>
+                            <span class="dark:text-gray-900">{{
+                              service.customPlace.label || 'Autre lieu'
+                            }}</span>
                           </label>
                         </div>
                       </div>
@@ -475,7 +486,7 @@
                               v-model="serviceSelections[service.id].days"
                               class="mr-1 h-3 w-3 text-orange-500 focus:ring-orange-500"
                             />
-                            <span>{{
+                            <span class="dark:text-gray-900">{{
                               ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'][slot.dayOfWeek]
                             }}</span>
                           </label>
@@ -489,16 +500,19 @@
               <!-- Experience Level -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Votre niveau</label>
-                <select
+                <UnifiedSelect
                   v-model="form.experience"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Sélectionnez votre niveau</option>
-                  <option value="debutant">Débutant</option>
-                  <option value="intermediaire">Intermédiaire</option>
-                  <option value="avance">Avancé</option>
-                  <option value="expert">Expert</option>
-                </select>
+                  :options="[
+                    { value: '', label: 'Sélectionner', disabled: true },
+                    { value: 'debutant', label: 'Débutant' },
+                    { value: 'intermediaire', label: 'Intermédiaire' },
+                    { value: 'avance', label: 'Avancé' },
+                    { value: 'expert', label: 'Expert' },
+                  ]"
+                  placeholder="Sélectionner"
+                  teleport
+                  :dropdown-offset="6"
+                />
               </div>
 
               <!-- Availability (only if no services or none selected) -->
@@ -525,21 +539,21 @@
                 <div class="flex flex-wrap gap-2 mb-2">
                   <button
                     type="button"
-                    class="text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                    class="dark:text-gray-900 text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
                     @click="selectAllDays"
                   >
                     Tous les jours
                   </button>
                   <button
                     type="button"
-                    class="text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                    class="dark:text-gray-900 text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
                     @click="selectWeekend"
                   >
                     Week-end
                   </button>
                   <button
                     type="button"
-                    class="text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                    class="dark:text-gray-900 text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
                     @click="clearDays"
                   >
                     Effacer
@@ -556,16 +570,19 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1"
                   >Quand souhaitez-vous commencer ?</label
                 >
-                <select
+                <UnifiedSelect
                   v-model="form.startTimeframe"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Sélectionnez une option</option>
-                  <option value="Immédiatement">Immédiatement</option>
-                  <option value="Dans les prochains jours">Dans les prochains jours</option>
-                  <option value="Dans les prochains mois">Dans les prochains mois</option>
-                  <option value="Je ne sais pas">Je ne sais pas</option>
-                </select>
+                  :options="[
+                    { value: '', label: 'Sélectionner', disabled: true },
+                    { value: 'Immédiatement', label: 'Immédiatement' },
+                    { value: 'Dans les prochains jours', label: 'Dans les prochains jours' },
+                    { value: 'Dans les prochains mois', label: 'Dans les prochains mois' },
+                    { value: 'Je ne sais pas', label: 'Je ne sais pas' },
+                  ]"
+                  placeholder="Sélectionner"
+                  teleport
+                  :dropdown-offset="6"
+                />
               </div>
 
               <!-- Goals (now specialties selection) -->
@@ -611,7 +628,7 @@
                 <textarea
                   v-model="form.additionalInfo"
                   rows="3"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                  class="dark:text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
                   placeholder="Partagez toute information supplémentaire... (ne donnez pas vos informations personnelles ici)"
                 ></textarea>
               </div>
@@ -680,6 +697,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onBeforeUnmount, nextTick } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
+import UnifiedSelect from '@/components/inputs/UnifiedSelect.vue'
 import type { Coach } from '@/types/coach'
 import type { CoachService } from '@/types/service'
 import type { ClientRequest, Lead } from '@/types/Lead'
@@ -1237,6 +1255,23 @@ function buildInternationalPhone(raw: string) {
   const normalized = digits.replace(/^0+/, '')
   return `${indicative.prefix}${normalized}`
 }
+
+// Phone input sanitization: allow only digits, max 10
+function onPhoneInput(e: Event) {
+  const target = e.target as HTMLInputElement
+  const cleaned = target.value.replace(/[^0-9]/g, '').slice(0, 10)
+  if (cleaned !== target.value) {
+    target.value = cleaned
+  }
+  form.value.phone = cleaned
+}
+function onPhoneKeypress(e: KeyboardEvent) {
+  const isControl = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)
+  if (isControl) return
+  if (!/[0-9]/.test(e.key) || form.value.phone.length >= 10) {
+    e.preventDefault()
+  }
+}
 </script>
 
 <style scoped>
@@ -1256,5 +1291,16 @@ function buildInternationalPhone(raw: string) {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
+}
+
+/* Remove number input spinners (Chrome, Safari, Edge) */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+.no-spinner[type='number'] {
+  -moz-appearance: textfield;
 }
 </style>

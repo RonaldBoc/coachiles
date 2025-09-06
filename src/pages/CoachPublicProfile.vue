@@ -192,6 +192,101 @@
                 Contacter {{ coach?.firstName }}
               </button>
             </div>
+
+            <!-- Premium Contact & Social (Mobile) -->
+            <div
+              v-if="hasPremiumSubscription && contactAvailable"
+              class="mt-8 border-t border-gray-100 pt-6 space-y-4"
+            >
+              <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-1">
+                <svg
+                  class="w-4 h-4 text-orange-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                Contact & Réseaux
+              </h3>
+              <ul class="space-y-2 text-sm">
+                <li v-if="contactInfo?.email" class="flex items-center gap-2 break-all">
+                  <svg
+                    class="w-4 h-4 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1a3 3 0 01-3 3H8m8-4v1a3 3 0 003 3h1"
+                    />
+                  </svg>
+                  <a
+                    :href="`mailto:${contactInfo.email}`"
+                    class="text-orange-600 hover:underline"
+                    >{{ contactInfo.email }}</a
+                  >
+                </li>
+                <li v-if="contactInfo?.website" class="flex items-center gap-2 truncate">
+                  <svg
+                    class="w-4 h-4 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 4a8 8 0 100 16 8 8 0 000-16zm2 12l-4-4 4-4"
+                    />
+                  </svg>
+                  <a
+                    :href="normalizeWebsite(contactInfo.website)"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-orange-600 hover:underline max-w-[14ch] truncate"
+                    >{{ displayDomain(contactInfo.website) }}</a
+                  >
+                </li>
+                <li v-if="contactInfo?.instagram" class="flex items-center gap-2 truncate">
+                  <svg class="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                      d="M7.75 2h8.5A5.75 5.75 0 0122 7.75v8.5A5.75 5.75 0 0116.25 22h-8.5A5.75 5.75 0 012 16.25v-8.5A5.75 5.75 0 017.75 2zm0 1.5A4.25 4.25 0 003.5 7.75v8.5A4.25 4.25 0 007.75 20.5h8.5a4.25 4.25 0 004.25-4.25v-8.5A4.25 4.25 0 0016.25 3.5h-8.5zm8.75 2a1 1 0 110 2 1 1 0 010-2zM12 8a4 4 0 110 8 4 4 0 010-8z"
+                    />
+                  </svg>
+                  <a
+                    :href="instagramUrl"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-orange-600 hover:underline max-w-[14ch] truncate"
+                    >{{ instagramHandleDisplay }}</a
+                  >
+                </li>
+                <li v-if="contactInfo?.facebook" class="flex items-center gap-2 truncate">
+                  <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                      d="M22 12.07C22 6.48 17.52 2 11.93 2 6.35 2 1.87 6.48 1.87 12.07c0 4.99 3.66 9.13 8.44 9.93v-7.03H7.9v-2.9h2.41V9.41c0-2.38 1.42-3.7 3.6-3.7 1.04 0 2.13.19 2.13.19v2.34h-1.2c-1.18 0-1.55.73-1.55 1.48v1.78h2.64l-.42 2.9h-2.22V22c4.78-.8 8.44-4.94 8.44-9.93z"
+                    />
+                  </svg>
+                  <a
+                    :href="facebookUrl"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-orange-600 hover:underline max-w-[14ch] truncate"
+                    >{{ facebookHandleDisplay }}</a
+                  >
+                </li>
+              </ul>
+            </div>
           </div>
 
           <!-- About / Profile Section -->
@@ -618,13 +713,35 @@
                       >
                         <span class="text-gray-600 mt-0.5 shrink-0">Disponibilités</span>
                         <div class="flex-1 text-right leading-snug">
-                          <span class="font-light text-gray-900 align-top">
-                            {{
-                              coach.modalities.availabilityDays
-                                .map((d) => dayShort[d] || d)
-                                .join(', ')
-                            }}
-                          </span>
+                          <template v-if="modalitiesAvailabilityShortcut === 'all'">
+                            <span
+                              class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
+                              >Tous les jours</span
+                            >
+                          </template>
+                          <template v-else-if="modalitiesAvailabilityShortcut === 'weekend'">
+                            <span
+                              class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
+                              >Week-end</span
+                            >
+                          </template>
+                          <template v-else-if="modalitiesAvailabilityShortcut === 'weekdays'">
+                            <span
+                              class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
+                              >En semaine</span
+                            >
+                          </template>
+                          <template v-else>
+                            <div class="flex flex-wrap gap-1 justify-end">
+                              <span
+                                v-for="d in modalitiesAvailabilityShortList"
+                                :key="d"
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-orange-100 text-orange-700"
+                              >
+                                {{ d }}
+                              </span>
+                            </div>
+                          </template>
                         </div>
                       </div>
                       <div v-if="coach.modalities.cancellationPolicy" class="space-y-1">
@@ -654,18 +771,50 @@
 
           <!-- Reviews Section -->
           <div ref="reviewsSection" class="bg-white rounded-2xl shadow-lg p-8" v-if="coach">
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-2xl font-bold text-gray-900 flex items-center">
-                <StarIcon class="w-6 h-6 text-yellow-400 mr-2" /> Avis récents du coach
-                {{ coach?.firstName }}
-              </h2>
-              <button
-                @click="openReviewModal"
-                class="bg-gradient-to-r from-orange-500 to-blue-600 text-white px-5 py-2 rounded-full font-semibold text-sm hover:shadow-md transition disabled:opacity-50"
-                :disabled="creatingReview"
-              >
-                Laisser un avis
-              </button>
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between md:gap-8 mb-6">
+              <div class="flex-1">
+                <h2 class="text-2xl font-bold text-gray-900 flex items-center leading-tight">
+                  <StarIcon class="w-6 h-6 text-yellow-400 mr-2 shrink-0" />
+                  <span>
+                    Avis récents du coach
+                    {{ coach?.firstName }}
+                  </span>
+                </h2>
+                <div
+                  v-if="approvedAverageRating !== null"
+                  class="mt-2 flex items-center text-sm text-gray-600 gap-2"
+                >
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-100"
+                  >
+                    <StarIcon class="w-4 h-4 text-yellow-400 fill-current mr-1" />
+                    <span class="font-semibold text-gray-900">{{ approvedAverageRating }}</span>
+                  </span>
+                  <span class="text-gray-400">note générale</span>
+                  <span v-if="approvedReviews.length > 0" class="text-[11px] text-gray-400">
+                    ({{ approvedReviews.length }}
+                    {{ approvedReviews.length > 1 ? 'avis' : 'avis' }})
+                  </span>
+                </div>
+              </div>
+              <div class="mt-4 md:mt-0 md:text-right">
+                <button
+                  @click="openReviewModal"
+                  class="inline-flex items-center bg-gradient-to-r from-orange-500 to-blue-600 text-white px-5 py-2 rounded-full font-semibold text-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-orange-500"
+                  :disabled="creatingReview"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Laisser un avis
+                </button>
+              </div>
             </div>
             <div v-if="loadingReviews" class="space-y-4">
               <div v-for="n in 3" :key="n" class="animate-pulse space-y-2">
@@ -678,25 +827,26 @@
               <div v-if="reviews.length === 0" class="text-gray-500 text-sm italic">
                 Aucun avis pour le moment. Soyez le premier !
               </div>
-              <ul class="divide-y divide-gray-100">
-                <li v-for="rev in reviews" :key="rev.id" class="py-5">
-                  <div class="flex items-start justify-between">
-                    <div>
-                      <p class="font-semibold text-gray-900">{{ rev.clientName }}</p>
-                      <div class="flex items-center text-yellow-400 mt-1">
-                        <StarIcon
-                          v-for="i in 5"
-                          :key="i"
-                          class="w-4 h-4"
-                          :class="i <= rev.rating ? 'fill-current' : 'text-gray-300'"
-                        />
-                        <span class="ml-2 text-xs text-gray-500">
-                          {{ formatDate(rev.createdAt) }}
-                        </span>
-                      </div>
+              <ul v-else class="divide-y divide-gray-100">
+                <li v-for="rev in reviewsToDisplay" :key="rev.id" class="py-5 first:pt-0 last:pb-0">
+                  <header class="flex flex-wrap items-start gap-x-4 gap-y-1">
+                    <p class="font-semibold text-gray-900">{{ rev.clientName }}</p>
+                    <div class="flex items-center text-yellow-400">
+                      <StarIcon
+                        v-for="i in 5"
+                        :key="i"
+                        class="w-4 h-4"
+                        :class="i <= rev.rating ? 'fill-current' : 'text-gray-300'"
+                      />
+                      <span class="ml-2 text-xs text-gray-500">
+                        {{ formatDate(rev.createdAt) }}
+                      </span>
                     </div>
-                  </div>
-                  <p v-if="rev.comment" class="mt-2 text-gray-700 whitespace-pre-line">
+                  </header>
+                  <p
+                    v-if="rev.comment"
+                    class="mt-2 text-gray-700 whitespace-pre-line leading-relaxed"
+                  >
                     {{ rev.comment }}
                   </p>
                   <div
@@ -704,12 +854,31 @@
                     class="mt-3 pl-4 border-l-4 border-blue-200"
                   >
                     <p class="text-sm text-blue-700 font-medium">Réponse du coach :</p>
-                    <p class="text-sm text-gray-700 whitespace-pre-line mt-1">
+                    <p class="text-sm text-gray-700 whitespace-pre-line mt-1 leading-relaxed">
                       {{ rev.coachResponse }}
                     </p>
                   </div>
                 </li>
               </ul>
+              <div v-if="!showAllReviews && approvedReviews.length > 1" class="mt-4 text-center">
+                <button
+                  @click="showAllReviews = true"
+                  class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-white border border-orange-300 text-orange-600 hover:bg-orange-50 transition"
+                >
+                  Voir les {{ approvedReviews.length - 1 }} avis supplémentaires
+                </button>
+              </div>
+              <div
+                v-else-if="showAllReviews && approvedReviews.length > 1"
+                class="mt-4 text-center"
+              >
+                <button
+                  @click="showAllReviews = false"
+                  class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
+                >
+                  Réduire
+                </button>
+              </div>
             </div>
           </div>
 
@@ -906,6 +1075,101 @@
                 >
                   Contacter {{ coach?.firstName }}
                 </button>
+              </div>
+
+              <!-- Premium Contact & Social (Desktop) -->
+              <div
+                v-if="hasPremiumSubscription && contactAvailable"
+                class="mt-8 border-t border-gray-100 pt-6 space-y-4"
+              >
+                <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-1">
+                  <svg
+                    class="w-4 h-4 text-orange-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Contact & Réseaux
+                </h3>
+                <ul class="space-y-2 text-sm">
+                  <li v-if="contactInfo?.email" class="flex items-center gap-2 break-all">
+                    <svg
+                      class="w-4 h-4 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1a3 3 0 01-3 3H8m8-4v1a3 3 0 003 3h1"
+                      />
+                    </svg>
+                    <a
+                      :href="`mailto:${contactInfo.email}`"
+                      class="text-orange-600 hover:underline"
+                      >{{ contactInfo.email }}</a
+                    >
+                  </li>
+                  <li v-if="contactInfo?.website" class="flex items-center gap-2 truncate">
+                    <svg
+                      class="w-4 h-4 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 4a8 8 0 100 16 8 8 0 000-16zm2 12l-4-4 4-4"
+                      />
+                    </svg>
+                    <a
+                      :href="normalizeWebsite(contactInfo.website)"
+                      target="_blank"
+                      rel="noopener"
+                      class="text-orange-600 hover:underline max-w-[14ch] truncate"
+                      >{{ displayDomain(contactInfo.website) }}</a
+                    >
+                  </li>
+                  <li v-if="contactInfo?.instagram" class="flex items-center gap-2 truncate">
+                    <svg class="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 24 24">
+                      <path
+                        d="M7.75 2h8.5A5.75 5.75 0 0122 7.75v8.5A5.75 5.75 0 0116.25 22h-8.5A5.75 5.75 0 012 16.25v-8.5A5.75 5.75 0 017.75 2zm0 1.5A4.25 4.25 0 003.5 7.75v8.5A4.25 4.25 0 007.75 20.5h8.5a4.25 4.25 0 004.25-4.25v-8.5A4.25 4.25 0 0016.25 3.5h-8.5zm8.75 2a1 1 0 110 2 1 1 0 010-2zM12 8a4 4 0 110 8 4 4 0 010-8z"
+                      />
+                    </svg>
+                    <a
+                      :href="instagramUrl"
+                      target="_blank"
+                      rel="noopener"
+                      class="text-orange-600 hover:underline max-w-[14ch] truncate"
+                      >{{ instagramHandleDisplay }}</a
+                    >
+                  </li>
+                  <li v-if="contactInfo?.facebook" class="flex items-center gap-2 truncate">
+                    <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path
+                        d="M22 12.07C22 6.48 17.52 2 11.93 2 6.35 2 1.87 6.48 1.87 12.07c0 4.99 3.66 9.13 8.44 9.93v-7.03H7.9v-2.9h2.41V9.41c0-2.38 1.42-3.7 3.6-3.7 1.04 0 2.13.19 2.13.19v2.34h-1.2c-1.18 0-1.55.73-1.55 1.48v1.78h2.64l-.42 2.9h-2.22V22c4.78-.8 8.44-4.94 8.44-9.93z"
+                      />
+                    </svg>
+                    <a
+                      :href="facebookUrl"
+                      target="_blank"
+                      rel="noopener"
+                      class="text-orange-600 hover:underline max-w-[14ch] truncate"
+                      >{{ facebookHandleDisplay }}</a
+                    >
+                  </li>
+                </ul>
               </div>
             </div>
 
@@ -1381,7 +1645,7 @@
                         type="text"
                         required
                         maxlength="50"
-                        class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        class="dark:text-gray-900 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                     <div>
@@ -1394,7 +1658,7 @@
                         type="email"
                         required
                         maxlength="120"
-                        class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        class="dark:text-gray-900 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                     <div>
@@ -1427,7 +1691,7 @@
                         v-model.trim="reviewForm.comment"
                         rows="4"
                         maxlength="1000"
-                        class="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        class="dark:text-gray-900 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                         placeholder="Partagez votre expérience (facultatif)"
                       ></textarea>
                     </div>
@@ -1590,22 +1854,45 @@ const locationLabels: Record<string, string> = {
   publicSpaces: 'Espaces publics',
   gym: 'Salle de sport',
 }
-const dayShort: Record<string, string> = {
-  Lundi: 'Lun',
-  Mardi: 'Mar',
-  Mercredi: 'Mer',
-  Jeudi: 'Jeu',
-  Vendredi: 'Ven',
-  Samedi: 'Sam',
-  Dimanche: 'Dim',
-  Monday: 'Lun',
-  Tuesday: 'Mar',
-  Wednesday: 'Mer',
-  Thursday: 'Jeu',
-  Friday: 'Ven',
-  Saturday: 'Sam',
-  Sunday: 'Dim',
+
+// Summarize modalities availability days (e.g. Tous les jours / Week-end / En semaine / custom list)
+const dayNameToIndex: Record<string, number> = {
+  Dimanche: 0,
+  Sunday: 0,
+  Lundi: 1,
+  Monday: 1,
+  Mardi: 2,
+  Tuesday: 2,
+  Mercredi: 3,
+  Wednesday: 3,
+  Jeudi: 4,
+  Thursday: 4,
+  Vendredi: 5,
+  Friday: 5,
+  Samedi: 6,
+  Saturday: 6,
 }
+const indexToShort = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+const modalitiesAvailabilityNormalized = computed(() => {
+  const list = coach.value?.modalities?.availabilityDays || []
+  return list
+    .map((d) => dayNameToIndex[d] ?? null)
+    .filter((n): n is number => n !== null)
+    .sort((a, b) => a - b)
+})
+const modalitiesAvailabilityShortcut = computed(() => {
+  const days = modalitiesAvailabilityNormalized.value
+  if (days.length === 7 && days.every((d, i) => d === i)) return 'all'
+  if (days.length && days.every((d) => d === 0 || d === 6)) return 'weekend'
+  const weekdays = days.filter((d) => d > 0 && d < 6)
+  if (weekdays.length === 5 && days.length === 5) return 'weekdays'
+  return 'custom'
+})
+const modalitiesAvailabilityShortList = computed(() => {
+  const days = modalitiesAvailabilityNormalized.value
+  const unique = Array.from(new Set(days))
+  return unique.map((i) => indexToShort[i] || i)
+})
 
 // Determine if there is any meaningful modalities content to show
 interface ModalitiesLike {
@@ -1702,6 +1989,80 @@ const approvedDiplomas = computed(() => {
     ?.profile_activity?.diplomas
   if (!Array.isArray(diplomas)) return [] as DiplomaLike[]
   return diplomas.filter((d) => d && d.status === 'approved' && d.title)
+})
+
+// Premium contact & social info (from structured profile_contact JSON)
+interface ContactInfoShape {
+  email?: string | null
+  website?: string | null
+  instagram?: string | null
+  facebook?: string | null
+  phone?: string | null
+}
+// Local extension of Coach to carry profile_contact without modifying global Coach interface
+interface CoachWithContact extends Coach {
+  profile_contact?: ContactInfoShape
+}
+const contactInfo = computed<ContactInfoShape | null>(() => {
+  const anyCoach = coach.value as unknown as { profile_contact?: ContactInfoShape }
+  if (!anyCoach || !anyCoach.profile_contact) return null
+  return anyCoach.profile_contact
+})
+const cleanedHandle = (val?: string | null) => {
+  if (!val) return ''
+  let v = val.trim()
+  // If full URL pasted, extract final path / handle
+  if (/^https?:\/\//i.test(v)) {
+    try {
+      const u = new URL(v)
+      v = u.pathname.replace(/\/+$/, '').split('/').filter(Boolean).pop() || v
+    } catch {}
+  }
+  // Remove leading @ if present
+  v = v.replace(/^@+/, '')
+  return v
+}
+const instagramHandleDisplay = computed(() => {
+  const h = cleanedHandle(contactInfo.value?.instagram)
+  return h ? '@' + h : ''
+})
+const facebookHandleDisplay = computed(() => {
+  const h = cleanedHandle(contactInfo.value?.facebook)
+  return h ? h : ''
+})
+const instagramUrl = computed(() => {
+  const h = cleanedHandle(contactInfo.value?.instagram)
+  return h ? `https://www.instagram.com/${h}` : undefined
+})
+const facebookUrl = computed(() => {
+  const h = cleanedHandle(contactInfo.value?.facebook)
+  return h ? `https://www.facebook.com/${h}` : undefined
+})
+const normalizeWebsite = (url?: string | null) => {
+  if (!url) return undefined
+  let u = url.trim()
+  if (!u) return undefined
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u.replace(/^\/+/, '')
+  return u
+}
+const displayDomain = (url?: string | null) => {
+  try {
+    const u = normalizeWebsite(url)
+    if (!u) return ''
+    const parsed = new URL(u)
+    return parsed.hostname.replace(/^www\./, '')
+  } catch {
+    return url || ''
+  }
+}
+const contactAvailable = computed(() => {
+  if (!contactInfo.value) return false
+  return !!(
+    contactInfo.value.email ||
+    contactInfo.value.website ||
+    contactInfo.value.instagram ||
+    contactInfo.value.facebook
+  )
 })
 
 // Methods
@@ -1974,16 +2335,21 @@ const loadCoachProfile = async (coachId: string) => {
       }
       const { data: fresh, error: freshErr } = await supabase
         .from('coaches')
-        .select('id,last_name,bio,profile_activity')
+        .select('id,last_name,bio,profile_activity,profile_contact')
         .eq('id', coach.value.id)
         .single<FreshCoachRow>()
       if (!freshErr && fresh && coach.value) {
-        coach.value = {
-          ...coach.value,
+        const existing = coach.value as CoachWithContact
+        const freshContact = (fresh as unknown as { profile_contact?: ContactInfoShape })
+          .profile_contact
+        const updated: CoachWithContact = {
+          ...existing,
           profile_activity: fresh.profile_activity,
-          lastName: fresh.last_name || coach.value.lastName,
-          bio: fresh.bio || coach.value.bio,
+          lastName: fresh.last_name || existing.lastName,
+          bio: fresh.bio || existing.bio,
+          profile_contact: freshContact || existing.profile_contact,
         }
+        coach.value = updated
       }
     } catch (e) {
       console.warn('⚠️ Could not refresh coach profile with profile_activity', e)
@@ -2042,6 +2408,25 @@ onUnmounted(() => {
 
 // Reviews
 const reviews = ref<Review[]>([])
+// Only display approved/published reviews publicly. Show latest one by default.
+const approvedReviews = computed(() =>
+  reviews.value.filter((r) => r.isPublished && r.moderationStatus === 'approved'),
+)
+const showAllReviews = ref(false)
+const reviewsToDisplay = computed(() => {
+  if (showAllReviews.value) return approvedReviews.value
+  return approvedReviews.value.slice(0, 1)
+})
+// General average rating (one decimal) for approved reviews only
+const approvedAverageRating = computed(() => {
+  if (!approvedReviews.value.length) return null
+  const avg =
+    approvedReviews.value.reduce(
+      (sum, r) => sum + (typeof r.rating === 'number' ? r.rating : 0),
+      0,
+    ) / approvedReviews.value.length
+  return Number(avg.toFixed(1))
+})
 const loadingReviews = ref(false)
 const showReviewModal = ref(false)
 const creatingReview = ref(false)
