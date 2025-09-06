@@ -66,8 +66,75 @@
             {{ saveStatus.message }}
           </span>
         </div>
-        <!-- Step 1: Basic Personal Information (updated) -->
+        <!-- Step 0: Welcome / Intro (new) -->
         <div v-if="currentStep === 0">
+          <div class="text-center space-y-6 relative">
+            <!-- Radial transition overlay -->
+            <div v-if="welcomeTransitionActive" class="fixed inset-0 z-40 pointer-events-none">
+              <div class="welcome-radial absolute" :style="welcomeOverlayStyle"></div>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900">
+              Bienvenue sur <span class="text-blue-600">Coachiles</span> 👋
+            </h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              Nous allons ensemble créer ton profil qui va te permettre de
+              <span class="font-medium text-gray-800">trouver des clients qualifiés</span>, mettre
+              en avant ton expertise et accélérer ton activité. <br />
+              En quelques étapes simples, ton espace sera prêt et visible.
+            </p>
+            <div class="grid md:grid-cols-3 gap-6 text-left max-w-4xl mx-auto">
+              <div class="p-5 rounded-xl bg-white border shadow-sm flex flex-col gap-2">
+                <span class="text-2xl">🚀</span>
+                <h3 class="font-semibold text-gray-900 text-sm">Visibilité rapide</h3>
+                <p class="text-xs text-gray-600 leading-snug">
+                  Un profil complet inspire confiance et apparaît en priorité dans les recherches.
+                </p>
+              </div>
+              <div class="p-5 rounded-xl bg-white border shadow-sm flex flex-col gap-2">
+                <span class="text-2xl">🎯</span>
+                <h3 class="font-semibold text-gray-900 text-sm">Clients pertinents</h3>
+                <p class="text-xs text-gray-600 leading-snug">
+                  Tes spécialités, diplômes et modalités aident les clients à te choisir plus vite.
+                </p>
+              </div>
+              <div class="p-5 rounded-xl bg-white border shadow-sm flex flex-col gap-2">
+                <span class="text-2xl">🛠️</span>
+                <h3 class="font-semibold text-gray-900 text-sm">Contrôle total</h3>
+                <p class="text-xs text-gray-600 leading-snug">
+                  Tu peux tout modifier plus tard: rien n'est figé, avance à ton rythme.
+                </p>
+              </div>
+            </div>
+            <div
+              class="max-w-xl mx-auto bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800 flex items-start gap-3"
+            >
+              <span class="text-base">💡</span>
+              <p>
+                <span class="font-medium">Astuce:</span> Prépare une bio authentique et une belle
+                photo: ce sont les deux premiers éléments que les clients remarquent.
+              </p>
+            </div>
+            <div>
+              <button
+                ref="welcomeStartBtn"
+                @click="playWelcomeTransition"
+                :disabled="welcomeTransitionActive"
+                class="relative px-10 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white font-medium rounded-md shadow-lg hover:shadow-xl hover:from-blue-600 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 overflow-hidden group transition-all duration-300"
+              >
+                <span class="relative z-10 flex items-center gap-2 tracking-wide">
+                  <span class="text-sm uppercase font-semibold">Commencer</span>
+                  <span class="group-hover:translate-x-1 transition-transform">➜</span>
+                </span>
+                <span
+                  class="absolute inset-0 opacity-0 group-hover:opacity-100 bg-white/10 transition"
+                ></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: Basic Personal Information (updated) -->
+        <div v-if="currentStep === 1">
           <h2 class="text-2xl font-bold text-gray-900 mb-6">Informations personnelles</h2>
 
           <form @submit.prevent="nextStep" class="space-y-8">
@@ -82,7 +149,7 @@
                   v-model="formData.firstName"
                   type="text"
                   required
-                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900"
                 />
               </div>
               <div>
@@ -92,14 +159,14 @@
                   v-model="formData.lastName"
                   type="text"
                   required
-                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900"
                 />
               </div>
             </div>
 
             <!-- Demographics -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-6">
+              <div class="md:col-span-1">
                 <label for="age" class="block text-sm font-medium text-gray-700">Âge *</label>
                 <input
                   id="age"
@@ -108,30 +175,91 @@
                   min="16"
                   max="100"
                   required
-                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900 no-spinner"
                 />
               </div>
-              <div>
+              <div class="md:col-span-2">
                 <label for="gender" class="block text-sm font-medium text-gray-700">Genre *</label>
                 <select
                   id="gender"
                   v-model="formData.gender"
                   required
-                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900"
                 >
                   <option value="">Sélectionnez</option>
                   <option value="male">Homme</option>
                   <option value="female">Femme</option>
                 </select>
               </div>
-              <div>
-                <label for="phone" class="block text-sm font-medium text-gray-700">Téléphone</label>
-                <input
-                  id="phone"
-                  v-model="formData.phone"
-                  type="tel"
-                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
+              <div class="md:col-span-3">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                <div class="relative" ref="onboardingPhoneSelectorRef">
+                  <div
+                    class="flex items-center w-full border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition"
+                  >
+                    <button
+                      type="button"
+                      @click="toggleOnboardingPhoneMenu"
+                      class="flex items-center gap-1 h-10 px-2 focus:outline-none select-none"
+                      aria-haspopup="listbox"
+                      :aria-expanded="showOnboardingIndicativeMenu ? 'true' : 'false'"
+                    >
+                      <span class="text-base leading-none">{{
+                        onboardingSelectedPhoneIndicative.flag
+                      }}</span>
+                      <svg
+                        class="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+                    <span class="h-6 w-px bg-gray-200" aria-hidden="true"></span>
+                    <span class="px-2 text-sm text-gray-700 min-w-[52px]">{{
+                      onboardingSelectedPhoneIndicative.prefix
+                    }}</span>
+                    <input
+                      v-model="formData.phone"
+                      @input="handleOnboardingPhoneRawInput"
+                      type="tel"
+                      maxlength="10"
+                      pattern="[0-9]*"
+                      class="flex-1 min-w-0 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm truncate dark:text-gray-900"
+                      placeholder="601020304"
+                      inputmode="numeric"
+                      autocomplete="tel"
+                    />
+                  </div>
+                  <ul
+                    v-if="showOnboardingIndicativeMenu"
+                    :class="[
+                      'absolute z-40 w-60 bg-white border border-gray-200 rounded-md shadow-lg overflow-auto focus:outline-none py-1',
+                      onboardingOpenAbove ? 'bottom-full mb-1 max-h-72' : 'top-full mt-1 max-h-72',
+                    ]"
+                    role="listbox"
+                  >
+                    <li v-for="opt in phoneIndicatives" :key="opt.code" role="option">
+                      <button
+                        type="button"
+                        @click="selectOnboardingPhoneIndicative(opt.code)"
+                        class="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-blue-50 dark:text-gray-900"
+                        :class="
+                          opt.code === onboardingPhoneIndicative ? 'bg-blue-100 font-medium' : ''
+                        "
+                      >
+                        <span class="text-base leading-none">{{ opt.flag }}</span>
+                        <span>{{ opt.prefix }}</span>
+                        <span class="text-xs text-gray-500 ml-auto">{{ opt.label }}</span>
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+                <p class="mt-1 text-[11px] text-gray-500">
+                  Format international enregistré automatiquement.
+                </p>
               </div>
             </div>
 
@@ -146,7 +274,7 @@
                   v-model="formData.territory"
                   required
                   @change="formData.city = ''"
-                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900"
                 >
                   <option value="">Sélectionnez</option>
                   <option v-for="(label, key) in COUNTRIES" :key="key" :value="key">
@@ -161,7 +289,7 @@
                   v-model="formData.city"
                   :disabled="!formData.territory"
                   required
-                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:text-gray-900"
                 >
                   <option value="">Sélectionnez</option>
                   <option
@@ -203,7 +331,7 @@
                 <button
                   type="button"
                   @click="languageMenuOpen = !languageMenuOpen"
-                  class="inline-flex items-center px-3 py-2 rounded-md border border-gray-300 bg-white text-sm shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="inline-flex items-center px-3 py-2 rounded-md border border-gray-300 bg-white text-sm shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-900"
                 >
                   {{ languageMenuOpen ? 'Fermer' : 'Ajouter des langues' }}
                   <span v-if="!formData.languages.length" class="ml-2 text-gray-400">(min 1)</span>
@@ -279,7 +407,7 @@
         </div>
 
         <!-- Step 2: Activité du coach (module identique à l'éditeur de profil) -->
-        <div v-if="currentStep === 1">
+        <div v-if="currentStep === 2">
           <h2 class="text-2xl font-bold text-gray-900 mb-2">Activité de coach</h2>
           <p class="text-sm text-gray-600 mb-6">
             Partage ton <span class="font-medium">expérience</span>, tes
@@ -288,6 +416,92 @@
             comprendre en un coup d'œil ce qui te rend unique.
           </p>
           <form @submit.prevent="nextStep" class="space-y-8">
+            <!-- Row 3: Specialties -->
+            <div class="p-4 border rounded-lg bg-gray-50 space-y-4" ref="specialtyDropdownEl">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-800">Spécialités</h3>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="s in activity.specialties"
+                  :key="s"
+                  class="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium"
+                >
+                  {{ s }}
+                  <button
+                    type="button"
+                    class="ml-1 text-green-600 hover:text-green-900"
+                    @click="removeSpecialty(s)"
+                  >
+                    ×
+                  </button>
+                </span>
+              </div>
+              <div class="space-y-2">
+                <div class="relative">
+                  <input
+                    v-model="activity.specialtySearch"
+                    type="text"
+                    placeholder="Rechercher / ajouter une spécialité..."
+                    class="w-full rounded-md border-gray-300 text-sm pr-8 dark:text-gray-900"
+                    @focus="openSpecialtyDropdown()"
+                    @input="activity.showSpecialtyDropdown = true"
+                  />
+                  <button
+                    v-if="activity.specialtySearch"
+                    type="button"
+                    class="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600"
+                    @click="activity.specialtySearch = ''"
+                  >
+                    ×
+                  </button>
+                  <div
+                    v-if="activity.showSpecialtyDropdown"
+                    class="absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-md border bg-white shadow-lg text-sm"
+                  >
+                    <div v-if="!hasSpecialtyMatches" class="px-3 py-2 text-xs text-gray-500 italic">
+                      Aucune spécialité trouvée
+                    </div>
+                    <template v-for="group in filteredSpecialtyGroups" :key="group.category">
+                      <div v-if="group.specialties.length" class="py-1">
+                        <div
+                          class="px-3 pt-2 pb-1 text-[11px] font-semibold text-gray-500 uppercase tracking-wide"
+                        >
+                          {{ group.category }}
+                        </div>
+                        <button
+                          v-for="opt in group.specialties"
+                          :key="opt"
+                          type="button"
+                          class="w-full text-left px-3 py-1.5 hover:bg-blue-50 flex items-center justify-between"
+                          :disabled="activity.specialties.includes(opt)"
+                          @click="selectSpecialty(opt)"
+                        >
+                          <span
+                            :class="[
+                              'text-xs',
+                              activity.specialties.includes(opt)
+                                ? 'text-gray-400 line-through'
+                                : 'text-gray-700',
+                            ]"
+                            >{{ opt }}</span
+                          >
+                          <span
+                            v-if="activity.specialties.includes(opt)"
+                            class="text-[10px] text-gray-400"
+                            >Ajouté</span
+                          >
+                        </button>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+                <p class="text-[11px] text-gray-500">
+                  Recherchez par nom ou faites défiler les catégories, puis cliquez pour ajouter.
+                </p>
+              </div>
+            </div>
+
             <!-- Row 1: Experience + Work Experiences -->
             <div class="grid gap-6 md:grid-cols-4">
               <div class="p-4 border rounded-lg bg-gray-50 space-y-3">
@@ -295,7 +509,7 @@
                 <input
                   type="number"
                   v-model.number="activity.experienceYears"
-                  class="w-full rounded-md border-gray-300"
+                  class="w-full rounded-md border-gray-300 dark:text-gray-900 no-spinner"
                   min="0"
                   max="60"
                 />
@@ -324,7 +538,7 @@
                   <input
                     v-model="activity.newWorkExp"
                     placeholder="Ajouter (ex: Coach en salle...)"
-                    class="flex-1 rounded-md border-gray-300 text-xs"
+                    class="flex-1 rounded-md border-gray-300 text-xs dark:text-gray-900"
                   />
                   <button
                     type="button"
@@ -349,7 +563,7 @@
                 <select
                   v-model="activity.selectedDiplomaOption"
                   @change="addDiplomaFromSelect"
-                  class="w-full rounded-md border-gray-300 text-sm"
+                  class="w-full rounded-md border-gray-300 text-sm dark:text-gray-900"
                 >
                   <option value="">Ajouter un diplôme</option>
                   <option
@@ -365,7 +579,7 @@
                   <input
                     v-model="activity.newDiplomaTitle"
                     placeholder="Diplôme personnalisé"
-                    class="flex-1 rounded-md border-gray-300 text-sm"
+                    class="flex-1 rounded-md border-gray-300 text-sm dark:text-gray-900"
                   />
                   <button
                     type="button"
@@ -442,7 +656,6 @@
                           d.proofFileName
                         }}</strong>
                       </span>
-                      <span class="text-[10px] text-gray-500">(Enregistrez à la fin)</span>
                     </div>
                   </div>
                   <div
@@ -454,92 +667,6 @@
                 </li>
               </ul>
               <div v-else class="text-xs text-gray-500 italic">Aucun diplôme ajouté.</div>
-            </div>
-
-            <!-- Row 3: Specialties -->
-            <div class="p-4 border rounded-lg bg-gray-50 space-y-4" ref="specialtyDropdownEl">
-              <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold text-gray-800">Spécialités</h3>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <span
-                  v-for="s in activity.specialties"
-                  :key="s"
-                  class="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium"
-                >
-                  {{ s }}
-                  <button
-                    type="button"
-                    class="ml-1 text-green-600 hover:text-green-900"
-                    @click="removeSpecialty(s)"
-                  >
-                    ×
-                  </button>
-                </span>
-              </div>
-              <div class="space-y-2">
-                <div class="relative">
-                  <input
-                    v-model="activity.specialtySearch"
-                    type="text"
-                    placeholder="Rechercher / ajouter une spécialité..."
-                    class="w-full rounded-md border-gray-300 text-sm pr-8"
-                    @focus="openSpecialtyDropdown()"
-                    @input="activity.showSpecialtyDropdown = true"
-                  />
-                  <button
-                    v-if="activity.specialtySearch"
-                    type="button"
-                    class="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600"
-                    @click="activity.specialtySearch = ''"
-                  >
-                    ×
-                  </button>
-                  <div
-                    v-if="activity.showSpecialtyDropdown"
-                    class="absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-md border bg-white shadow-lg text-sm"
-                  >
-                    <div v-if="!hasSpecialtyMatches" class="px-3 py-2 text-xs text-gray-500 italic">
-                      Aucune spécialité trouvée
-                    </div>
-                    <template v-for="group in filteredSpecialtyGroups" :key="group.category">
-                      <div v-if="group.specialties.length" class="py-1">
-                        <div
-                          class="px-3 pt-2 pb-1 text-[11px] font-semibold text-gray-500 uppercase tracking-wide"
-                        >
-                          {{ group.category }}
-                        </div>
-                        <button
-                          v-for="opt in group.specialties"
-                          :key="opt"
-                          type="button"
-                          class="w-full text-left px-3 py-1.5 hover:bg-blue-50 flex items-center justify-between"
-                          :disabled="activity.specialties.includes(opt)"
-                          @click="selectSpecialty(opt)"
-                        >
-                          <span
-                            :class="[
-                              'text-xs',
-                              activity.specialties.includes(opt)
-                                ? 'text-gray-400 line-through'
-                                : 'text-gray-700',
-                            ]"
-                            >{{ opt }}</span
-                          >
-                          <span
-                            v-if="activity.specialties.includes(opt)"
-                            class="text-[10px] text-gray-400"
-                            >Ajouté</span
-                          >
-                        </button>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-                <p class="text-[11px] text-gray-500">
-                  Recherchez par nom ou faites défiler les catégories, puis cliquez pour ajouter.
-                </p>
-              </div>
             </div>
 
             <div class="flex justify-between">
@@ -561,7 +688,7 @@
         </div>
 
         <!-- Step 3: Profil -->
-        <div v-if="currentStep === 2">
+        <div v-if="currentStep === 3">
           <h2 class="text-2xl font-bold text-gray-900 mb-2">Profil</h2>
           <p class="text-sm text-gray-600 mb-6">
             Ajoute une <span class="font-medium">photo pro</span>, une
@@ -594,7 +721,7 @@
                 </div>
                 <div class="flex flex-col gap-2">
                   <label
-                    class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm cursor-pointer hover:bg-gray-50"
+                    class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm cursor-pointer hover:bg-gray-50 dark:text-gray-900"
                   >
                     <input
                       type="file"
@@ -621,7 +748,7 @@
                 v-model="formData.bio"
                 rows="5"
                 required
-                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900"
                 placeholder="Présentez votre parcours, vos valeurs, votre manière de coacher..."
               ></textarea>
               <p class="text-[11px] text-gray-500 mt-1">
@@ -635,7 +762,7 @@
                   v-model="formData.website"
                   type="url"
                   placeholder="https://"
-                  class="mt-1 w-full rounded-md border-gray-300"
+                  class="mt-1 w-full rounded-md border-gray-300 dark:text-gray-900"
                 />
               </div>
               <div>
@@ -644,7 +771,7 @@
                   v-model="formData.instagram"
                   type="url"
                   placeholder="https://instagram.com/votreprofil"
-                  class="mt-1 w-full rounded-md border-gray-300"
+                  class="mt-1 w-full rounded-md border-gray-300 dark:text-gray-900"
                 />
               </div>
               <div>
@@ -653,15 +780,7 @@
                   v-model="formData.facebook"
                   type="url"
                   placeholder="https://facebook.com/votreprofil"
-                  class="mt-1 w-full rounded-md border-gray-300"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Téléphone</label>
-                <input
-                  v-model="formData.phone"
-                  type="tel"
-                  class="mt-1 w-full rounded-md border-gray-300"
+                  class="mt-1 w-full rounded-md border-gray-300 dark:text-gray-900"
                 />
               </div>
             </div>
@@ -685,7 +804,7 @@
         </div>
 
         <!-- Step 4: Modalités générales -->
-        <div v-if="currentStep === 3">
+        <div v-if="currentStep === 4">
           <h2 class="text-2xl font-bold text-gray-900 mb-2">Modalités générales</h2>
           <p class="text-sm text-gray-600 mb-6">
             Indique comment tu <span class="font-medium">fonctionnes au quotidien</span>: jours
@@ -697,14 +816,15 @@
             <!-- Hourly Rate -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Tarif horaire (€ / h)</label
+                >Tarif horaire * (€ / h)</label
               >
               <input
                 type="number"
                 min="0"
                 step="1"
                 v-model.number="formData.basePrice"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                required
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900 no-spinner"
                 placeholder="Ex: 50"
               />
               <p class="text-[11px] text-gray-500 mt-1">
@@ -744,7 +864,7 @@
                 <h3 class="text-sm font-semibold text-gray-800">Où se déroulent vos cours ?</h3>
                 <div class="space-y-2">
                   <div>
-                    <label class="inline-flex items-center gap-2 text-sm">
+                    <label class="inline-flex items-center gap-2 text-sm dark:text-gray-900">
                       <input
                         type="checkbox"
                         v-model="modalities.canBeAtHome"
@@ -756,12 +876,12 @@
                       v-if="modalities.canBeAtHome"
                       v-model="modalities.atHomeDetails"
                       rows="2"
-                      class="mt-2 w-full rounded-md border-gray-300 text-xs focus:ring-blue-500 focus:border-blue-500"
+                      class="mt-2 w-full rounded-md border-gray-300 text-xs focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900"
                       placeholder="Précisions: zone d'intervention, frais, matériel..."
                     ></textarea>
                   </div>
                   <div>
-                    <label class="inline-flex items-center gap-2 text-sm">
+                    <label class="inline-flex items-center gap-2 text-sm dark:text-gray-900">
                       <input
                         type="checkbox"
                         v-model="modalities.canBeOnline"
@@ -773,12 +893,12 @@
                       v-if="modalities.canBeOnline"
                       v-model="modalities.onlineDetails"
                       rows="2"
-                      class="mt-2 w-full rounded-md border-gray-300 text-xs focus:ring-blue-500 focus:border-blue-500"
+                      class="mt-2 w-full rounded-md border-gray-300 text-xs focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900"
                       placeholder="Plateforme, prérequis techniques..."
                     ></textarea>
                   </div>
                   <div>
-                    <label class="inline-flex items-center gap-2 text-sm">
+                    <label class="inline-flex items-center gap-2 text-sm dark:text-gray-900">
                       <input
                         type="checkbox"
                         v-model="modalities.canBeInPublicSpaces"
@@ -791,7 +911,7 @@
               </div>
               <div class="p-4 border rounded-lg bg-gray-50 space-y-3">
                 <h3 class="text-sm font-semibold text-gray-800">Cours d'essai</h3>
-                <label class="flex items-center gap-2 text-sm">
+                <label class="flex items-center gap-2 text-sm dark:text-gray-900">
                   <input
                     type="checkbox"
                     v-model="modalities.hasFreeTrial"
@@ -804,7 +924,7 @@
                   v-model="modalities.freeTrialModalities"
                   rows="3"
                   placeholder="Décrivez les conditions du cours d'essai (durée, contenu...)"
-                  class="w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900"
                 ></textarea>
               </div>
             </div>
@@ -814,7 +934,7 @@
               <textarea
                 v-model="modalities.cancellationPolicy"
                 rows="3"
-                class="w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500"
+                class="w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900"
               ></textarea>
               <p class="text-[11px] text-gray-500">
                 Expliquez les conditions d'annulation (ex: 24h avant sinon facturé).
@@ -831,7 +951,8 @@
               </button>
               <button
                 type="submit"
-                class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                :disabled="formData.basePrice === null"
+                class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               >
                 Suivant
               </button>
@@ -840,7 +961,7 @@
         </div>
 
         <!-- Step 5: Services (Enhanced) -->
-        <div v-if="currentStep === 4">
+        <div v-if="currentStep === 5">
           <h2 class="text-2xl font-bold text-gray-900 mb-2">Services proposés</h2>
           <p class="text-sm text-gray-600 mb-6">
             Ici tu crées des <span class="font-medium">offres/produits</span> spécifiques et
@@ -860,7 +981,7 @@
                     : 'border-gray-300 hover:border-gray-400',
                 ]"
               >
-                <div class="text-lg font-medium">Oui, ajouter des services</div>
+                <div class="text-lg font-medium dark:text-gray-900">Oui, ajouter des services</div>
                 <div class="text-sm text-gray-600 mt-1">Créez des offres personnalisées</div>
               </button>
 
@@ -874,206 +995,9 @@
                     : 'border-gray-300 hover:border-gray-400',
                 ]"
               >
-                <div class="text-lg font-medium">Non, plus tard</div>
+                <div class="text-lg font-medium dark:text-gray-900">Non, plus tard</div>
                 <div class="text-sm text-gray-600 mt-1">Je compléterai mon profil plus tard</div>
               </button>
-            </div>
-
-            <!-- Enhanced Service Form -->
-            <div v-if="wantsToAddServices" class="border border-gray-200 rounded-lg p-6 bg-gray-50">
-              <h3 class="text-lg font-medium text-gray-900 mb-4">Créer des services</h3>
-
-              <!-- Existing Services List -->
-              <div v-if="services.length > 0" class="mb-6">
-                <h4 class="text-sm font-medium text-gray-700 mb-3">
-                  Services ajoutés ({{ services.length }})
-                </h4>
-                <div class="space-y-3">
-                  <div
-                    v-for="(service, index) in services"
-                    :key="index"
-                    class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md"
-                  >
-                    <div>
-                      <div class="font-medium text-sm">{{ service.title }}</div>
-                      <div class="text-xs text-gray-500">{{ service.category }}</div>
-                    </div>
-                    <button
-                      @click="removeService(index)"
-                      class="text-red-600 hover:text-red-800 text-sm"
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Service Creation Form -->
-              <div class="space-y-4">
-                <!-- Service Title -->
-                <div>
-                  <label for="serviceTitle" class="block text-sm font-medium text-gray-700">
-                    Titre du service *
-                  </label>
-                  <input
-                    id="serviceTitle"
-                    v-model="serviceForm.title"
-                    type="text"
-                    placeholder="Ex: Coaching de remise en forme personnalisé"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <!-- Category -->
-                <div>
-                  <label for="serviceCategory" class="block text-sm font-medium text-gray-700">
-                    Catégorie *
-                  </label>
-                  <select
-                    id="serviceCategory"
-                    v-model="serviceForm.category"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Sélectionner une catégorie</option>
-                    <option
-                      v-for="specialty in activity.specialties"
-                      :key="specialty"
-                      :value="specialty"
-                    >
-                      {{ specialty }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- Sub-category -->
-                <div>
-                  <label for="serviceSubCategory" class="block text-sm font-medium text-gray-700">
-                    Sous-catégorie (optionnel)
-                  </label>
-                  <input
-                    id="serviceSubCategory"
-                    v-model="serviceForm.subCategory"
-                    type="text"
-                    placeholder="Ex: Débutants, Performance, Rééducation..."
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <!-- Description -->
-                <div>
-                  <label for="serviceDescription" class="block text-sm font-medium text-gray-700">
-                    Description du service
-                  </label>
-                  <textarea
-                    id="serviceDescription"
-                    v-model="serviceForm.description"
-                    rows="3"
-                    placeholder="Décrivez votre service, les objectifs, le matériel inclus..."
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  ></textarea>
-                </div>
-
-                <!-- Service Types & Pricing -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-3"
-                    >Type de service *</label
-                  >
-                  <div class="space-y-3">
-                    <label class="flex items-center">
-                      <input
-                        v-model="serviceForm.individualAvailable"
-                        type="checkbox"
-                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <span class="ml-2 text-sm text-gray-700">Cours particulier</span>
-                    </label>
-                    <div v-if="serviceForm.individualAvailable" class="ml-6">
-                      <input
-                        v-model.number="serviceForm.individualPrice"
-                        type="number"
-                        placeholder="Prix en €"
-                        class="w-32 px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <span class="ml-2 text-sm text-gray-500">€ / séance</span>
-                    </div>
-
-                    <label class="flex items-center">
-                      <input
-                        v-model="serviceForm.groupAvailable"
-                        type="checkbox"
-                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <span class="ml-2 text-sm text-gray-700">Cours en groupe</span>
-                    </label>
-                    <div v-if="serviceForm.groupAvailable" class="ml-6">
-                      <input
-                        v-model.number="serviceForm.groupPrice"
-                        type="number"
-                        placeholder="Prix en €"
-                        class="w-32 px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <span class="ml-2 text-sm text-gray-500">€ / personne</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Duration -->
-                <div>
-                  <label for="serviceDuration" class="block text-sm font-medium text-gray-700">
-                    Durée de la séance (minutes)
-                  </label>
-                  <select
-                    id="serviceDuration"
-                    v-model="serviceForm.duration"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="30">30 minutes</option>
-                    <option value="45">45 minutes</option>
-                    <option value="60">1 heure</option>
-                    <option value="90">1h30</option>
-                    <option value="120">2 heures</option>
-                  </select>
-                </div>
-
-                <!-- Max Group Size -->
-                <div v-if="serviceForm.groupAvailable">
-                  <label for="maxGroupSize" class="block text-sm font-medium text-gray-700">
-                    Nombre maximum de participants (groupe)
-                  </label>
-                  <input
-                    id="maxGroupSize"
-                    v-model.number="serviceForm.maxGroupSize"
-                    type="number"
-                    min="2"
-                    max="20"
-                    placeholder="8"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <!-- Add Service Button -->
-                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                  <button
-                    @click="resetServiceForm"
-                    type="button"
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                  >
-                    Effacer
-                  </button>
-                  <button
-                    @click="addService"
-                    type="button"
-                    :disabled="
-                      !serviceForm.title ||
-                      !serviceForm.category ||
-                      (!serviceForm.individualAvailable && !serviceForm.groupAvailable)
-                    "
-                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Ajouter ce service
-                  </button>
-                </div>
-              </div>
             </div>
 
             <div class="flex justify-between">
@@ -1132,6 +1056,7 @@ const saving = ref(false)
 const saveStatus = ref<{ step: number; message: string; type: 'success' | 'error' } | null>(null)
 
 const steps = [
+  { id: 'welcome', title: 'Bienvenue' },
   { id: 'basic', title: 'Informations' },
   { id: 'activity', title: 'Activité' },
   { id: 'profile', title: 'Profil' },
@@ -1168,10 +1093,15 @@ const activity = ref({
 const filteredSpecialtyGroups = computed<SpecialtyGroup[]>(() => {
   const term = activity.value.specialtySearch.trim().toLowerCase()
   if (!term) return SPECIALTY_OPTIONS
-  return SPECIALTY_OPTIONS.map((g) => ({
-    category: g.category,
-    specialties: g.specialties.filter((s) => s.toLowerCase().includes(term)),
-  })).filter((g) => g.specialties.length > 0 || g.category.toLowerCase().includes(term))
+  return SPECIALTY_OPTIONS.map((g) => {
+    const categoryMatches = g.category.toLowerCase().includes(term)
+    return {
+      category: g.category,
+      specialties: categoryMatches
+        ? g.specialties.slice()
+        : g.specialties.filter((s) => s.toLowerCase().includes(term)),
+    }
+  }).filter((g) => g.specialties.length > 0)
 })
 const hasSpecialtyMatches = computed(() =>
   filteredSpecialtyGroups.value.some((g) => g.specialties.length > 0),
@@ -1261,6 +1191,60 @@ const formData = ref({
   facebook: '',
 })
 
+// Phone indicative selector (borrowed from RequestModal design)
+const phoneIndicatives = [
+  { code: 'mq', prefix: '+596', flag: '🇲🇶', label: 'Martinique' },
+  { code: 'gp', prefix: '+590', flag: '🇬🇵', label: 'Guadeloupe' },
+  { code: 'fr', prefix: '+33', flag: '🇫🇷', label: 'France' },
+  { code: 'gf', prefix: '+594', flag: '🇬🇫', label: 'Guyane' },
+]
+type PhoneIndicativeCode = (typeof phoneIndicatives)[number]['code']
+const onboardingPhoneIndicative = ref<PhoneIndicativeCode>('mq')
+const showOnboardingIndicativeMenu = ref(false)
+const onboardingPhoneSelectorRef = ref<HTMLElement | null>(null)
+const onboardingOpenAbove = ref(false)
+const onboardingSelectedPhoneIndicative = computed(
+  () =>
+    phoneIndicatives.find((p) => p.code === onboardingPhoneIndicative.value) || phoneIndicatives[0],
+)
+function toggleOnboardingPhoneMenu() {
+  showOnboardingIndicativeMenu.value = !showOnboardingIndicativeMenu.value
+  if (showOnboardingIndicativeMenu.value) {
+    const el = onboardingPhoneSelectorRef.value
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      const estimatedHeight = 240
+      onboardingOpenAbove.value = spaceBelow < estimatedHeight && spaceAbove > spaceBelow
+    }
+  }
+}
+function selectOnboardingPhoneIndicative(code: PhoneIndicativeCode) {
+  onboardingPhoneIndicative.value = code
+  showOnboardingIndicativeMenu.value = false
+}
+function buildInternationalPhoneOnboarding(raw: string) {
+  const indicative = phoneIndicatives.find((p) => p.code === onboardingPhoneIndicative.value)
+  const digits = (raw || '').replace(/[^0-9]/g, '')
+  if (!indicative) return raw
+  const normalized = digits.replace(/^0+/, '')
+  return `${indicative.prefix}${normalized}`
+}
+function handleOnboardingPhoneClickOutside(e: MouseEvent) {
+  if (!showOnboardingIndicativeMenu.value) return
+  const el = onboardingPhoneSelectorRef.value
+  if (el && !el.contains(e.target as Node)) showOnboardingIndicativeMenu.value = false
+}
+if (typeof window !== 'undefined')
+  window.addEventListener('click', handleOnboardingPhoneClickOutside)
+
+function handleOnboardingPhoneRawInput(e: Event) {
+  const target = e.target as HTMLInputElement
+  const digits = target.value.replace(/\D+/g, '').slice(0, 10)
+  formData.value.phone = digits
+}
+
 // Language selection options (reuse shared constant)
 const languageOptions = LANGUAGE_OPTIONS
 
@@ -1309,38 +1293,7 @@ function normalizeUrl(v: string) {
 import maleDefaultAvatar from '@/assets/avatars/default_male.svg'
 import femaleDefaultAvatar from '@/assets/avatars/default_female.svg'
 
-const services = ref<
-  Array<{
-    title: string
-    description: string
-    category: string
-    subCategory: string
-    // Marketplace-compatible fields
-    canBeSolo?: boolean
-    soloPrice?: number | null
-    canBeGroup?: boolean
-    groupPrice?: number | null
-    // Original fields for backward compatibility
-    individualAvailable: boolean
-    groupAvailable: boolean
-    individualPrice: number | null
-    duration: number
-    maxGroupSize: number | null
-  }>
->([])
-
-const serviceForm = ref({
-  title: '',
-  description: '',
-  category: '',
-  subCategory: '',
-  individualAvailable: true,
-  groupAvailable: false,
-  individualPrice: null as number | null,
-  groupPrice: null as number | null,
-  duration: 60,
-  maxGroupSize: 8,
-})
+// Service creation removed from onboarding; handled on /coach/services after redirect.
 
 // General modalities (mirrors account editor general course settings)
 // Modalities state (onboarding subset of full account editor)
@@ -1360,55 +1313,7 @@ const modalities = ref({
 const weekDays = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 
 // Service management methods
-const addService = () => {
-  if (!serviceForm.value.title || !serviceForm.value.category) {
-    return
-  }
-
-  if (!serviceForm.value.individualAvailable && !serviceForm.value.groupAvailable) {
-    return
-  }
-
-  const newService = {
-    title: serviceForm.value.title,
-    description: serviceForm.value.description,
-    category: serviceForm.value.category,
-    subCategory: serviceForm.value.subCategory,
-    // Map to marketplace-compatible field names
-    canBeSolo: serviceForm.value.individualAvailable,
-    soloPrice: serviceForm.value.individualAvailable ? serviceForm.value.individualPrice : null,
-    canBeGroup: serviceForm.value.groupAvailable,
-    groupPrice: serviceForm.value.groupAvailable ? serviceForm.value.groupPrice : null,
-    duration: serviceForm.value.duration,
-    maxGroupSize: serviceForm.value.groupAvailable ? serviceForm.value.maxGroupSize : null,
-    // Keep both formats for compatibility
-    individualAvailable: serviceForm.value.individualAvailable,
-    groupAvailable: serviceForm.value.groupAvailable,
-    individualPrice: serviceForm.value.individualPrice,
-  }
-
-  services.value.push(newService)
-  resetServiceForm()
-}
-
-const removeService = (index: number) => {
-  services.value.splice(index, 1)
-}
-
-const resetServiceForm = () => {
-  serviceForm.value = {
-    title: '',
-    description: '',
-    category: '',
-    subCategory: '',
-    individualAvailable: true,
-    groupAvailable: false,
-    individualPrice: null,
-    groupPrice: null,
-    duration: 60,
-    maxGroupSize: 8,
-  }
-}
+// (Previously had addService/removeService/resetServiceForm helpers.)
 
 onMounted(async () => {
   if (!authStore.user) {
@@ -1441,6 +1346,8 @@ onMounted(async () => {
         router.push('/coach/profile')
         return
       }
+      // Always show welcome step again on reload while onboarding isn't completed
+      currentStep.value = 0
       // Ensure account stays active during onboarding (retro-fit older rows)
       if (existing.is_active === false) {
         await supabase.from('coaches').update({ is_active: true }).eq('id', existing.id)
@@ -1497,13 +1404,52 @@ onMounted(async () => {
 })
 
 const nextStep = async () => {
+  // Step 0 is purely informational; no save
+  if (currentStep.value === 0) {
+    currentStep.value = 1
+    return
+  }
   await saveCurrentStep(true)
 }
 
 const prevStep = () => {
-  if (currentStep.value > 0) {
-    currentStep.value--
+  // Can't go back before welcome
+  if (currentStep.value > 0) currentStep.value--
+}
+
+// Welcome radial transition
+const welcomeTransitionActive = ref(false)
+const welcomeOverlayStyle = ref<Record<string, string>>({})
+const welcomeStartBtn = ref<HTMLButtonElement | null>(null)
+function playWelcomeTransition() {
+  if (welcomeTransitionActive.value) return
+  const btn = welcomeStartBtn.value
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  let x = vw / 2
+  let y = vh / 2
+  if (btn) {
+    const r = btn.getBoundingClientRect()
+    x = r.left + r.width / 2
+    y = r.top + r.height / 2
   }
+  const distTL = Math.hypot(x, y)
+  const distTR = Math.hypot(vw - x, y)
+  const distBL = Math.hypot(x, vh - y)
+  const distBR = Math.hypot(vw - x, vh - y)
+  const maxR = Math.max(distTL, distTR, distBL, distBR)
+  welcomeOverlayStyle.value = {
+    '--ox': x + 'px',
+    '--oy': y + 'px',
+    '--r': maxR + 'px',
+  }
+  welcomeTransitionActive.value = true
+  setTimeout(() => {
+    if (currentStep.value === 0) currentStep.value = 1
+  }, 520)
+  setTimeout(() => {
+    welcomeTransitionActive.value = false
+  }, 1100)
 }
 
 function setSaveStatus(step: number, message: string, type: 'success' | 'error') {
@@ -1524,13 +1470,15 @@ async function saveCurrentStep(advance: boolean) {
   }
   saving.value = true
   try {
-    if (step === 0) {
+    if (step === 1) {
       // Insert or update draft
       const payload: Record<string, unknown> = {
         email: authStore.user.email,
         first_name: formData.value.firstName || null,
         last_name: formData.value.lastName || null,
-        phone: formData.value.phone || null,
+        phone: formData.value.phone
+          ? buildInternationalPhoneOnboarding(formData.value.phone)
+          : null,
         bio: formData.value.bio || null,
         languages: formData.value.languages,
         specialties: [],
@@ -1559,7 +1507,7 @@ async function saveCurrentStep(advance: boolean) {
         const { error } = await supabase.from('coaches').update(payload).eq('id', coachId.value)
         if (error) throw error
       }
-    } else if (coachId.value && step === 1) {
+    } else if (coachId.value && step === 2) {
       const { error } = await supabase
         .from('coaches')
         .update({
@@ -1576,15 +1524,19 @@ async function saveCurrentStep(advance: boolean) {
         })
         .eq('id', coachId.value)
       if (error) throw error
-    } else if (coachId.value && step === 2) {
+    } else if (coachId.value && step === 3) {
       const { error } = await supabase
         .from('coaches')
         .update({
           bio: formData.value.bio || null,
-          phone: formData.value.phone || null,
+          phone: formData.value.phone
+            ? buildInternationalPhoneOnboarding(formData.value.phone)
+            : null,
           profile_contact: {
             email: authStore.user.email,
-            phone: formData.value.phone,
+            phone: formData.value.phone
+              ? buildInternationalPhoneOnboarding(formData.value.phone)
+              : null,
             website: normalizeUrl(formData.value.website),
             instagram: normalizeUrl(formData.value.instagram),
             facebook: normalizeUrl(formData.value.facebook),
@@ -1601,7 +1553,7 @@ async function saveCurrentStep(advance: boolean) {
           console.warn('Avatar upload failed (non bloquant)', e)
         }
       }
-    } else if (coachId.value && step === 3) {
+    } else if (coachId.value && step === 4) {
       const { error } = await supabase
         .from('coaches')
         .update({
@@ -1659,63 +1611,7 @@ const completeOnboarding = async () => {
       // If user jumped somehow, save step 0 first
       await saveCurrentStep(false)
     }
-    // Create services now (if any)
-    if (coachId.value && services.value.length > 0) {
-      const servicesToCreate = services.value.map((service) => ({
-        coach_id: coachId.value!,
-        title: service.title,
-        description: service.description || '',
-        category: service.category,
-        sub_category: service.subCategory || null,
-        can_be_solo: service.canBeSolo || service.individualAvailable,
-        solo_price: service.soloPrice || service.individualPrice,
-        can_be_group: service.canBeGroup || service.groupAvailable,
-        group_price: service.groupPrice,
-        duration: service.duration,
-        can_be_at_home: modalities.value.canBeAtHome,
-        can_be_online: modalities.value.canBeOnline,
-        can_be_in_public_spaces: modalities.value.canBeInPublicSpaces,
-        has_free_trial: modalities.value.hasFreeTrial,
-        free_trial_modalities: modalities.value.freeTrialModalities || null,
-        cancellation_policy: modalities.value.cancellationPolicy,
-        custom_availability: null,
-        is_active: true,
-      }))
-      const { error: servicesErr } = await supabase.from('coach_services').insert(servicesToCreate)
-      if (servicesErr) console.warn('Erreur création services', servicesErr)
-    }
-    // Single service via form if chosen
-    if (
-      coachId.value &&
-      wantsToAddServices.value &&
-      serviceForm.value.title &&
-      serviceForm.value.category &&
-      services.value.length === 0
-    ) {
-      const { error: singleErr } = await supabase.from('coach_services').insert([
-        {
-          coach_id: coachId.value,
-          title: serviceForm.value.title,
-          description: serviceForm.value.description || '',
-          category: serviceForm.value.category,
-          sub_category: serviceForm.value.subCategory || null,
-          can_be_solo: serviceForm.value.individualAvailable,
-          solo_price: serviceForm.value.individualPrice,
-          can_be_group: serviceForm.value.groupAvailable,
-          group_price: serviceForm.value.groupPrice,
-          duration: serviceForm.value.duration,
-          can_be_at_home: modalities.value.canBeAtHome,
-          can_be_online: modalities.value.canBeOnline,
-          can_be_in_public_spaces: modalities.value.canBeInPublicSpaces,
-          has_free_trial: modalities.value.hasFreeTrial,
-          free_trial_modalities: modalities.value.freeTrialModalities || null,
-          cancellation_policy: modalities.value.cancellationPolicy,
-          custom_availability: null,
-          is_active: true,
-        },
-      ])
-      if (singleErr) console.warn('Erreur création service formulaire', singleErr)
-    }
+    // Skip inline service creation during onboarding; redirect after activation instead.
     // Activate profile
     if (coachId.value) {
       const { error: activateErr } = await supabase
@@ -1725,7 +1621,12 @@ const completeOnboarding = async () => {
       if (activateErr) console.warn('Erreur activation/onboarding profil', activateErr)
     }
     await authStore.loadCoachProfile()
-    router.push('/coach/profile')
+    // Redirect choice: if coach wants to add services -> services page; else dashboard
+    if (wantsToAddServices.value) {
+      router.push('/coach/services')
+    } else {
+      router.push('/coach/dashboard')
+    }
   } catch (err: unknown) {
     console.error('❌ Error completing onboarding:', err)
     error.value = err instanceof Error ? err.message : 'Une erreur est survenue'
@@ -1734,3 +1635,48 @@ const completeOnboarding = async () => {
   }
 }
 </script>
+
+<style scoped>
+/* Radial expansion animation */
+@keyframes welcome-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  55% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.welcome-radial {
+  left: var(--ox);
+  top: var(--oy);
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  border-radius: 9999px;
+  background: radial-gradient(circle at center, #2563eb 0%, #1d4ed8 35%, #1e3a8a 70%, #1e3a8a 100%);
+  transform-origin: center;
+  transform: translate(-50%, -50%) scale(0);
+  animation: welcome-expand 1.05s ease forwards;
+  box-shadow:
+    0 0 40px -5px rgba(37, 99, 235, 0.6),
+    0 0 80px -10px rgba(59, 130, 246, 0.5);
+  filter: saturate(1.15);
+}
+/* Remove number input spinners (Chrome, Safari, Edge) */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+.no-spinner[type='number'] {
+  -moz-appearance: textfield;
+}
+</style>

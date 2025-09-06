@@ -16,36 +16,36 @@ export const supabaseLeadApi = {
     },
   ) => {
     try {
-      let query = supabase.from('leads').select('*').eq('coach_id', coachId)
-
-      // Apply filters
-      if (params?.status?.length) {
-        query = query.in('status', params.status)
-      }
-      if (params?.dateFrom) {
-        query = query.gte('created_at', params.dateFrom)
-      }
-      if (params?.dateTo) {
-        query = query.lte('created_at', params.dateTo)
+      // Helper to build a query (masked view preferred)
+      const buildQuery = (source: 'coach_leads_masked' | 'leads') => {
+        let q = supabase.from(source).select('*').eq('coach_id', coachId)
+        if (params?.status?.length) q = q.in('status', params.status)
+        if (params?.dateFrom) q = q.gte('created_at', params.dateFrom)
+        if (params?.dateTo) q = q.lte('created_at', params.dateTo)
+        return q
       }
 
-      // Apply pagination
       const page = params?.page || 1
       const limit = params?.limit || 20
       const offset = (page - 1) * limit
 
-      const { data, error, count } = await query
+      // Try masked view first
+      let { data, error, count } = await buildQuery('coach_leads_masked')
         .range(offset, offset + limit - 1)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-
-      return {
-        data: data || [],
-        total: count || 0,
-        page,
-        limit,
+      if (error) {
+        console.warn(
+          '[supabaseLeadApi] Masked view unavailable, falling back to raw leads:',
+          error.message,
+        )
+        ;({ data, error, count } = await buildQuery('leads')
+          .range(offset, offset + limit - 1)
+          .order('created_at', { ascending: false }))
+        if (error) throw error
       }
+
+      return { data: data || [], total: count || 0, page, limit }
     } catch (error) {
       throw handleApiError(error)
     }

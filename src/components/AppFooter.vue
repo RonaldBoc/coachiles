@@ -27,7 +27,7 @@
               >
             </li>
             <li>
-              <RouterLink to="/coach/registration" class="hover:text-orange-600 transition-colors"
+              <RouterLink to="/coach/onboarding" class="hover:text-orange-600 transition-colors"
                 >Devenir coach</RouterLink
               >
             </li>

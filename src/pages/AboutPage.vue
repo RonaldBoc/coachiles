@@ -80,7 +80,7 @@
       <!-- Call to action -->
       <div class="text-center">
         <RouterLink
-          to="/coach/registration"
+          to="/coach/onboarding"
           class="inline-flex items-center px-8 py-4 rounded-full bg-gradient-to-r from-orange-500 to-blue-600 text-white font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition"
           >Rejoindre en tant que coach</RouterLink
         >

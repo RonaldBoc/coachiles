@@ -199,10 +199,15 @@ export async function generateProfilePictureSizes(file: File) {
     throw new Error(validation.error)
   }
 
+  // NOTE: Augmented sizes for better retina rendering in listings
+  //  - Thumbnail stays small for fast grids (150)
+  //  - Profile upgraded from 300 -> 400 (gains clarity on standard & 2x DPR)
+  //  - HighRes upgraded from 600 -> 900 (serves as 2x for ~450px displayed squares)
+  // Quality slightly increased for profile (0.88) and highRes (0.9) while keeping under 5MB total.
   const [thumbnail, profile, highRes] = await Promise.all([
-    createSquareThumbnail(file, 150, 0.8), // Thumbnail for cards
-    createSquareThumbnail(file, 300, 0.85), // Profile header
-    resizeImage(file, 600, 600, 0.9), // High resolution
+    createSquareThumbnail(file, 150, 0.8), // Card tiny thumb
+    createSquareThumbnail(file, 400, 0.88), // Main profile / default avatar_url
+    resizeImage(file, 900, 900, 0.9), // High resolution (used via srcset)
   ])
 
   return {

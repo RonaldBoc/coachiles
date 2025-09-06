@@ -247,18 +247,33 @@ export class LeadService {
   // Get leads for a coach with subscription filtering
   static async getCoachLeads(coachId: string): Promise<Lead[]> {
     try {
-      const { data: leads, error } = await supabase
-        .from('leads')
+      // Prefer masked view (server-side locking). Fallback to raw table if not present yet.
+      let leadsData: Lead[] | null = null
+      const { data: masked, error: maskedError } = await supabase
+        .from('coach_leads_masked')
         .select('*')
         .eq('coach_id', coachId)
         .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Error fetching coach leads:', error)
-        return []
+      if (maskedError) {
+        console.warn(
+          'Masked view fetch failed or not ready, falling back to raw leads:',
+          maskedError.message,
+        )
+        const { data: raw, error: rawError } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('coach_id', coachId)
+          .order('created_at', { ascending: false })
+        if (rawError) {
+          console.error('Error fetching coach leads (raw fallback):', rawError)
+          return []
+        }
+        leadsData = raw || []
+      } else {
+        leadsData = masked || []
       }
-
-      return leads || []
+      return leadsData as Lead[]
     } catch (error) {
       console.error('Error fetching coach leads:', error)
       return []
@@ -288,16 +303,42 @@ export class LeadService {
       }
 
       const subscriptionType = coachSubscription?.subscription_type || 'free'
+      const maxUnlockedLeadsRaw = coachSubscription?.max_leads
       const maxUnlockedLeads =
-        coachSubscription?.max_leads === -1 ? Infinity : coachSubscription?.max_leads || 2
+        maxUnlockedLeadsRaw === -1
+          ? Infinity
+          : typeof maxUnlockedLeadsRaw === 'number'
+            ? maxUnlockedLeadsRaw
+            : 2
 
-      const unlockedLeadsCount = subscriptionType === 'free' ? 2 : Infinity
-
-      return {
-        subscriptionType,
-        unlockedLeadsCount,
-        maxUnlockedLeads,
+      // Attempt to derive unlocked leads count from masked view (server authoritative)
+      let unlockedLeadsCount = 0
+      try {
+        const { data: maskedRows, error: maskedErr } = await supabase
+          .from('coach_leads_masked')
+          .select('distinct_email_rank,is_locked')
+          .eq('coach_id', coachId)
+        if (!maskedErr && Array.isArray(maskedRows)) {
+          const unlockedRanks = new Set<number>()
+          ;(
+            maskedRows as Array<{ distinct_email_rank: number | null; is_locked: boolean | null }>
+          ).forEach((r) => {
+            if (r.is_locked === false && typeof r.distinct_email_rank === 'number') {
+              unlockedRanks.add(r.distinct_email_rank)
+            }
+          })
+          unlockedLeadsCount = unlockedRanks.size
+        } else {
+          // fallback heuristic: free plan shows min(2, maxUnlockedLeads)
+          unlockedLeadsCount =
+            subscriptionType === 'free' ? Math.min(2, Number(maxUnlockedLeads)) : Infinity
+        }
+      } catch {
+        unlockedLeadsCount =
+          subscriptionType === 'free' ? Math.min(2, Number(maxUnlockedLeads)) : Infinity
       }
+
+      return { subscriptionType, unlockedLeadsCount, maxUnlockedLeads }
     } catch (error) {
       console.error('Error fetching coach subscription info:', error)
       return {

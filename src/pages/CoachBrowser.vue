@@ -239,7 +239,7 @@
             <button
               v-for="spec in specialtyOptions"
               :key="spec.name"
-              @click="selectedSpecialty = spec.name"
+              @click="onSpecialtyBarSelect(spec.name)"
               :class="[
                 'flex-shrink-0 px-4 py-2 md:px-6 md:py-3 rounded-full font-bold text-xs md:text-sm transition-all duration-200 transform hover:scale-105 whitespace-nowrap',
                 selectedSpecialty === spec.name
@@ -347,6 +347,14 @@
                 :src="coach.photo || '/default-avatar.png'"
                 :alt="`${coach.firstName}`"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                :srcset="
+                  coach.photo
+                    ? `${coach.photo.replace(/(_profile|_highres)?\.jpg$/, '_thumb.jpg')} 150w, ${coach.photo.replace(/(_profile|_highres)?\.jpg$/, '_profile.jpg')} 400w, ${coach.photo.replace(/(_profile|_highres)?\.jpg$/, '_highres.jpg')} 900w`
+                    : undefined
+                "
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                loading="lazy"
+                decoding="async"
               />
               <!-- Dark gradient overlay -->
               <div
@@ -591,6 +599,20 @@ const selectSpecialtyFromDropdown = (spec: string) => {
   selectedSpecialty.value = spec
   searchQuery.value = '' // reset filter text
   showDropdown.value = false // keep bar open, hide dropdown
+  debouncedSearch('', selectedSpecialty.value, sortBy.value)
+}
+// When selecting from the horizontal specialty bar: ensure search UI is open & chip shown
+const onSpecialtyBarSelect = (spec: string) => {
+  // Set chosen specialty
+  selectedSpecialty.value = spec
+  // Open the compact search bar if closed so chip appears inside
+  if (!isSearchOpen.value) {
+    isSearchOpen.value = true
+  }
+  // Hide text input (since chip mode) & dropdown
+  showDropdown.value = false
+  searchQuery.value = ''
+  // Trigger backend refresh with new specialty
   debouncedSearch('', selectedSpecialty.value, sortBy.value)
 }
 // No commitSearch: typing doesn't trigger backend fetch; only selecting specialty does

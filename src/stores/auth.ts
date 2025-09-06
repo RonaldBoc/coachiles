@@ -4,6 +4,7 @@ import { supabase } from '@/utils/supabase'
 import { initializeSessionManager } from '@/utils/sessionManager'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Coach } from '@/types/coach'
+import { useLeadStore } from '@/stores/leads'
 
 export interface AuthState {
   user: User | null
@@ -210,10 +211,9 @@ export const useAuthStore = defineStore('auth', () => {
         .from('coaches')
         .select('*')
         .eq('email', user.value.email)
-        .single()
+        .maybeSingle()
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        // PGRST116 = no rows found
+      if (profileError) {
         throw profileError
       }
 
@@ -252,6 +252,7 @@ export const useAuthStore = defineStore('auth', () => {
         }
         console.log('✅ Coach profile loaded:', coach.value?.firstName, coach.value?.lastName)
       } else {
+        // No coach profile yet (first login / onboarding)
         console.log('ℹ️ No coach profile found for user:', user.value.email)
         coach.value = null
       }
@@ -372,6 +373,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       setLoading(true)
       clearError()
+      // Proactively clear stale lead data from previous user
+      try {
+        const ls = useLeadStore()
+        ls.clearLeads()
+      } catch {}
 
       console.log('🔑 Attempting sign in for:', email)
       console.log('🔐 Password length:', password?.length || 0)
@@ -407,6 +413,35 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Sign in with an OAuth provider (currently only Google)
+  const signInWithProvider = async (provider: 'google') => {
+    try {
+      setLoading(true)
+      clearError()
+      console.log('🌐 Starting OAuth sign in with provider:', provider)
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth?provider=${provider}`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      })
+      if (oauthError) throw oauthError
+      // Redirection will occur automatically; further logic resumes after return
+    } catch (err) {
+      console.error('❌ OAuth sign in error:', err)
+      const errorMessage = err instanceof Error ? err.message : 'OAuth sign in failed'
+      setError(errorMessage)
+      throw new Error(errorMessage)
+    } finally {
+      // Supabase will redirect; keep loading true briefly for UX if still on page
+      setTimeout(() => setLoading(false), 1500)
+    }
+  }
+
   // Sign up new coach
   const signUp = async (
     email: string,
@@ -437,10 +472,10 @@ export const useAuthStore = defineStore('auth', () => {
         throw signUpError
       }
 
-      console.log('✅ Auth user created, coach profile will be created later via registration form')
+      console.log('✅ Auth user created; coach profile will be completed during onboarding flow')
 
       // Note: We don't create the coach profile here anymore
-      // The user will be redirected to CoachRegistration to complete their profile
+      // The user will be redirected to onboarding (/coach/onboarding) to complete their profile
 
       return { user: data.user, session: data.session }
     } catch (err) {
@@ -482,6 +517,11 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       session.value = null
       coach.value = null
+      // Clear dependent stores (leads etc.)
+      try {
+        const ls = useLeadStore()
+        ls.clearLeads()
+      } catch {}
 
       console.log('✅ Sign out completed (local state cleared)')
 
@@ -489,6 +529,9 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         localStorage.removeItem('supabase.auth.token')
         localStorage.removeItem('coachiles-auth-token')
+        // Clear notification related keys to avoid cross-account leakage
+        localStorage.removeItem('coach_notifications_v1')
+        localStorage.removeItem('coach_known_unlocked_leads_v1')
         sessionStorage.clear()
       } catch (storageError) {
         console.warn('⚠️ Could not clear storage:', storageError)
@@ -656,6 +699,7 @@ export const useAuthStore = defineStore('auth', () => {
     signIn,
     signUp,
     signOut,
+    signInWithProvider,
     forceClearSession,
     resetPassword,
     updateCoachProfile,

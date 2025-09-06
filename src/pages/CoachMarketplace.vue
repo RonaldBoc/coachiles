@@ -77,7 +77,7 @@
                 v-model="serviceForm.title"
                 type="text"
                 placeholder="Ex: Coaching personnalisé, Préparation physique..."
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900"
                 required
               />
             </div>
@@ -99,15 +99,29 @@
                     v-model.number="serviceForm.soloPrice"
                     type="number"
                     placeholder="Prix en €"
-                    class="w-32 px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                    class="w-32 px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900 no-spinner"
                   />
-                  <select
-                    v-model="serviceForm.soloPriceUnit"
-                    class="ml-2 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-                  >
-                    <option value="per_session">€/ séance</option>
-                    <option value="per_hour">€/ heure</option>
-                  </select>
+                  <span class="relative inline-flex ml-2">
+                    <select
+                      v-model="serviceForm.soloPriceUnit"
+                      class="dark:text-gray-900 pr-6 pl-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white appearance-none no-native-arrow"
+                    >
+                      <option value="per_session">€/ séance</option>
+                      <option value="per_hour">€/ heure</option>
+                    </select>
+                    <svg
+                      class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.957a.75.75 0 111.08 1.04l-4.24 4.52a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </span>
                 </div>
 
                 <label class="flex items-center">
@@ -123,15 +137,29 @@
                     v-model.number="serviceForm.groupPrice"
                     type="number"
                     placeholder="Prix en €"
-                    class="w-32 px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                    class="w-32 px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900 no-spinner"
                   />
-                  <select
-                    v-model="serviceForm.groupPriceUnit"
-                    class="ml-2 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-                  >
-                    <option value="per_session">€/ séance</option>
-                    <option value="per_hour">€/ heure</option>
-                  </select>
+                  <span class="relative inline-flex ml-2">
+                    <select
+                      v-model="serviceForm.groupPriceUnit"
+                      class="dark:text-gray-900 pr-6 pl-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white appearance-none no-native-arrow"
+                    >
+                      <option value="per_session">€/ séance</option>
+                      <option value="per_hour">€/ heure</option>
+                    </select>
+                    <svg
+                      class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.957a.75.75 0 111.08 1.04l-4.24 4.52a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </span>
                 </div>
               </div>
             </div>
@@ -146,7 +174,7 @@
                       v-model="specialtySearch"
                       type="text"
                       placeholder="Rechercher / choisir une spécialité..."
-                      class="w-full rounded-md border text-sm pr-8 px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      class="w-full rounded-md border text-sm pr-8 px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900"
                       :class="[
                         serviceForm.category && !isValidCategory
                           ? 'border-red-300 focus:border-red-400 focus:ring-red-500'
@@ -237,7 +265,7 @@
                 v-model="serviceForm.description"
                 rows="3"
                 placeholder="Décrivez votre service, les objectifs, le matériel inclus..."
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900"
               ></textarea>
             </div>
 
@@ -248,7 +276,7 @@
               >
               <select
                 v-model.number="serviceForm.duration"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900"
                 required
               >
                 <option
@@ -336,7 +364,7 @@
                   v-model="serviceForm.freeTrialModalities"
                   rows="2"
                   placeholder="Ex: Séance de 45min pour évaluer vos besoins..."
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900"
                 ></textarea>
               </div>
             </div>
@@ -348,7 +376,7 @@
               >
               <select
                 v-model="serviceForm.cancellationPolicy"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900"
                 required
               >
                 <option v-for="policy in CANCELLATION_POLICIES" :key="policy" :value="policy">
@@ -385,21 +413,21 @@
               <div class="flex flex-wrap gap-2 mb-2">
                 <button
                   type="button"
-                  class="text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                  class="text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50 dark:text-gray-900"
                   @click="selectedDays = [...weekDays]"
                 >
                   Tous les jours
                 </button>
                 <button
                   type="button"
-                  class="text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                  class="dark:text-gray-900 text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
                   @click="selectedDays = weekDays.filter((d) => d === 'Samedi' || d === 'Dimanche')"
                 >
                   Week-end
                 </button>
                 <button
                   type="button"
-                  class="text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                  class="dark:text-gray-900 text-xs px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50"
                   @click="selectedDays = []"
                 >
                   Effacer
@@ -915,3 +943,29 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', updateViewport)
 })
 </script>
+<style>
+/* Remove number input spinners (Chrome, Safari, Edge) */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+.no-spinner[type='number'] {
+  -moz-appearance: textfield;
+}
+/* Hide native select arrow */
+.no-native-arrow {
+  background-image: none !important;
+  padding-right: 1.5rem; /* ensure space for custom arrow */
+}
+/* Safari & older browsers override */
+.no-native-arrow::-ms-expand {
+  display: none;
+}
+select.no-native-arrow {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+</style>

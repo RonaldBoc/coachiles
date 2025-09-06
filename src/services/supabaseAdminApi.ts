@@ -38,6 +38,7 @@ export type CoachSubscriptionSummary = {
   current_period_end?: string | null
   subscription_status?: string | null
   auto_renew?: boolean | null
+  max_leads?: number | null
 }
 export type PaymentRow = {
   id: string
@@ -125,6 +126,21 @@ export const AdminApi = {
     } catch {
       this._superadminCache = false
       return false
+    }
+  },
+  async setCoachMaxLeads(coachId: string, maxLeads: number): Promise<{ error?: string }> {
+    try {
+      // Upsert into override table (must exist in schema). If not, attempt direct update on subscriptions for active row.
+      const { error } = await supabase
+        .from('coach_subscription_overrides')
+        .upsert(
+          { coach_id: coachId, max_leads: maxLeads, updated_at: new Date().toISOString() },
+          { onConflict: 'coach_id' },
+        )
+      if (error) throw error
+      return {}
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Failed to update max leads' }
     }
   },
   async listCoaches(): Promise<{ data: AdminCoach[]; error?: string }> {
@@ -310,7 +326,7 @@ export const AdminApi = {
       const { data, error } = await supabase
         .from('coaches_current_subscription')
         .select(
-          'id, subscription_type, plan_name, current_period_start, current_period_end, subscription_status, auto_renew',
+          'id, subscription_type, plan_name, current_period_start, current_period_end, subscription_status, auto_renew, max_leads',
         )
         .limit(2000)
       if (error) throw error

@@ -160,6 +160,61 @@
             </div>
           </div>
 
+          <!-- Locked Lead Modal -->
+          <transition
+            enter-active-class="transition ease-out duration-150"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition ease-in duration-100"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+          >
+            <div
+              v-if="showLockedModal"
+              class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+            >
+              <div
+                class="w-full max-w-sm rounded-lg bg-white shadow-lg border border-gray-200 p-5 relative"
+                role="dialog"
+                aria-modal="true"
+              >
+                <button
+                  @click="closeLockedModal"
+                  class="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                  aria-label="Fermer"
+                >
+                  ✕
+                </button>
+                <h3 class="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <span
+                    class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-orange-600 text-xs font-bold"
+                    >🔒</span
+                  >
+                  Lead verrouillé
+                </h3>
+                <p class="text-xs text-gray-600 leading-relaxed mb-4">
+                  Ce lead est <strong>verrouillé</strong> car vous avez atteint la limite de l'offre
+                  gratuite. Passez à l'abonnement Premium pour le débloquer et voir tous les
+                  nouveaux leads.
+                </p>
+                <div class="flex justify-end gap-2">
+                  <button
+                    @click="closeLockedModal"
+                    class="px-3 py-1.5 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  >
+                    Plus tard
+                  </button>
+                  <button
+                    @click="goToSubscriptionFromModal"
+                    class="px-3 py-1.5 text-xs rounded bg-gradient-to-r from-orange-500 to-blue-600 text-white font-medium hover:opacity-90"
+                  >
+                    Voir les offres
+                  </button>
+                </div>
+              </div>
+            </div>
+          </transition>
+
           <!-- Profile Dropdown -->
           <Menu as="div" class="relative">
             <MenuButton
@@ -391,6 +446,7 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/vue/24/outline'
 import { AdminApi } from '@/services/supabaseAdminApi'
+import { computeUnlockedLeadIds } from '@/utils/leadUnlocking'
 import { useAuthStore } from '@/stores/auth'
 import { useLeadStore } from '@/stores/leads'
 
@@ -407,7 +463,40 @@ const isSuperadmin = ref(false)
 
 // Computed
 const coach = computed(() => authStore.coach)
-const newProposalsCount = computed(() => leadStore.newLeadsCount)
+// Detect server-side locking (masked view adds is_locked)
+interface LeadLike {
+  id: string
+  coach_id?: string | null
+  status?: string | null
+  is_locked?: boolean | null
+  created_at?: string
+  client_name?: string | null
+}
+const serverLockingActive = computed(() =>
+  leadStore.leads.some((l: LeadLike) => l.is_locked !== undefined),
+)
+
+const newProposalsCount = computed(() => {
+  const cid = coach.value?.id
+  if (!cid) return 0
+  const myLeads = leadStore.leads.filter((l: LeadLike) => l.coach_id === cid)
+  if (serverLockingActive.value) {
+    return myLeads.filter((l: LeadLike) => l.status === 'new' && l.is_locked === false).length
+  }
+  const unlocked = computeUnlockedLeadIds(
+    myLeads as Array<{
+      id: string
+      created_at?: string
+      client_email?: string | null
+      is_hidden?: boolean | null
+      do_not_contact?: boolean | null
+      is_completed?: boolean | null
+      current_step?: number | null
+    }>,
+    coach.value?.subscriptionStatus,
+  )
+  return myLeads.filter((l) => l.status === 'new' && unlocked.has(l.id)).length
+})
 // Notifications logic
 interface NotificationItem {
   id: string
@@ -416,16 +505,21 @@ interface NotificationItem {
   message: string
   createdAt: Date
   read: boolean
+  locked?: boolean // true if lead currently locked for coach subscription
 }
 
 const notifications = ref<NotificationItem[]>([])
 const showNotifications = ref(false)
-const previousLeadIds = ref<Set<string>>(new Set())
+// Locked modal state
+const showLockedModal = ref(false)
+const lockedLeadId = ref<string | null>(null)
+// Track previously unlocked lead IDs to avoid duplicate notifications
+const previousUnlockedLeadIds = ref<Set<string>>(new Set())
 const notificationsContainer = ref<HTMLElement | null>(null)
 
 // Persistence keys
 const LS_NOTIFS_KEY = 'coach_notifications_v1'
-const LS_KNOWN_LEADS_KEY = 'coach_known_leads_v1'
+const LS_KNOWN_LEADS_KEY = 'coach_known_unlocked_leads_v1'
 
 const saveNotifications = () => {
   try {
@@ -438,7 +532,10 @@ const saveNotifications = () => {
 
 const saveKnownLeadIds = () => {
   try {
-    localStorage.setItem(LS_KNOWN_LEADS_KEY, JSON.stringify(Array.from(previousLeadIds.value)))
+    localStorage.setItem(
+      LS_KNOWN_LEADS_KEY,
+      JSON.stringify(Array.from(previousUnlockedLeadIds.value)),
+    )
   } catch (e) {
     console.warn('Failed to persist known lead IDs', e)
   }
@@ -460,7 +557,7 @@ const loadFromStorage = () => {
     }
     const storedIds = localStorage.getItem(LS_KNOWN_LEADS_KEY)
     if (storedIds) {
-      previousLeadIds.value = new Set<string>(JSON.parse(storedIds))
+      previousUnlockedLeadIds.value = new Set<string>(JSON.parse(storedIds))
     }
   } catch (e) {
     console.warn('Failed to load notifications from storage', e)
@@ -488,6 +585,29 @@ const markAllRead = () => {
   saveNotifications()
 }
 
+// Reactive unlocked lead IDs (kept in sync with store + subscription)
+const unlockedLeadIds = computed<Set<string>>(() => {
+  const cid = coach.value?.id
+  if (!cid) return new Set()
+  const myLeads = leadStore.leads.filter((l: LeadLike) => l.coach_id === cid)
+  if (serverLockingActive.value) {
+    return new Set(myLeads.filter((l: LeadLike) => l.is_locked === false).map((l) => l.id))
+  }
+  return computeUnlockedLeadIds(
+    myLeads as Array<{
+      id: string
+      created_at?: string
+      client_email?: string | null
+      is_hidden?: boolean | null
+      do_not_contact?: boolean | null
+      is_completed?: boolean | null
+      current_step?: number | null
+    }>,
+    coach.value?.subscriptionStatus,
+  )
+})
+
+// All notifications (locked + unlocked); show last 5
 const recentNotifications = computed(() =>
   [...notifications.value]
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -515,8 +635,23 @@ const goToNotification = (n: NotificationItem) => {
   n.read = true
   showNotifications.value = false
   if (n.type === 'lead:new' && n.leadId) {
+    if (n.locked || !unlockedLeadIds.value.has(n.leadId)) {
+      // ensure latest locked status
+      lockedLeadId.value = n.leadId
+      showLockedModal.value = true
+      return
+    }
     router.push({ path: '/coach/proposals', query: { leadId: n.leadId } })
   }
+}
+
+const closeLockedModal = () => {
+  showLockedModal.value = false
+  lockedLeadId.value = null
+}
+const goToSubscriptionFromModal = () => {
+  closeLockedModal()
+  router.push('/coach/abonnement')
 }
 
 // Outside click handler
@@ -529,18 +664,24 @@ const handleClickOutside = (e: MouseEvent) => {
   }
 }
 
+// Helper: compute unlocked lead IDs replicating logic from CoachProposals (free quota 2 distinct emails)
+// Local unlock calculation removed (centralized util used)
+
 onMounted(() => {
   AdminApi.isSuperadmin()
     .then((ok) => (isSuperadmin.value = !!ok))
     .catch(() => {})
   loadFromStorage()
-  // If we have leads already and no known IDs persisted, seed them (without generating unread spam)
-  if (previousLeadIds.value.size === 0 && leadStore.leads.length) {
-    leadStore.leads.forEach((l) => previousLeadIds.value.add(l.id))
+  // Seed unlocked set & initial notifications snapshot (read) if empty
+  if (previousUnlockedLeadIds.value.size === 0 && leadStore.leads.length) {
+    previousUnlockedLeadIds.value = new Set(unlockedLeadIds.value)
     saveKnownLeadIds()
     if (notifications.value.length === 0) {
-      const snapshot = [...leadStore.leads]
-        .filter((l) => l.status === 'new')
+      // Initial snapshot limited to unlocked new leads
+      const cid = coach.value?.id
+      const myLeads = cid ? leadStore.leads.filter((l) => l.coach_id === cid) : []
+      const snapshot = myLeads
+        .filter((l) => unlockedLeadIds.value.has(l.id) && l.status === 'new')
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 5)
       snapshot.forEach((l) =>
@@ -570,7 +711,7 @@ watch(
     if (!coachId) return
     try {
       if (leadStore.leads.length === 0) {
-        await leadStore.fetchLeads(coachId)
+        await leadStore.fetchLeads(coachId, { page: 1, limit: 50 })
       }
     } catch (e) {
       console.warn('Failed to fetch leads for header badge', e)
@@ -579,24 +720,73 @@ watch(
   { immediate: true },
 )
 
+// If coach identity changes, reset previously unlocked IDs and notifications to avoid leakage
+watch(
+  () => coach.value?.id,
+  (id, prev) => {
+    if (id && prev && id !== prev) {
+      previousUnlockedLeadIds.value = new Set()
+      notifications.value = []
+      saveNotifications()
+      saveKnownLeadIds()
+    }
+  },
+)
+
 // Watch for new leads to create notifications
 watch(
-  () => leadStore.leads,
-  (leads) => {
-    const currentIds = new Set<string>()
-    leads.forEach((l) => {
-      currentIds.add(l.id)
-      if (!previousLeadIds.value.has(l.id) && l.status === 'new') {
+  () => [leadStore.leads, coach.value?.subscriptionStatus, coach.value?.id],
+  () => {
+    const cid = coach.value?.id
+    if (!cid) return
+    const unlocked = unlockedLeadIds.value
+    const myLeads = leadStore.leads.filter((l) => l.coach_id === cid)
+    const existingLeadNotifIds = new Set(
+      notifications.value.filter((n) => n.leadId).map((n) => n.leadId as string),
+    )
+    myLeads.forEach((l: LeadLike) => {
+      if (l.status === 'new' && !existingLeadNotifIds.has(l.id)) {
+        const isUnlocked = serverLockingActive.value ? l.is_locked === false : unlocked.has(l.id)
         addNotification({
           type: 'lead:new',
           leadId: l.id,
-          message: `Nouveau lead: <strong>${l.client_name || 'Client'}</strong>`,
+          message: isUnlocked
+            ? `Nouveau lead: <strong>${l.client_name || 'Client'}</strong>`
+            : `🔒 Lead verrouillé: <strong>Débloquez pour voir</strong>`,
           createdAt: new Date(l.created_at || Date.now()),
         })
+        const last = notifications.value[notifications.value.length - 1]
+        if (last && last.leadId === l.id) last.locked = !isUnlocked
       }
     })
-    previousLeadIds.value = currentIds
+    previousUnlockedLeadIds.value = new Set(unlocked)
     saveKnownLeadIds()
+  },
+  { deep: true },
+)
+
+// React to changes in unlocked set to update notification messages & locked flags
+watch(
+  () => unlockedLeadIds.value,
+  (set) => {
+    let changed = false
+    notifications.value.forEach((n) => {
+      if (!n.leadId || n.type !== 'lead:new') return
+      const isUnlockedNow = set.has(n.leadId)
+      if (isUnlockedNow && n.locked) {
+        // Become unlocked → update message
+        const lead = leadStore.leads.find((l) => l.id === n.leadId)
+        n.message = `Nouveau lead: <strong>${lead?.client_name || 'Client'}</strong>`
+        n.locked = false
+        changed = true
+      } else if (!isUnlockedNow && !n.locked) {
+        // Became locked (downgrade) → redact message
+        n.message = `🔒 Lead verrouillé: <strong>Débloquez pour voir</strong>`
+        n.locked = true
+        changed = true
+      }
+    })
+    if (changed) saveNotifications()
   },
   { deep: true },
 )

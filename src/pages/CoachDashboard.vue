@@ -45,7 +45,7 @@
           </div>
         </div>
         <!-- Quick Actions -->
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <button @click="goToProposals" class="quick-action-btn"><span>Propositions</span></button>
           <button @click="goToServices" class="quick-action-btn"><span>Services</span></button>
           <button @click="goToSubscription" class="quick-action-btn">
@@ -53,6 +53,15 @@
           </button>
           <button @click="goToSettings" class="quick-action-btn hidden sm:block">
             <span>Paramètres</span>
+          </button>
+          <button
+            @click="openPublicProfile"
+            :disabled="!coach?.id"
+            class="quick-action-btn"
+            :class="!coach?.id ? 'opacity-50 cursor-not-allowed' : ''"
+            aria-label="Ouvrir le profil public dans un nouvel onglet"
+          >
+            <span>👁️ Profil public</span>
           </button>
         </div>
       </div>
@@ -177,20 +186,23 @@
           <DashPanel title="Avis reçus" :loading="reviewsLoading">
             <template #default>
               <div class="space-y-4">
-                <div v-if="!reviewsLoading && !myReviews.length" class="text-sm text-gray-500">
+                <div
+                  v-if="!reviewsLoading && !myReviews.length"
+                  class="text-sm text-gray-500 dark:text-gray-900"
+                >
                   Aucun avis pour le moment.
                 </div>
                 <div v-for="r in myReviews" :key="r.id" class="border rounded p-3 bg-gray-50/50">
                   <div class="flex flex-wrap gap-2 justify-between items-start">
-                    <div class="text-sm font-medium">
+                    <div class="text-sm font-medium dark:text-gray-900">
                       {{ r.clientName }} • {{ r.rating }}★
                       <span
-                        class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600"
+                        class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:text-gray-900"
                         >{{ r.moderationStatus }}</span
                       >
                       <span
                         v-if="!r.isPublished"
-                        class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700"
+                        class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:text-gray-900"
                         >En attente</span
                       >
                     </div>
@@ -198,10 +210,12 @@
                       {{ new Date(r.createdAt).toLocaleDateString() }}
                     </div>
                   </div>
-                  <div class="mt-1 text-sm whitespace-pre-wrap">{{ r.comment || '—' }}</div>
+                  <div class="dark:text-gray-900 mt-1 text-sm whitespace-pre-wrap">
+                    {{ r.comment || '—' }}
+                  </div>
                   <div
                     v-if="r.coachResponse"
-                    class="mt-2 text-xs p-2 bg-blue-50 rounded border border-blue-100"
+                    class="mt-2 text-xs p-2 bg-blue-50 rounded border border-blue-100 dark:text-gray-900"
                   >
                     <div class="font-semibold mb-1">Votre réponse</div>
                     <div class="whitespace-pre-wrap">{{ r.coachResponse }}</div>
@@ -243,10 +257,16 @@
           <h3 class="text-sm font-semibold text-gray-800 mb-2">Support</h3>
           <p class="text-xs text-gray-600 mb-3">Besoin d'aide ou d'améliorer votre visibilité ?</p>
           <div class="flex flex-wrap gap-2 text-xs">
-            <button @click="goToFAQ" class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">
+            <button
+              @click="goToFAQ"
+              class="dark:text-gray-900 px-3 py-1 rounded bg-gray-100 hover:bg-gray-200"
+            >
               FAQ
             </button>
-            <button @click="goToContact" class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">
+            <button
+              @click="goToContact"
+              class="dark:text-gray-900 px-3 py-1 rounded bg-gray-100 hover:bg-gray-200"
+            >
               Contact
             </button>
           </div>
@@ -269,7 +289,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, defineComponent, h } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, defineComponent, h, watch } from 'vue'
 import type { PropType } from 'vue'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -324,7 +344,67 @@ const completionReady = ref(false)
 const coach = computed(() => authStore.coach)
 const activeServicesCount = computed(() => services.value.length)
 const newLeadsCount = computed(() => leadStore.newLeadsCount)
-const recentLeads = computed(() => leadStore.leads.slice(0, 5))
+// Recent leads (up to 6) using SAME unlocking logic as CoachProposals.vue
+const recentLeads = computed(() => {
+  const cid = coach.value?.id
+  if (!cid) return []
+
+  // 1. Filter to this coach only
+  const coachLeads = leadStore.leads.filter((l) => l.coach_id === cid)
+
+  // 2. Base visibility filter (same as proposals page)
+  const visibleLeads = coachLeads.filter(
+    (l) =>
+      !l.is_hidden &&
+      !l.do_not_contact &&
+      (l.is_completed || (typeof l.current_step === 'number' && l.current_step >= 3)),
+  )
+
+  // Detect server-side locking support
+  const serverLockingActive = visibleLeads.some((l) => l.is_locked !== undefined)
+
+  if (serverLockingActive) {
+    // Only show fully unlocked leads (is_locked === false). Locked ones are excluded entirely.
+    return visibleLeads
+      .filter((l) => l.is_locked === false)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 6)
+  }
+
+  // 3. Subscription gating (treat active/trial as unlimited, rest as free quota)
+  const status = coach.value?.subscriptionStatus
+  const unlimited = status === 'active' || status === 'trial'
+  if (unlimited) {
+    return visibleLeads
+      .slice()
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 6)
+  }
+
+  // 4. Free unlocking algorithm (2 distinct email buckets, oldest-first selection) fallback when no server locking
+  const maxDistinct = 2
+  const emailBuckets = new Set<string>()
+  const unlockedIds = new Set<string>()
+  const chronological = visibleLeads
+    .slice()
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  for (const lead of chronological) {
+    const emailRaw = (lead.client_email || '').trim().toLowerCase()
+    const bucket = emailRaw || '__no_email__'
+    if (emailBuckets.has(bucket)) {
+      unlockedIds.add(lead.id)
+      continue
+    }
+    if (emailBuckets.size < maxDistinct) {
+      emailBuckets.add(bucket)
+      unlockedIds.add(lead.id)
+    }
+  }
+  return visibleLeads
+    .filter((l) => unlockedIds.has(l.id))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 6)
+})
 
 const subscriptionBanner = computed(() => {
   const status = coach.value?.subscriptionStatus
@@ -456,7 +536,8 @@ const ensureLeadsLoaded = async () => {
   if (!coach.value?.id || leadStore.leads.length) return
   loadingLeads.value = true
   try {
-    await leadStore.fetchLeads(coach.value.id, { page: 1, limit: 10 })
+    // Fetch a slightly larger window so we can compute unlocking + show 6
+    await leadStore.fetchLeads(coach.value.id, { page: 1, limit: 30 })
   } catch {
     /* silent */
   } finally {
@@ -480,6 +561,12 @@ const goToProposals = () => router.push('/coach/proposals')
 const goToServices = () => router.push('/coach/services')
 const goToSubscription = () => router.push('/coach/abonnement')
 const goToSettings = () => router.push('/coach/account')
+const openPublicProfile = () => {
+  const id = coach.value?.id
+  if (!id) return
+  // Open in new tab to allow viewing as client without losing dashboard context
+  window.open(`/coach/${id}`, '_blank', 'noopener')
+}
 const goToFAQ = () => router.push('/faq')
 const goToContact = () => router.push('/contact')
 const scrollToReviews = () => {
@@ -675,11 +762,32 @@ const DashPanel = defineComponent({
 })
 
 onMounted(async () => {
+  // Always clear stale leads on first mount if they belong to a different coach (edge case after account switch without full reload)
+  if (coach.value?.id) {
+    const firstLead = leadStore.leads[0]
+    if (firstLead && firstLead.coach_id && firstLead.coach_id !== coach.value.id) {
+      leadStore.clearLeads()
+    }
+  } else {
+    // If no coach yet, wait a tick then proceed (auth initialization may still be in flight)
+    await new Promise((r) => setTimeout(r, 0))
+  }
   await ensureLeadsLoaded()
   await fetchServices()
   await fetchLeadTrend()
   await loadMyReviews()
 })
+
+// If coach identity changes (edge-case: switching accounts), reset leads to avoid leakage
+watch(
+  () => coach.value?.id,
+  async (id: string | undefined | null, prev: string | undefined | null) => {
+    if (id && id !== prev) {
+      leadStore.clearLeads()
+      await ensureLeadsLoaded()
+    }
+  },
+)
 
 onBeforeUnmount(() => {
   if (completionDelayTimer) clearTimeout(completionDelayTimer)

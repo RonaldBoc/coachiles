@@ -70,6 +70,14 @@ export interface Lead {
   completed_steps: readonly number[]
   is_completed: boolean
   lead_score?: number
+  // Provenance (present when this lead is a duplicated copy of another lead)
+  original_coach_id?: string
+  original_lead_id?: string
+  // Server-side locking (masked view)
+  is_locked?: boolean | null
+  distinct_email_rank?: number | null
+  subscription_type?: string | null
+  max_leads?: number | null
 }
 
 export interface LeadMetrics {

@@ -33,7 +33,7 @@
               <div class="flex-1">
                 <h3 class="text-sm font-medium text-yellow-800">Compte Gratuit - Accès Limité</h3>
                 <p class="mt-1 text-xs sm:text-sm text-yellow-700 leading-relaxed">
-                  Vous avez débloqué {{ unlockedLeadsCount }} sur {{ maxUnlockedLeads }} leads
+                  Vous avez utilisé {{ unlockedLeadsCount }} sur {{ maxUnlockedLeads }} leads
                   gratuits. Les autres leads sont masqués jusqu'à ce que vous passiez à un compte
                   premium.
                 </p>
@@ -61,14 +61,14 @@
                   v-model="searchQuery"
                   type="text"
                   placeholder="Rechercher par objectifs, lieu..."
-                  class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="dark:text-gray-900 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <!-- Status Filter -->
               <div class="sm:w-48">
                 <select
                   v-model="selectedStatus"
-                  class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="dark:text-gray-900 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                     {{ option.label }} ({{ getStatusCount(option.value) }})
@@ -204,6 +204,60 @@
               </table>
             </div>
           </div>
+          <!-- Locked Lead Modal -->
+          <transition
+            enter-active-class="transition ease-out duration-150"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition ease-in duration-100"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+          >
+            <div
+              v-if="showLockedModal"
+              class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+            >
+              <div
+                class="w-full max-w-sm rounded-lg bg-white shadow-lg border border-gray-200 p-5 relative"
+                role="dialog"
+                aria-modal="true"
+              >
+                <button
+                  @click="closeLockedModal"
+                  class="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                  aria-label="Fermer"
+                >
+                  ✕
+                </button>
+                <h3 class="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <span
+                    class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-orange-600 text-xs font-bold"
+                    >🔒</span
+                  >
+                  Lead verrouillé
+                </h3>
+                <p class="text-xs text-gray-600 leading-relaxed mb-4">
+                  Ce lead est <strong>verrouillé</strong> car vous avez atteint la limite de l'offre
+                  gratuite. Passez à l'abonnement Premium pour le débloquer et voir tous les
+                  nouveaux leads.
+                </p>
+                <div class="flex justify-end gap-2">
+                  <button
+                    @click="closeLockedModal"
+                    class="px-3 py-1.5 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  >
+                    Plus tard
+                  </button>
+                  <button
+                    @click="goToSubscriptionFromModal"
+                    class="px-3 py-1.5 text-xs rounded bg-gradient-to-r from-orange-500 to-blue-600 text-white font-medium hover:opacity-90"
+                  >
+                    Voir les offres
+                  </button>
+                </div>
+              </div>
+            </div>
+          </transition>
           <!-- Revamped Lead Details Modal -->
           <div
             v-if="selectedLead"
@@ -348,7 +402,7 @@
                     <textarea
                       v-model="coachNoteDraft"
                       rows="3"
-                      class="w-full text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 resize-y"
+                      class="dark:text-gray-900 w-full text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 resize-y"
                       placeholder="Vos notes sur ce lead..."
                     />
                     <div class="mt-2 flex items-center gap-2">
@@ -434,35 +488,107 @@ const selectedStatus = ref('all')
 const searchQuery = ref('')
 const coachSubscriptionType = ref<string>('free') // Track actual subscription status
 const subscriptionLoaded = ref(false)
+// Locked modal state
+const showLockedModal = ref(false)
+const lockedLeadId = ref<string | null>(null)
 
-// Subscription limits (constants for free tier)
-const maxUnlockedLeads = 2 // free tier lead unlock limit
-const unlockedLeadsCount = computed(() => unlockedLeads.value.size)
+// Dynamic subscription limit populated at load time (defaults to 2 for free if not provided)
+const maxUnlockedLeads = ref<number>(2) // can be set to Infinity at runtime
 const isSubscriptionLimited = computed(() => coachSubscriptionType.value === 'free')
+
+// Internal unified computation producing both unlocked lead IDs and distinct emails used.
+const unlockedData = computed(() => {
+  const leadIds = new Set<string>()
+  const emailKeys = new Set<string>()
+
+  const visibleLeads = leads.value.filter(
+    (l) =>
+      !l.is_hidden &&
+      !l.do_not_contact &&
+      // Only consider leads whose form reached at least step 3 (or completed)
+      (l.is_completed || (typeof l.current_step === 'number' && l.current_step >= 3)),
+  )
+  if (coachSubscriptionType.value !== 'free') {
+    // Premium: everything unlocked
+    visibleLeads.forEach((l) => {
+      leadIds.add(l.id)
+      if (l.client_email) emailKeys.add(l.client_email.trim().toLowerCase())
+    })
+    return { leadIds, emailKeys }
+  }
+
+  // Free: unlock in chronological order by first-seen distinct email (oldest first)
+  const sorted = [...visibleLeads].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  )
+  for (const lead of sorted) {
+    const rawEmail = (lead.client_email || '').trim().toLowerCase()
+    const hasEmail = rawEmail.length > 0
+    if (hasEmail) {
+      if (emailKeys.has(rawEmail)) {
+        // Already unlocked email bucket → always unlock this additional lead
+        leadIds.add(lead.id)
+      } else if (emailKeys.size < maxUnlockedLeads.value) {
+        // New distinct email within quota → unlock & record
+        emailKeys.add(rawEmail)
+        leadIds.add(lead.id)
+      } else {
+        // New distinct email beyond quota → keep locked (do nothing)
+      }
+    } else {
+      // Missing email edge-case: treat all missing emails as a single bucket 'no-email'
+      const placeholder = '__no_email__'
+      if (emailKeys.has(placeholder)) {
+        leadIds.add(lead.id)
+      } else if (emailKeys.size < maxUnlockedLeads.value) {
+        emailKeys.add(placeholder)
+        leadIds.add(lead.id)
+      }
+    }
+  }
+  return { leadIds, emailKeys }
+})
+
+// Detect if backend masking (is_locked) is available
+const serverLockingActive = computed(() => leads.value.some((l) => l.is_locked !== undefined))
+// Set of unlocked lead IDs (client fallback only if server locking not active)
+const unlockedLeads = computed(() =>
+  serverLockingActive.value ? new Set<string>() : unlockedData.value.leadIds,
+)
+// Distinct unlocked count: server mode counts ranks <= quota; fallback uses previous logic
+const unlockedLeadsCount = computed(() => {
+  if (serverLockingActive.value) {
+    const unlockedRanks = new Set<number>()
+    let maxRankSeen = 0
+    leads.value.forEach((l) => {
+      if (typeof l.distinct_email_rank === 'number') {
+        if (l.distinct_email_rank > maxRankSeen) maxRankSeen = l.distinct_email_rank
+        if (l.is_locked === false) unlockedRanks.add(l.distinct_email_rank)
+      }
+    })
+    // If quota has been exceeded (there are locked leads), maxRankSeen will be > unlockedRanks.size.
+    // In that case we report the quota as fully used (min(maxUnlockedLeads, maxRankSeen)).
+    if (maxRankSeen > unlockedRanks.size && unlockedRanks.size < maxUnlockedLeads.value) {
+      return Math.min(maxUnlockedLeads.value as number, maxRankSeen)
+    }
+    return unlockedRanks.size
+  }
+  return unlockedData.value.emailKeys.size
+})
 
 // Computed
 const currentCoach = computed(() => authStore.coach)
 
-// Reactive unlocked leads based on subscription
-const unlockedLeads = computed(() => {
-  const unlockedSet = new Set<string>()
-  // consider only non-hidden, non do_not_contact leads
-  const visibleLeads = leads.value.filter((l) => !l.is_hidden && !l.do_not_contact)
-  if (coachSubscriptionType.value !== 'free') {
-    visibleLeads.forEach((lead) => unlockedSet.add(lead.id))
-  } else {
-    const sortedLeads = [...visibleLeads].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-    )
-    sortedLeads.slice(0, 2).forEach((lead) => unlockedSet.add(lead.id))
-  }
-
-  return unlockedSet
-})
+// (Old unlockedLeads logic replaced by unlockedData above)
 
 // Filtered leads
 const filteredLeads = computed(() => {
-  let filtered = leads.value.filter((l) => !l.is_hidden && !l.do_not_contact)
+  let filtered = leads.value.filter(
+    (l) =>
+      !l.is_hidden &&
+      !l.do_not_contact &&
+      (l.is_completed || (typeof l.current_step === 'number' && l.current_step >= 3)),
+  )
 
   // Filter by status
   if (selectedStatus.value !== 'all') {
@@ -488,29 +614,27 @@ const filteredLeads = computed(() => {
 
 // Helper functions
 const canAccessLeadDetails = (lead: Lead): boolean => {
+  // Server authoritative locking overrides client logic
+  if (lead.is_locked === true) return false
+  if (lead.is_locked === false) return true
+  // Fallback (pre-masking) logic
   if (coachSubscriptionType.value !== 'free') return true
   return unlockedLeads.value.has(lead.id)
 }
 
 const getLeadName = (lead: Lead): string => {
-  if (canAccessLeadDetails(lead)) {
-    return lead.client_name || 'Client inconnu'
-  }
-  return 'Client masqué'
+  if (!canAccessLeadDetails(lead)) return 'Client masqué'
+  return lead.client_name || 'Client inconnu'
 }
 
 const getLeadEmail = (lead: Lead): string => {
-  if (canAccessLeadDetails(lead)) {
-    return lead.client_email || ''
-  }
-  return '***@***.***'
+  if (!canAccessLeadDetails(lead)) return '***@***.***'
+  return lead.client_email || ''
 }
 
 const getLeadGoals = (lead: Lead): string => {
-  if (canAccessLeadDetails(lead)) {
-    return lead.goals || '-'
-  }
-  return 'Objectifs masqués (Premium requis)'
+  if (!canAccessLeadDetails(lead)) return 'Objectifs masqués (Premium requis)'
+  return lead.goals || '-'
 }
 
 // Return array of service titles (chosen services) for a lead – empty if none or not accessible
@@ -565,8 +689,20 @@ const statusOptions = [
   { value: 'closed', label: 'Fermés' },
 ]
 const getStatusCount = (status: string) => {
-  if (status === 'all') return leads.value.filter((l) => !l.is_hidden && !l.do_not_contact).length
-  return leads.value.filter((l) => l.status === status && !l.is_hidden && !l.do_not_contact).length
+  if (status === 'all')
+    return leads.value.filter(
+      (l) =>
+        !l.is_hidden &&
+        !l.do_not_contact &&
+        (l.is_completed || (typeof l.current_step === 'number' && l.current_step >= 3)),
+    ).length
+  return leads.value.filter(
+    (l) =>
+      l.status === status &&
+      !l.is_hidden &&
+      !l.do_not_contact &&
+      (l.is_completed || (typeof l.current_step === 'number' && l.current_step >= 3)),
+  ).length
 }
 
 // Formatting helpers for extended details
@@ -905,6 +1041,7 @@ const loadLeads = async () => {
     // Update reactive subscription status
     coachSubscriptionType.value = subscriptionInfo.subscriptionType
     leads.value = data
+    maxUnlockedLeads.value = subscriptionInfo.maxUnlockedLeads
 
     console.log('✅ Page loaded with subscription status:', coachSubscriptionType.value)
     console.log('📈 Total leads loaded:', data.length)
@@ -917,9 +1054,9 @@ const loadLeads = async () => {
 }
 
 const viewLead = (lead: Lead) => {
-  // If lead is locked (not accessible), trigger upgrade instead of viewing details
   if (!canAccessLeadDetails(lead)) {
-    upgradeAccount()
+    lockedLeadId.value = lead.id
+    showLockedModal.value = true
     return
   }
 
@@ -997,6 +1134,15 @@ const saveCoachNote = async () => {
 const upgradeAccount = () => {
   // Navigate to subscription upgrade page
   console.log('Navigate to upgrade page')
+}
+
+const closeLockedModal = () => {
+  showLockedModal.value = false
+  lockedLeadId.value = null
+}
+const goToSubscriptionFromModal = () => {
+  closeLockedModal()
+  router.push('/coach/abonnement')
 }
 
 // Lifecycle

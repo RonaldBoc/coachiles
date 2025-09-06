@@ -43,7 +43,7 @@
               Vous souhaitez rejoindre Coachiles ou avez une question sur l'abonnement ?
             </p>
             <RouterLink
-              to="/coach/registration"
+              to="/coach/onboarding"
               class="inline-block bg-white text-orange-600 font-semibold px-5 py-2 rounded-full text-sm hover:shadow-md transition"
               >Devenir coach</RouterLink
             >

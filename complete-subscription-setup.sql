@@ -56,55 +56,18 @@ ON CONFLICT (plan_type) DO UPDATE SET
   limits = EXCLUDED.limits,
   updated_at = now();
 
--- Step 4: Create/Recreate the coaches_current_subscription view
-CREATE OR REPLACE VIEW coaches_current_subscription AS
-SELECT 
-  c.id,
-  c.email,
-  c.first_name,
-  c.last_name,
-  c.is_active AS coach_is_active,
-  
-  -- Get plan info from subscription_plans via plan_id
-  COALESCE(sp.plan_type, 'free') AS subscription_type,
-  COALESCE(sp.name, 'Free') AS plan_name,
-  sp.limits AS plan_limits,
-  sp.features AS plan_features,
-  sp.price AS plan_price,
-  
-  -- Subscription status
-  s.status AS subscription_status,
-  s.current_period_start,
-  s.current_period_end,
-  s.is_active AS subscription_is_active,
-  s.auto_renew,
-  s.payment_method,
-  s.last_payment_at,
-  s.next_payment_at,
-  
-  -- Computed fields
-  CASE
-    WHEN s.id IS NOT NULL 
-     AND s.is_active = true 
-     AND s.status = 'active' 
-     AND s.current_period_end > now() 
-    THEN true
-    ELSE false
-  END AS has_active_subscription,
-  
-  CASE
-    WHEN s.id IS NOT NULL 
-     AND s.is_active = true 
-     AND s.status = 'active' 
-     AND s.current_period_end > now() 
-    THEN COALESCE((sp.limits ->> 'max_leads')::integer, -1)
-    ELSE 2
-  END AS max_leads
+-- Step 4: Ensure override table exists (must be before view) and then (re)create view
+CREATE TABLE IF NOT EXISTS public.coach_subscription_overrides (
+  coach_id uuid PRIMARY KEY REFERENCES coaches(id) ON DELETE CASCADE,
+  max_leads integer NOT NULL DEFAULT -1,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.coach_subscription_overrides TO authenticated;
 
-FROM coaches c
-LEFT JOIN (
-  -- Get most recent active subscription per coach
-  SELECT DISTINCT ON (coach_id) 
+-- Step 5: Create/Recreate the coaches_current_subscription view
+CREATE OR REPLACE VIEW coaches_current_subscription AS
+WITH latest_sub AS (
+  SELECT DISTINCT ON (coach_id)
     coach_id,
     id,
     plan_id,
@@ -115,19 +78,84 @@ LEFT JOIN (
     auto_renew,
     payment_method,
     last_payment_at,
-    next_payment_at
-  FROM subscriptions 
+    next_payment_at,
+    created_at
+  FROM subscriptions
   WHERE is_active = true
   ORDER BY coach_id, created_at DESC
-) s ON c.id = s.coach_id
-LEFT JOIN subscription_plans sp ON s.plan_id = sp.id;
+), base AS (
+  SELECT
+    c.id,
+    c.email,
+    c.first_name,
+    c.last_name,
+    c.is_active AS coach_is_active,
+    COALESCE(sp.plan_type, 'free') AS subscription_type,
+    COALESCE(sp.name, 'Free') AS plan_name,
+    sp.limits AS plan_limits,
+    sp.features AS plan_features,
+    sp.price AS plan_price,
+    ls.status AS subscription_status,
+    ls.current_period_start,
+    ls.current_period_end,
+    ls.is_active AS subscription_is_active,
+    ls.auto_renew,
+    ls.payment_method,
+    ls.last_payment_at,
+    ls.next_payment_at,
+    CASE
+      WHEN ls.id IS NOT NULL
+       AND ls.is_active = true
+       AND ls.status = 'active'
+       AND ls.current_period_end > now()
+      THEN true
+      ELSE false
+    END AS has_active_subscription,
+    CASE
+      WHEN ls.id IS NOT NULL
+       AND ls.is_active = true
+       AND ls.status = 'active'
+       AND ls.current_period_end > now()
+      THEN COALESCE((sp.limits ->> 'max_leads')::integer, -1)
+      ELSE 2
+    END AS plan_max_leads
+  FROM coaches c
+  LEFT JOIN latest_sub ls ON c.id = ls.coach_id
+  LEFT JOIN subscription_plans sp ON ls.plan_id = sp.id
+), overrides AS (
+  SELECT coach_id, max_leads AS override_max_leads
+  FROM coach_subscription_overrides
+)
+SELECT
+  b.id,
+  b.email,
+  b.first_name,
+  b.last_name,
+  b.coach_is_active,
+  b.subscription_type,
+  b.plan_name,
+  b.plan_limits,
+  b.plan_features,
+  b.plan_price,
+  b.subscription_status,
+  b.current_period_start,
+  b.current_period_end,
+  b.subscription_is_active,
+  b.auto_renew,
+  b.payment_method,
+  b.last_payment_at,
+  b.next_payment_at,
+  b.has_active_subscription,
+  COALESCE(o.override_max_leads, b.plan_max_leads) AS max_leads
+FROM base b
+LEFT JOIN overrides o ON o.coach_id = b.id;
 
--- Step 5: Grant permissions
+-- Step 6: Grant permissions
 GRANT SELECT ON coaches_current_subscription TO authenticated;
 GRANT ALL ON subscription_plans TO authenticated;
 GRANT ALL ON subscriptions TO authenticated;
 
--- Step 6: Create the RPC functions (same as before)
+-- Step 7: Create the RPC functions (same as before)
 CREATE OR REPLACE FUNCTION create_coach_subscription(
   coach_id_param uuid,
   plan_type_param text DEFAULT 'premium'
@@ -331,13 +359,13 @@ EXCEPTION
 END;
 $$;
 
--- Step 7: Grant RPC permissions
+-- Step 8: Grant RPC permissions
 GRANT EXECUTE ON FUNCTION create_coach_subscription(uuid, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION cancel_coach_subscription(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION cancel_subscription_at_period_end(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION reactivate_subscription(uuid) TO authenticated;
 
--- Step 8: Test everything
+-- Step 9: Test everything
 SELECT 'Setup completed successfully! Testing view...' as status;
 SELECT count(*) as coach_count FROM coaches_current_subscription;
 SELECT 'Functions created successfully!' as function_status;

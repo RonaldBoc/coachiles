@@ -72,7 +72,7 @@
             <!-- Authenticated but not coach -->
             <template v-else-if="authStore.isAuthenticated && !authStore.isCoach">
               <button
-                @click="router.push('/coach/registration')"
+                @click="router.push('/coach/onboarding')"
                 class="bg-gradient-to-r from-orange-500 to-blue-600 text-white rounded-full font-bold hover:shadow-lg transition-all duration-300"
                 :class="isCondensedHeader ? 'px-4 py-2 text-sm' : 'px-6 py-3'"
               >
@@ -108,7 +108,12 @@
                 <img
                   :src="coach?.photo || '/default-avatar.png'"
                   :alt="`${coach?.firstName}`"
-                  class="w-20 h-20 rounded-full object-cover"
+                  class="w-20 h-20 rounded-full object-cover cursor-pointer transition-transform duration-200 hover:scale-[1.03]"
+                  @click="openImagePreview"
+                  :srcset="profilePhotoSrcSet"
+                  sizes="80px"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <!-- Certification badge (mobile) -->
                 <div v-if="isAdminCertified" class="absolute -top-2 -right-2">
@@ -192,7 +197,7 @@
           <!-- About / Profile Section -->
           <div class="bg-white rounded-2xl shadow-lg p-8">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">
-              À propos de {{ coach?.firstName }}
+              À propos du coach {{ coach?.firstName }}
               <template v-if="hasPremiumSubscription && coach?.lastName">
                 {{ coach?.lastName }}</template
               >
@@ -803,6 +808,10 @@
                     :alt="`${coach?.firstName}`"
                     class="w-32 h-32 rounded-full object-cover mb-4 cursor-pointer transition-transform duration-200 hover:scale-[1.03]"
                     @click="openImagePreview"
+                    :srcset="profilePhotoSrcSet"
+                    sizes="128px"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <!-- Certification badge (desktop) -->
                   <div v-if="isAdminCertified" class="absolute -top-2 -right-2">
@@ -1497,30 +1506,19 @@
         class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
         @click="closeImagePreview"
       >
-        <div class="relative max-w-3xl w-full" @click.stop>
-          <button
-            class="absolute -top-10 right-0 text-white/80 hover:text-white p-2"
-            @click="closeImagePreview"
-            aria-label="Fermer l'aperçu"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+        <div class="relative mx-auto w-[400px] h-[400px] max-w-full max-h-[80vh]">
           <img
-            :src="coach?.photo || '/default-avatar.png'"
+            :src="highResPhoto || coach?.photo || '/default-avatar.png'"
             :alt="`${coach?.firstName}`"
-            class="w-full h-auto rounded-2xl shadow-2xl object-contain max-h-[80vh]"
+            class="w-full h-full rounded-3xl shadow-2xl object-cover"
+            :srcset="profilePhotoSrcSet"
+            sizes="400px"
+            decoding="async"
           />
-          <p class="mt-3 text-center text-sm text-white/70 select-none">
-            Cliquer à l'extérieur pour fermer
-          </p>
         </div>
+        <p class="mt-3 text-center text-sm text-white/70 select-none">
+          Cliquer à l'extérieur pour fermer
+        </p>
       </div>
     </transition>
   </div>
@@ -2170,6 +2168,27 @@ function scrollToReviews() {
   el.focus({ preventScroll: true })
 }
 // New code ends here
+
+const profilePhotoSrcSet = computed(() => {
+  const url = coach.value?.photo
+  if (!url) return undefined
+  const m = url.match(/^(.*)_(thumb|profile|highres)\.(jpg|jpeg|png|webp)$/i)
+  if (!m) return undefined
+  const base = m[1]
+  const ext = m[3]
+  return `${base}_thumb.${ext} 150w, ${base}_profile.${ext} 400w, ${base}_highres.${ext} 900w`
+})
+const highResPhoto = computed(() => {
+  const url = coach.value?.photo
+  if (!url) return null
+  const m = url.match(/^(.*)_(thumb|profile|highres)\.(jpg|jpeg|png|webp)$/i)
+  if (m) {
+    const base = m[1]
+    const ext = m[3]
+    return `${base}_highres.${ext}`
+  }
+  return url
+})
 </script>
 
 <style scoped>

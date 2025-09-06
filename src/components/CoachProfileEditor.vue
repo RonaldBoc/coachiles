@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import { XMarkIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, ArrowUpTrayIcon, GlobeAltIcon } from '@heroicons/vue/24/outline'
 import { supabase } from '@/utils/supabase'
 import {
   LANGUAGE_OPTIONS,
@@ -153,7 +153,7 @@ const model = reactive({
   },
   contact: {
     email: props.initialData?.contact?.email || '',
-    phone: props.initialData?.contact?.phone || '',
+    phone: props.initialData?.contact?.phone || '', // will hold RAW digits only (no prefix) for UI
     website: props.initialData?.contact?.website || '',
     instagram: props.initialData?.contact?.instagram || '',
     facebook: props.initialData?.contact?.facebook || '',
@@ -197,6 +197,52 @@ const model = reactive({
   },
 })
 
+// Phone indicative selector (reuse onboarding logic)
+const phoneIndicatives = [
+  { code: 'mq', prefix: '+596', flag: '🇲🇶', label: 'Martinique' },
+  { code: 'gp', prefix: '+590', flag: '🇬🇵', label: 'Guadeloupe' },
+  { code: 'fr', prefix: '+33', flag: '🇫🇷', label: 'France' },
+  { code: 'gf', prefix: '+594', flag: '🇬🇫', label: 'Guyane' },
+]
+type PhoneIndicativeCode = (typeof phoneIndicatives)[number]['code']
+const phoneIndicative = ref<PhoneIndicativeCode>('mq')
+const showProfileIndicativeMenu = ref(false)
+const profilePhoneSelectorRef = ref<HTMLElement | null>(null)
+const profileOpenAbove = ref(false)
+const profileSelectedPhoneIndicative = computed(
+  () => phoneIndicatives.find((p) => p.code === phoneIndicative.value) || phoneIndicatives[0],
+)
+function toggleProfilePhoneMenu() {
+  showProfileIndicativeMenu.value = !showProfileIndicativeMenu.value
+  if (showProfileIndicativeMenu.value) {
+    const el = profilePhoneSelectorRef.value
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      const estimatedHeight = 240
+      profileOpenAbove.value = spaceBelow < estimatedHeight && spaceAbove > spaceBelow
+    }
+  }
+}
+function selectProfilePhoneIndicative(code: PhoneIndicativeCode) {
+  phoneIndicative.value = code
+  showProfileIndicativeMenu.value = false
+}
+function handleProfilePhoneRawInput(e: Event) {
+  const target = e.target as HTMLInputElement
+  const digits = target.value.replace(/\D+/g, '').slice(0, 10)
+  model.contact.phone = digits
+}
+function handleProfilePhoneClickOutside(e: MouseEvent) {
+  if (!showProfileIndicativeMenu.value) return
+  const el = profilePhoneSelectorRef.value
+  if (el && !el.contains(e.target as Node)) showProfileIndicativeMenu.value = false
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('click', handleProfilePhoneClickOutside)
+}
+
 // Managed arrays (chips style)
 const languagesList = ref<string[]>(
   props.initialData?.personal?.languages ? [...props.initialData.personal.languages] : [],
@@ -236,6 +282,8 @@ function removeLanguage(lang: string) {
 // Specialties add/remove
 function addSpecialty(spec: string) {
   if (!spec || model.activity.specialties.includes(spec)) return
+  // Limit to 4 specialties
+  if (model.activity.specialties.length >= 4) return
   model.activity.specialties.push(spec)
 }
 function removeSpecialty(spec: string) {
@@ -248,10 +296,21 @@ const specialtySearch = ref('')
 const filteredSpecialtyGroups = computed<SpecialtyGroup[]>(() => {
   const term = specialtySearch.value.trim().toLowerCase()
   if (!term) return SPECIALTY_OPTIONS
-  return SPECIALTY_OPTIONS.map((g) => ({
-    category: g.category,
-    specialties: g.specialties.filter((s) => s.toLowerCase().includes(term)),
-  })).filter((g) => g.specialties.length > 0 || g.category.toLowerCase().includes(term))
+  return (
+    SPECIALTY_OPTIONS.map((g) => {
+      const categoryMatches = g.category.toLowerCase().includes(term)
+      return {
+        category: g.category,
+        // If category name matches the term, include ALL its specialties.
+        // Otherwise only the specialties whose label includes the term.
+        specialties: categoryMatches
+          ? g.specialties.slice()
+          : g.specialties.filter((s) => s.toLowerCase().includes(term)),
+      }
+    })
+      // Keep group only if it now has at least one specialty (either via category match or specialty match)
+      .filter((g) => g.specialties.length > 0)
+  )
 })
 
 // Dropdown state & outside click handling
@@ -300,6 +359,7 @@ const hasSpecialtyMatches = computed(() =>
 import maleDefaultAvatar from '@/assets/avatars/default_male.svg'
 import femaleDefaultAvatar from '@/assets/avatars/default_female.svg'
 import { supabaseCoachApi } from '@/services/supabaseCoachApi'
+import { generateId } from '@/utils/id'
 
 const currentCoachId = ref<string | null>(props.initialCoachId || null)
 const avatarUrl = ref<string | null>(null)
@@ -376,7 +436,7 @@ function addDiplomaFromSelect() {
     selectedDiplomaOption.value = ''
     return
   }
-  model.activity.diplomas.push({ id: crypto.randomUUID(), title, status: 'pending' })
+  model.activity.diplomas.push({ id: generateId(), title, status: 'pending' })
   selectedDiplomaOption.value = ''
 }
 
@@ -435,7 +495,7 @@ async function uploadDiplomaProof(d: DiplomaEntry, file: File) {
 function addDiploma() {
   const title = model.activity.newDiplomaTitle.trim()
   if (!title) return
-  model.activity.diplomas.push({ id: crypto.randomUUID(), title, status: 'pending' })
+  model.activity.diplomas.push({ id: generateId(), title, status: 'pending' })
   model.activity.newDiplomaTitle = ''
 }
 function removeDiploma(id: string) {
@@ -472,8 +532,15 @@ async function save() {
     modalities: model.modalities,
   }
   // Sanitize phone (store null instead of empty string at top-level phone column)
-  const sanitizedPhone =
-    model.contact.phone && model.contact.phone.trim().length ? model.contact.phone.trim() : null
+  // Build international phone (prefix + raw) if raw present
+  let sanitizedPhone: string | null = null
+  if (model.contact.phone && model.contact.phone.trim().length) {
+    const raw = model.contact.phone.replace(/\D+/g, '')
+    const selected =
+      phoneIndicatives.find((p) => p.code === phoneIndicative.value) || phoneIndicatives[0]
+    const normalized = raw.replace(/^0+/, '')
+    sanitizedPhone = `${selected.prefix}${normalized}`
+  }
   // Persist (placeholder): update coaches table JSON columns or separate columns.
   // Determine update filter: RLS policy allows update when auth.jwt().email = email.
   // Prefer using email for the filter, fallback to id if provided and policy supports it.
@@ -579,7 +646,17 @@ async function hydrateFromDatabase() {
 
     // Contact
     const c: Partial<CoachProfilePayload['contact']> = data.profile_contact || {}
-    model.contact.phone = c.phone ?? model.contact.phone
+    // Phone: if stored in +<prefix><digits> format, split to keep only digits in UI and set indicative accordingly
+    if (c.phone && typeof c.phone === 'string') {
+      const matched = phoneIndicatives.find((p) => c.phone?.startsWith(p.prefix))
+      if (matched) {
+        phoneIndicative.value = matched.code
+        model.contact.phone = c.phone.substring(matched.prefix.length)
+      } else {
+        // fallback keep digits only
+        model.contact.phone = c.phone.replace(/[^0-9]/g, '')
+      }
+    }
     model.contact.website = c.website ?? model.contact.website
     model.contact.instagram = c.instagram ?? model.contact.instagram
     model.contact.facebook = c.facebook ?? model.contact.facebook
@@ -597,7 +674,7 @@ async function hydrateFromDatabase() {
       model.activity.diplomas = (a.diplomas as DiplomaLike[])
         .filter((d) => !!d && typeof d.title === 'string' && d.title.trim().length > 0)
         .map((d) => ({
-          id: d.id && d.id.length ? d.id : crypto.randomUUID(),
+          id: d.id && d.id.length ? d.id : generateId(),
           title: d.title as string,
           status: d.status || 'pending',
           proofFileName: d.proofFileName,
@@ -760,24 +837,30 @@ watch(
           <label class="block text-sm font-medium text-gray-700">Prénom</label>
           <input
             v-model="model.personal.firstName"
-            class="mt-1 w-full rounded-md border-gray-300"
+            class="mt-1 w-full rounded-md border-gray-300 dark:text-gray-900"
           />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Nom</label>
-          <input v-model="model.personal.lastName" class="mt-1 w-full rounded-md border-gray-300" />
+          <input
+            v-model="model.personal.lastName"
+            class="dark:text-gray-900 mt-1 w-full rounded-md border-gray-300"
+          />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Âge</label>
           <input
             type="number"
             v-model.number="model.personal.age"
-            class="mt-1 w-full rounded-md border-gray-300"
+            class="dark:text-gray-900 mt-1 w-full rounded-md border-gray-300"
           />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Genre</label>
-          <select v-model="model.personal.gender" class="mt-1 w-full rounded-md border-gray-300">
+          <select
+            v-model="model.personal.gender"
+            class="dark:text-gray-900 mt-1 w-full rounded-md border-gray-300"
+          >
             <option value="">Sélectionner</option>
             <option v-for="g in GENDER_OPTIONS" :key="g.value" :value="g.value">
               {{ g.label }}
@@ -786,7 +869,10 @@ watch(
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Territoire</label>
-          <select v-model="model.personal.territory" class="mt-1 w-full rounded-md border-gray-300">
+          <select
+            v-model="model.personal.territory"
+            class="dark:text-gray-900 mt-1 w-full rounded-md border-gray-300"
+          >
             <option value="">Sélectionner</option>
             <option v-for="t in TERRITORY_KEYS" :key="t" :value="t">
               {{ getCountryLabel(t) }}
@@ -797,7 +883,7 @@ watch(
           <label class="block text-sm font-medium text-gray-700">Ville</label>
           <select
             v-model="model.personal.city"
-            class="mt-1 w-full rounded-md border-gray-300"
+            class="dark:text-gray-900 mt-1 w-full rounded-md border-gray-300"
             :disabled="!model.personal.territory"
           >
             <option value="">
@@ -825,7 +911,7 @@ watch(
             </span>
           </div>
           <select
-            class="mt-2 w-full rounded-md border-gray-300"
+            class="mt-2 w-full rounded-md border-gray-300 dark:text-gray-900"
             @change="
               (e: Event) => {
                 const v = (e.target as HTMLSelectElement).value
@@ -866,19 +952,132 @@ watch(
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Téléphone</label>
-          <input v-model="model.contact.phone" class="mt-1 w-full rounded-md border-gray-300" />
+          <div class="relative mt-1" ref="profilePhoneSelectorRef">
+            <div
+              class="flex items-center w-full border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition"
+            >
+              <button
+                type="button"
+                @click="toggleProfilePhoneMenu"
+                class="flex items-center gap-1 h-10 px-2 focus:outline-none select-none"
+                aria-haspopup="listbox"
+                :aria-expanded="showProfileIndicativeMenu ? 'true' : 'false'"
+              >
+                <span class="text-base leading-none">{{
+                  profileSelectedPhoneIndicative.flag
+                }}</span>
+                <svg
+                  class="w-4 h-4 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              <span class="h-6 w-px bg-gray-200" aria-hidden="true"></span>
+              <span class="px-2 text-sm text-gray-700 min-w-[52px]">{{
+                profileSelectedPhoneIndicative.prefix
+              }}</span>
+              <input
+                v-model="model.contact.phone"
+                @input="handleProfilePhoneRawInput"
+                type="tel"
+                maxlength="10"
+                pattern="[0-9]*"
+                class="flex-1 min-w-0 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm truncate dark:text-gray-900"
+                placeholder="601020304"
+                inputmode="numeric"
+                autocomplete="tel"
+              />
+            </div>
+            <ul
+              v-if="showProfileIndicativeMenu"
+              :class="[
+                'absolute z-40 w-60 bg-white border border-gray-200 rounded-md shadow-lg overflow-auto focus:outline-none py-1',
+                profileOpenAbove ? 'bottom-full mb-1 max-h-72' : 'top-full mt-1 max-h-72',
+              ]"
+              role="listbox"
+            >
+              <li v-for="opt in phoneIndicatives" :key="opt.code" role="option">
+                <button
+                  type="button"
+                  @click="selectProfilePhoneIndicative(opt.code)"
+                  class="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-blue-50 dark:text-gray-900"
+                  :class="opt.code === phoneIndicative ? 'bg-blue-100 font-medium' : ''"
+                >
+                  <span class="text-base leading-none">{{ opt.flag }}</span>
+                  <span>{{ opt.prefix }}</span>
+                  <span class="text-xs text-gray-500 ml-auto">{{ opt.label }}</span>
+                </button>
+              </li>
+            </ul>
+            <p class="mt-1 text-[11px] text-gray-500">
+              Format international enregistré automatiquement.
+            </p>
+          </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Site web</label>
-          <input v-model="model.contact.website" class="mt-1 w-full rounded-md border-gray-300" />
+          <div
+            class="relative mt-1 flex items-center w-full border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition"
+          >
+            <span class="pl-2 pr-1 text-gray-500 flex items-center" aria-hidden="true">
+              <GlobeAltIcon class="w-5 h-5" />
+            </span>
+            <input
+              v-model="model.contact.website"
+              type="url"
+              placeholder="https://votre-site.com"
+              class="flex-1 min-w-0 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm dark:text-gray-900"
+              autocomplete="url"
+            />
+          </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Instagram</label>
-          <input v-model="model.contact.instagram" class="mt-1 w-full rounded-md border-gray-300" />
+          <div
+            class="relative mt-1 flex items-center w-full border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition"
+          >
+            <span class="pl-2 pr-1 text-pink-600 flex items-center" aria-hidden="true">
+              <!-- Simple Instagram glyph -->
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm10 2a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h10zm-5 3.75A5.255 5.255 0 0 0 6.75 13 5.255 5.255 0 0 0 12 18.25 5.255 5.255 0 0 0 17.25 13 5.255 5.255 0 0 0 12 7.75zm0 2A3.255 3.255 0 0 1 15.25 13 3.255 3.255 0 0 1 12 16.25 3.255 3.255 0 0 1 8.75 13 3.255 3.255 0 0 1 12 9.75zM17.5 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
+                />
+              </svg>
+            </span>
+            <input
+              v-model="model.contact.instagram"
+              type="text"
+              placeholder="@votrecompte"
+              class="flex-1 min-w-0 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm dark:text-gray-900"
+              autocomplete="off"
+            />
+          </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Facebook</label>
-          <input v-model="model.contact.facebook" class="mt-1 w-full rounded-md border-gray-300" />
+          <div
+            class="relative mt-1 flex items-center w-full border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition"
+          >
+            <span class="pl-2 pr-1 text-blue-600 flex items-center" aria-hidden="true">
+              <!-- Facebook "f" logo -->
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M22 12.07C22 6.48 17.52 2 11.93 2 6.35 2 1.87 6.48 1.87 12.07c0 4.93 3.58 9.02 8.26 9.86v-6.98H7.9v-2.88h2.23v-2.2c0-2.2 1.31-3.42 3.32-3.42.96 0 1.96.17 1.96.17v2.16h-1.1c-1.08 0-1.42.67-1.42 1.36v1.93h2.42l-.39 2.88h-2.03v6.98c4.68-.84 8.26-4.93 8.26-9.86z"
+                />
+              </svg>
+            </span>
+            <input
+              v-model="model.contact.facebook"
+              type="text"
+              placeholder="Page ou profil"
+              class="flex-1 min-w-0 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm dark:text-gray-900"
+              autocomplete="off"
+            />
+          </div>
         </div>
       </div>
     </section>
@@ -897,7 +1096,7 @@ watch(
         <textarea
           v-model="model.bio"
           rows="6"
-          class="w-full rounded-md border-gray-300 text-sm"
+          class="dark:text-gray-900 w-full rounded-md border-gray-300 text-sm"
           placeholder="Présentez votre parcours, vos valeurs, votre manière de coacher..."
         ></textarea>
         <p class="text-[11px] text-gray-500 mt-1">
@@ -913,15 +1112,124 @@ watch(
         <p class="text-sm text-gray-500 mt-1">Expérience, diplômes et spécialités.</p>
       </header>
       <div class="space-y-6">
+        <!-- Row 3: Specialties full width -->
+        <div class="p-4 border rounded-lg bg-gray-50 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-800">Spécialités</h3>
+          </div>
+          <div>
+            <p class="dark:text-gray-900 italic text-xs pt-0 pb-3">
+              Sélectionnez jusqu'à 4 spécialités qui vous correspondent le mieux. <br />
+              Ces spécialités seront visibles sur votre profile publique.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span
+              v-for="s in model.activity.specialties"
+              :key="s"
+              class="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium"
+            >
+              {{ s }}
+              <button
+                type="button"
+                class="ml-1 text-green-600 hover:text-green-900"
+                @click="removeSpecialty(s)"
+              >
+                ×
+              </button>
+            </span>
+          </div>
+          <div class="space-y-2" ref="specialtyDropdownEl">
+            <div class="relative">
+              <input
+                v-model="specialtySearch"
+                type="text"
+                placeholder="Rechercher / ajouter une spécialité..."
+                class="dark:text-gray-900 w-full rounded-md border-gray-300 text-sm pr-8"
+                @focus="openSpecialtyDropdown()"
+                @input="showSpecialtyDropdown = true"
+              />
+              <button
+                v-if="specialtySearch"
+                type="button"
+                class="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600"
+                @click="specialtySearch = ''"
+              >
+                ×
+              </button>
+              <!-- Dropdown Panel -->
+              <div
+                v-if="showSpecialtyDropdown"
+                class="absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-md border bg-white shadow-lg text-sm"
+              >
+                <div v-if="!hasSpecialtyMatches" class="px-3 py-2 text-xs text-gray-500 italic">
+                  Aucune spécialité trouvée
+                </div>
+                <template v-for="group in filteredSpecialtyGroups" :key="group.category">
+                  <div v-if="group.specialties.length" class="py-1">
+                    <div
+                      class="px-3 pt-2 pb-1 text-[11px] font-semibold text-gray-500 uppercase tracking-wide"
+                    >
+                      {{ group.category }}
+                    </div>
+                    <button
+                      v-for="opt in group.specialties"
+                      :key="opt"
+                      type="button"
+                      class="w-full text-left px-3 py-1.5 hover:bg-blue-50 flex items-center justify-between disabled:opacity-40 disabled:cursor-not-allowed"
+                      :disabled="
+                        model.activity.specialties.includes(opt) ||
+                        (model.activity.specialties.length >= 4 &&
+                          !model.activity.specialties.includes(opt))
+                      "
+                      @click="selectSpecialty(opt)"
+                    >
+                      <span
+                        :class="[
+                          'text-xs',
+                          model.activity.specialties.includes(opt)
+                            ? 'text-gray-400 line-through'
+                            : model.activity.specialties.length >= 4
+                              ? 'text-gray-400'
+                              : 'text-gray-700',
+                        ]"
+                        >{{ opt }}</span
+                      >
+                      <span
+                        v-if="model.activity.specialties.includes(opt)"
+                        class="text-[10px] text-gray-400"
+                        >Ajouté</span
+                      >
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <p class="text-[11px] text-gray-500 flex items-center justify-between">
+              <span>
+                Recherchez par nom ou faites défiler les catégories, puis cliquez pour ajouter.
+              </span>
+              <span class="ml-4 text-gray-600 font-medium"
+                >{{ model.activity.specialties.length }} / 4</span
+              >
+            </p>
+          </div>
+        </div>
         <!-- Row 1: Experience Years (1/4) + Work Experiences (3/4) -->
         <div class="grid gap-6 md:grid-cols-4">
           <div class="p-4 border rounded-lg bg-gray-50 space-y-3">
             <label class="block text-sm font-medium text-gray-700">Années d'expérience</label>
-            <input
-              type="number"
-              v-model.number="model.activity.experienceYears"
-              class="w-full rounded-md border-gray-300"
-            />
+            <div class="relative">
+              <input
+                type="number"
+                v-model.number="model.activity.experienceYears"
+                class="w-full pr-12 rounded-md border-gray-300 dark:text-gray-900 no-spinner"
+              />
+              <span
+                class="absolute inset-y-0 right-3 flex items-center text-sm text-gray-500 select-none pointer-events-none"
+                >ans</span
+              >
+            </div>
           </div>
           <div class="md:col-span-3 p-4 border rounded-lg bg-gray-50 space-y-3">
             <div class="flex items-center justify-between">
@@ -947,7 +1255,7 @@ watch(
               <input
                 v-model="model.activity.newWorkExp"
                 placeholder="Ajouter (ex: Coach en salle...)"
-                class="flex-1 rounded-md border-gray-300 text-xs"
+                class="dark:text-gray-900 flex-1 rounded-md border-gray-300 text-xs"
               />
               <button
                 type="button"
@@ -967,11 +1275,19 @@ watch(
           <div class="flex items-center justify-between">
             <h3 class="text-sm font-semibold text-gray-800">Diplômes & Certifications</h3>
           </div>
+          <div>
+            <p class="dark:text-gray-900 italic text-xs pt-0 pb-3">
+              Sélectionnez un diplôme dans la liste, ou un saisissez diplôme personnalisé, puis
+              importez une photo de votre diplôme. <br />
+              Après validation, vos diplômes et certifications seront visible sur votre profile
+              publique.
+            </p>
+          </div>
           <div class="space-y-2">
             <select
               v-model="selectedDiplomaOption"
               @change="addDiplomaFromSelect"
-              class="w-full rounded-md border-gray-300 text-sm"
+              class="dark:text-gray-900 w-full rounded-md border-gray-300 text-sm"
             >
               <option value="">Ajouter un diplôme</option>
               <option
@@ -987,7 +1303,7 @@ watch(
               <input
                 v-model="model.activity.newDiplomaTitle"
                 placeholder="Diplôme personnalisé"
-                class="flex-1 rounded-md border-gray-300 text-sm"
+                class="dark:text-gray-900 flex-1 rounded-md border-gray-300 text-sm"
               />
               <button
                 type="button"
@@ -1085,92 +1401,6 @@ watch(
           </ul>
           <div v-else class="text-xs text-gray-500 italic">Aucun diplôme ajouté.</div>
         </div>
-        <!-- Row 3: Specialties full width -->
-        <div class="p-4 border rounded-lg bg-gray-50 space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-gray-800">Spécialités</h3>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <span
-              v-for="s in model.activity.specialties"
-              :key="s"
-              class="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium"
-            >
-              {{ s }}
-              <button
-                type="button"
-                class="ml-1 text-green-600 hover:text-green-900"
-                @click="removeSpecialty(s)"
-              >
-                ×
-              </button>
-            </span>
-          </div>
-          <div class="space-y-2" ref="specialtyDropdownEl">
-            <div class="relative">
-              <input
-                v-model="specialtySearch"
-                type="text"
-                placeholder="Rechercher / ajouter une spécialité..."
-                class="w-full rounded-md border-gray-300 text-sm pr-8"
-                @focus="openSpecialtyDropdown()"
-                @input="showSpecialtyDropdown = true"
-              />
-              <button
-                v-if="specialtySearch"
-                type="button"
-                class="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600"
-                @click="specialtySearch = ''"
-              >
-                ×
-              </button>
-              <!-- Dropdown Panel -->
-              <div
-                v-if="showSpecialtyDropdown"
-                class="absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-md border bg-white shadow-lg text-sm"
-              >
-                <div v-if="!hasSpecialtyMatches" class="px-3 py-2 text-xs text-gray-500 italic">
-                  Aucune spécialité trouvée
-                </div>
-                <template v-for="group in filteredSpecialtyGroups" :key="group.category">
-                  <div v-if="group.specialties.length" class="py-1">
-                    <div
-                      class="px-3 pt-2 pb-1 text-[11px] font-semibold text-gray-500 uppercase tracking-wide"
-                    >
-                      {{ group.category }}
-                    </div>
-                    <button
-                      v-for="opt in group.specialties"
-                      :key="opt"
-                      type="button"
-                      class="w-full text-left px-3 py-1.5 hover:bg-blue-50 flex items-center justify-between"
-                      :disabled="model.activity.specialties.includes(opt)"
-                      @click="selectSpecialty(opt)"
-                    >
-                      <span
-                        :class="[
-                          'text-xs',
-                          model.activity.specialties.includes(opt)
-                            ? 'text-gray-400 line-through'
-                            : 'text-gray-700',
-                        ]"
-                        >{{ opt }}</span
-                      >
-                      <span
-                        v-if="model.activity.specialties.includes(opt)"
-                        class="text-[10px] text-gray-400"
-                        >Ajouté</span
-                      >
-                    </button>
-                  </div>
-                </template>
-              </div>
-            </div>
-            <p class="text-[11px] text-gray-500">
-              Recherchez par nom ou faites défiler les catégories, puis cliquez pour ajouter.
-            </p>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -1192,7 +1422,7 @@ watch(
             min="0"
             step="1"
             v-model.number="model.hourlyRate"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            class="dark:text-gray-900 no-spinner rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             placeholder="Ex: 50"
           />
           <p class="text-[11px] text-gray-500 mt-1">
@@ -1251,7 +1481,7 @@ watch(
             v-if="loc.enabled"
             v-model="loc.details"
             rows="2"
-            class="w-full text-sm rounded border-gray-300"
+            class="dark:text-gray-900 w-full text-sm rounded border-gray-300"
             placeholder="Détails / conditions"
           ></textarea>
         </div>
@@ -1270,7 +1500,7 @@ watch(
           v-if="model.modalities.freeTrial.enabled"
           v-model="model.modalities.freeTrial.details"
           rows="2"
-          class="w-full text-sm rounded border-gray-300"
+          class="dark:text-gray-900 w-full text-sm rounded border-gray-300"
           placeholder="Conditions / format de la séance d'essai"
         ></textarea>
       </div>
@@ -1280,7 +1510,7 @@ watch(
         <textarea
           v-model="model.modalities.cancellationPolicy"
           rows="3"
-          class="mt-1 w-full text-sm rounded border-gray-300"
+          class="dark:text-gray-900 mt-1 w-full text-sm rounded border-gray-300"
           placeholder="Détails de votre politique"
         ></textarea>
       </div>
@@ -1350,5 +1580,20 @@ watch(
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Remove number input spinners (Chrome, Safari, Edge) */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+.no-spinner[type='number'] {
+  -moz-appearance: textfield;
+}
+/* Phone selector dropdown layering fix inside profile editor */
+[data-coach-profile-phone] {
+  position: relative;
 }
 </style>

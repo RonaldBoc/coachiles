@@ -149,12 +149,68 @@
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                <input
-                  v-model="form.phone"
-                  type="tel"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="0696123456"
-                />
+                <div class="relative" ref="phoneSelectorRef">
+                  <div
+                    class="flex items-center w-full border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-orange-500 focus-within:border-orange-500 transition"
+                  >
+                    <button
+                      type="button"
+                      @click="togglePhoneMenu"
+                      class="flex items-center gap-1 h-10 px-2 focus:outline-none select-none"
+                      aria-haspopup="listbox"
+                      :aria-expanded="showIndicativeMenu ? 'true' : 'false'"
+                    >
+                      <span class="text-base leading-none">{{ selectedPhoneIndicative.flag }}</span>
+                      <svg
+                        class="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+                    <span class="h-6 w-px bg-gray-200" aria-hidden="true"></span>
+                    <span class="px-2 text-sm text-gray-700 min-w-[52px]">{{
+                      selectedPhoneIndicative.prefix
+                    }}</span>
+                    <input
+                      v-model="form.phone"
+                      type="tel"
+                      class="flex-1 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm"
+                      placeholder="601020304"
+                      inputmode="tel"
+                      autocomplete="tel"
+                    />
+                  </div>
+                  <ul
+                    v-if="showIndicativeMenu"
+                    :class="[
+                      'absolute z-40 w-60 bg-white border border-gray-200 rounded-md shadow-lg overflow-auto focus:outline-none py-1',
+                      openAbove ? 'bottom-full mb-1 max-h-72' : 'top-full mt-1 max-h-72',
+                    ]"
+                    role="listbox"
+                  >
+                    <li v-for="opt in phoneIndicatives" :key="opt.code" role="option">
+                      <button
+                        type="button"
+                        @click="selectPhoneIndicative(opt.code)"
+                        class="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-orange-50"
+                        :class="
+                          opt.code === form.phoneIndicative ? 'bg-orange-100 font-medium' : ''
+                        "
+                      >
+                        <span class="text-base leading-none">{{ opt.flag }}</span>
+                        <span>{{ opt.prefix }}</span>
+                        <span class="text-xs text-gray-500 ml-auto">{{ opt.label }}</span>
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+                <p class="mt-1 text-[11px] text-gray-500">
+                  Format international enregistré automatiquement.
+                </p>
               </div>
 
               <div class="flex justify-end pt-4">
@@ -622,7 +678,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onBeforeUnmount, nextTick } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import type { Coach } from '@/types/coach'
 import type { CoachService } from '@/types/service'
@@ -686,6 +742,45 @@ const doNotContact = ref(false)
 const isFinalized = ref(false)
 const pendingEmitData = ref<Partial<ClientRequest> | null>(null)
 const sessionId = ref<string>(uuidv4())
+// phone indicative dropdown state
+const showIndicativeMenu = ref(false)
+const phoneSelectorRef = ref<HTMLElement | null>(null)
+const openAbove = ref(false)
+
+function togglePhoneMenu() {
+  showIndicativeMenu.value = !showIndicativeMenu.value
+  if (showIndicativeMenu.value) {
+    nextTick(() => {
+      const el = phoneSelectorRef.value
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      const estimatedHeight = 240
+      openAbove.value = spaceBelow < estimatedHeight && spaceAbove > spaceBelow
+    })
+  }
+}
+function selectPhoneIndicative(code: PhoneIndicativeCode) {
+  form.value.phoneIndicative = code
+  showIndicativeMenu.value = false
+}
+const selectedPhoneIndicative = computed(
+  () => phoneIndicatives.find((p) => p.code === form.value.phoneIndicative) || phoneIndicatives[0],
+)
+function handleClickOutside(e: MouseEvent) {
+  if (!showIndicativeMenu.value) return
+  const el = phoneSelectorRef.value
+  if (el && !el.contains(e.target as Node)) {
+    showIndicativeMenu.value = false
+  }
+}
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 // Form data
 const form = ref({
@@ -695,6 +790,7 @@ const form = ref({
   gender: '' as '' | 'male' | 'female' | 'other' | 'prefer_not_say',
   email: '',
   phone: '',
+  phoneIndicative: 'mq',
   country: '' as '' | CountryType,
   location: '',
   preferredCoaching: [] as string[],
@@ -832,7 +928,7 @@ const saveStep1 = async () => {
     const leadData = {
       client_name: `${form.value.firstName} ${form.value.lastName}`,
       client_email: form.value.email,
-      client_phone: form.value.phone || undefined, // capture phone at creation now that field moved to step 1
+      client_phone: form.value.phone ? buildInternationalPhone(form.value.phone) : undefined, // capture phone at creation now with indicative
       client_age: form.value.age || undefined,
       client_gender: form.value.gender || undefined,
       session_id: sessionId.value,
@@ -892,7 +988,7 @@ const saveStep2 = async () => {
 
   try {
     const updateData = {
-      client_phone: form.value.phone,
+      client_phone: form.value.phone ? buildInternationalPhone(form.value.phone) : undefined,
       // Store both country and city as a JSON string in the existing text column
       location: JSON.stringify({
         country: form.value.country || null,
@@ -1122,6 +1218,24 @@ function formatServicePrice(
   if (price == null) return ''
   const resolvedUnit = unit || (duration === 60 ? 'per_hour' : 'per_session')
   return resolvedUnit === 'per_hour' ? `${price}€ / heure` : `${price}€ / séance`
+}
+
+// Phone indicatives (mtq, gpe, guyane, france)
+const phoneIndicatives = [
+  { code: 'mq', prefix: '+596', flag: '🇲🇶', label: 'Martinique' },
+  { code: 'gp', prefix: '+590', flag: '🇬🇵', label: 'Guadeloupe' },
+  { code: 'fr', prefix: '+33', flag: '🇫🇷', label: 'France' },
+  { code: 'gf', prefix: '+594', flag: '🇬🇫', label: 'Guyane' },
+]
+type PhoneIndicativeCode = (typeof phoneIndicatives)[number]['code']
+
+function buildInternationalPhone(raw: string) {
+  const indicative = phoneIndicatives.find((p) => p.code === form.value.phoneIndicative)
+  const digits = (raw || '').replace(/[^0-9]/g, '')
+  if (!indicative) return raw
+  // Remove leading 0 when adding +33 etc.
+  const normalized = digits.replace(/^0+/, '')
+  return `${indicative.prefix}${normalized}`
 }
 </script>
 

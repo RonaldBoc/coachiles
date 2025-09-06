@@ -107,7 +107,7 @@ export const SPECIALTY_OPTIONS: SpecialtyGroup[] = [
     ],
   },
   {
-    category: 'Danse',
+    category: 'Danse & Musique',
     specialties: [
       'Danse contemporaine',
       'Danse classique',
@@ -124,6 +124,16 @@ export const SPECIALTY_OPTIONS: SpecialtyGroup[] = [
       'Jazz',
       'Modern jazz',
       'Danse africaine',
+      'Professeur de piano',
+      'Coach vocal',
+      'Professeur de guitare',
+      'Professeur de guitare basse',
+      'Professeur de batterie',
+      'Professeur de musique',
+      'Musique Gospel',
+      'Musique Jazz',
+      'Musique Classique',
+      'Musique RNB',
     ],
   },
   {

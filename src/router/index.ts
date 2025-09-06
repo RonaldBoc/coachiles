@@ -12,7 +12,6 @@ import CoachProfile from '@/pages/CoachProfile.vue'
 import CoachDashboard from '@/pages/CoachDashboard.vue'
 import CoachPublicProfile from '@/pages/CoachPublicProfile.vue'
 import CoachProposals from '@/pages/CoachProposals.vue'
-import CoachRegistration from '@/pages/CoachRegistration.vue'
 import CoachSignup from '@/pages/CoachSignup.vue'
 import CoachOnboarding from '@/pages/CoachOnboarding.vue'
 import Abonnement from '@/pages/Abonnement.vue'
@@ -63,12 +62,6 @@ const routes = [
     component: CoachOnboarding,
     beforeEnter: requireOnboarding, // Only allow users who need onboarding
     meta: { title: 'Onboarding' },
-  },
-  {
-    path: '/coach/registration',
-    component: CoachRegistration,
-    beforeEnter: requireAuthOnly, // Only requires authentication, not coach status
-    meta: { title: 'Inscription Coach' },
   },
   {
     path: '/coach/profile',

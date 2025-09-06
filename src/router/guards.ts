@@ -50,10 +50,10 @@ export const requireAuth: NavigationGuard = async (to, from, next) => {
     }
 
     if (!authStore.isCoach) {
-      console.log('❌ User is not a coach, redirecting to coach registration')
-      // User is authenticated but not a coach - redirect to registration
+      console.log('❌ User is not a coach, redirecting to onboarding')
+      // User is authenticated but not a coach - redirect to onboarding
       next({
-        path: '/coach/registration',
+        path: '/coach/onboarding',
         query: { redirect: to.fullPath },
       })
     } else {
@@ -163,10 +163,16 @@ export const redirectIfAuthenticated: NavigationGuard = async (to, from, next) =
     }
   }
 
-  if (authStore.isAuthenticated && authStore.isCoach) {
-    console.log('✅ User already authenticated, redirecting to /coach/dashboard')
-    // Redirect to coach dashboard
-    next('/coach/dashboard')
+  if (authStore.isAuthenticated) {
+    if (authStore.isCoach) {
+      console.log(
+        '✅ User already authenticated with coach profile, redirecting to /coach/dashboard',
+      )
+      next('/coach/dashboard')
+    } else {
+      console.log('👤 Authenticated user without coach profile, redirecting to /coach/onboarding')
+      next('/coach/onboarding')
+    }
   } else {
     next()
   }

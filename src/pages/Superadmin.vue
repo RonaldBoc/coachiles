@@ -817,6 +817,51 @@
             >
               Save
             </button>
+            <label class="text-sm">
+              <span class="mr-2">Max Leads</span>
+              <input
+                type="number"
+                v-model.number="editedMaxLeads"
+                placeholder="-1 = unlimited"
+                class="w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm"
+              />
+            </label>
+            <button
+              class="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-amber-500"
+              @click="updateMaxLeadsDirect"
+              v-if="editedMaxLeads !== (coachDetails.subscription as any)?.max_leads"
+            >
+              Update Max Leads
+            </button>
+          </div>
+          <div class="text-[11px] text-gray-600 dark:text-gray-400 flex flex-wrap gap-4">
+            <div>
+              <span class="font-medium">Current max_leads:</span>
+              <span>{{
+                (coachDetails.subscription as any)?.max_leads === -1
+                  ? 'Unlimited'
+                  : ((coachDetails.subscription as any)?.max_leads ?? '—')
+              }}</span>
+            </div>
+            <div>
+              <span class="font-medium">Unlocked distinct leads used:</span>
+              <span>{{ distinctUnlockedLeads }}</span>
+            </div>
+            <div v-if="coachDetails.subscription?.subscription_type === 'free'">
+              <span class="font-medium">Remaining:</span>
+              <span>{{
+                (coachDetails.subscription as any)?.max_leads === -1
+                  ? '∞'
+                  : Math.max(
+                      ((coachDetails.subscription as any)?.max_leads || 0) - distinctUnlockedLeads,
+                      0,
+                    )
+              }}</span>
+            </div>
+            <div v-if="maxLeadsUpdateError" class="text-red-600">{{ maxLeadsUpdateError }}</div>
+            <div v-if="maxLeadsUpdateSuccess" class="text-green-600">
+              {{ maxLeadsUpdateSuccess }}
+            </div>
           </div>
           <div v-if="coachDetails.subscription?.subscription_type === 'premium'" class="space-y-2">
             <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -1898,6 +1943,66 @@ async function cancelSub(mode: 'at_period_end' | 'at_date' | 'immediate') {
     if (!subsMap.error) coachSubs.value = new Map(Object.entries(subsMap.data))
   }
 }
+
+// --- Max Leads Editing ---
+interface SubscriptionWithMaxLeads {
+  max_leads?: number | null
+}
+const editedMaxLeads = ref<number | null>(null)
+const maxLeadsUpdateError = ref<string | null>(null)
+const maxLeadsUpdateSuccess = ref<string | null>(null)
+watch(
+  () => (coachDetails.value.subscription as SubscriptionWithMaxLeads | undefined)?.max_leads,
+  (val) => {
+    if (val !== undefined && val !== null) editedMaxLeads.value = val
+  },
+  { immediate: true },
+)
+async function updateMaxLeadsDirect() {
+  maxLeadsUpdateError.value = null
+  maxLeadsUpdateSuccess.value = null
+  try {
+    if (!activeCoachId.value) throw new Error('No active coach')
+    if (editedMaxLeads.value === null || Number.isNaN(editedMaxLeads.value))
+      throw new Error('Invalid max leads')
+    // Attempt upsert into override table; fall back to direct update via admin API if needed.
+    const { error } = await AdminApi.setCoachMaxLeads(activeCoachId.value, editedMaxLeads.value)
+    if (error) throw new Error(error)
+    maxLeadsUpdateSuccess.value = 'Updated'
+    // Refresh details
+    const res = await AdminApi.getCoachDetails(activeCoachId.value)
+    if (!res.error) coachDetails.value = res.data
+  } catch (e: unknown) {
+    const msg =
+      e && typeof e === 'object' && 'message' in e
+        ? String((e as { message?: unknown }).message)
+        : null
+    maxLeadsUpdateError.value = msg || 'Failed to update'
+  }
+}
+
+// Distinct unlocked leads usage (server masked view semantics)
+const distinctUnlockedLeads = computed(() => {
+  const rows = coachLeads.value
+  if (!rows.length) return 0
+  const emails = new Set<string>()
+  type LeadLike = (typeof rows)[number] & {
+    is_hidden?: boolean
+    do_not_contact?: boolean
+    is_completed?: boolean
+    current_step?: number | null
+    is_locked?: boolean
+  }
+  ;(rows as LeadLike[]).forEach((l) => {
+    const progressed = l.is_completed || (typeof l.current_step === 'number' && l.current_step >= 3)
+    const unlocked = l.is_locked === false || l.is_locked === undefined
+    if (!l.is_hidden && !l.do_not_contact && progressed && unlocked) {
+      const em = (l.client_email || '').trim().toLowerCase()
+      if (em) emails.add(em)
+    }
+  })
+  return emails.size
+})
 
 async function openLead(id: string) {
   activeLeadId.value = id
