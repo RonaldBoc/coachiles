@@ -54,6 +54,30 @@
         class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl mb-8"
       >
         <div class="px-4 py-6 sm:p-8">
+          <div
+            v-if="isFreePlan"
+            class="mb-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-800 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          >
+            <div class="flex items-start gap-2">
+              <svg class="w-5 h-5 mt-0.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.5a.75.75 0 00-1.5 0v4.25c0 .414.336.75.75.75h2a.75.75 0 000-1.5h-1.25V6.5zM10 13a1 1 0 100 2 1 1 0 000-2z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <p>
+                Passez en <span class="font-medium">Premium</span> pour activer plusieurs services
+                simultanément.
+              </p>
+            </div>
+            <button
+              @click="goUpgrade"
+              class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
+            >
+              Passer en Premium
+            </button>
+          </div>
           <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-semibold text-gray-900">
               {{ editingServiceId ? 'Modifier le service' : 'Nouveau service' }}
@@ -106,8 +130,8 @@
                       v-model="serviceForm.soloPriceUnit"
                       class="dark:text-gray-900 pr-6 pl-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white appearance-none no-native-arrow"
                     >
-                      <option value="per_session">€/ séance</option>
                       <option value="per_hour">€/ heure</option>
+                      <option value="per_session">€/ séance</option>
                     </select>
                     <svg
                       class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500"
@@ -164,85 +188,122 @@
               </div>
             </div>
 
-            <!-- Category & Domain (searchable dropdown styled like profile specialties) -->
+            <!-- Category & Domain: first show coach specialties as chips, then optional 'Autres catégories' dropdown -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
               <div class="flex items-start gap-3">
-                <div class="flex-1 space-y-1" ref="categoryDropdownEl">
-                  <div class="relative">
-                    <input
-                      v-model="specialtySearch"
-                      type="text"
-                      placeholder="Rechercher / choisir une spécialité..."
-                      class="w-full rounded-md border text-sm pr-8 px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900"
-                      :class="[
-                        serviceForm.category && !isValidCategory
-                          ? 'border-red-300 focus:border-red-400 focus:ring-red-500'
-                          : 'border-gray-300',
-                      ]"
-                      @focus="openCategoryDropdown()"
-                      @input="showCategoryDropdown = true"
-                    />
+                <div class="flex-1 space-y-2" ref="categoryDropdownEl">
+                  <!-- Coach specialties chips -->
+                  <div v-if="coachSpecialties.length" class="flex flex-wrap gap-2">
                     <button
-                      v-if="specialtySearch"
+                      v-for="spec in coachSpecialties"
+                      :key="spec"
                       type="button"
-                      class="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600"
-                      @click="((specialtySearch = ''), (serviceForm.category = ''))"
+                      class="px-2.5 py-1 rounded-full text-xs font-medium border transition"
+                      :class="[
+                        serviceForm.category === spec
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400',
+                      ]"
+                      @click="selectCoachSpecialty(spec)"
                     >
-                      ×
+                      {{ spec }}
                     </button>
-                    <!-- Selected category displayed directly in input (no pill) -->
-                    <!-- Dropdown -->
-                    <div
-                      v-if="showCategoryDropdown"
-                      class="absolute z-30 mt-1 w-full max-h-72 overflow-auto rounded-md border bg-white shadow-lg text-sm"
-                    >
-                      <div
-                        v-if="!hasCategoryMatches"
-                        class="px-3 py-2 text-xs text-gray-500 italic"
-                      >
-                        Aucune spécialité trouvée
-                      </div>
-                      <template v-for="group in filteredSpecialtyGroups" :key="group.category">
-                        <div v-if="group.specialties.length" class="py-1">
-                          <div
-                            class="px-3 pt-2 pb-1 text-[11px] font-semibold text-gray-500 uppercase tracking-wide"
-                          >
-                            {{ group.category }}
-                          </div>
-                          <button
-                            v-for="opt in group.specialties"
-                            :key="opt"
-                            type="button"
-                            class="w-full text-left px-3 py-1.5 hover:bg-indigo-50 flex items-center justify-between"
-                            :disabled="serviceForm.category === opt"
-                            @click="selectCategory(opt)"
-                          >
-                            <span
-                              :class="[
-                                'text-xs',
-                                serviceForm.category === opt
-                                  ? 'text-gray-400 line-through'
-                                  : 'text-gray-700',
-                              ]"
-                              >{{ opt }}</span
-                            >
-                            <span
-                              v-if="serviceForm.category === opt"
-                              class="text-[10px] text-gray-400"
-                              >Sélectionné</span
-                            >
-                          </button>
-                        </div>
-                      </template>
-                    </div>
                   </div>
-                  <p v-if="serviceForm.category && !isValidCategory" class="text-xs text-red-600">
-                    Catégorie inconnue (liste mise à jour requise ?)
-                  </p>
-                  <p class="text-[11px] text-gray-500">
-                    Recherchez par nom ou parcourez les groupes, puis cliquez pour sélectionner.
-                  </p>
+                  <!-- Toggle to open other categories -->
+                  <div class="flex items-center gap-2" v-if="allSpecialties.length">
+                    <button
+                      type="button"
+                      class="text-xs text-indigo-600 hover:text-indigo-800 underline"
+                      @click="showOtherCategories = !showOtherCategories"
+                    >
+                      {{ showOtherCategories ? 'Masquer autres catégories' : 'Autres catégories' }}
+                    </button>
+                    <span
+                      v-if="
+                        serviceForm.category && !coachSpecialties.includes(serviceForm.category)
+                      "
+                      class="text-[11px] text-gray-500"
+                    >
+                      (sélection hors spécialités)
+                    </span>
+                  </div>
+                  <!-- Existing searchable dropdown wrapped as 'Autres catégories' -->
+                  <div v-if="showOtherCategories" class="space-y-1">
+                    <div class="relative">
+                      <input
+                        v-model="specialtySearch"
+                        type="text"
+                        placeholder="Rechercher / choisir une autre spécialité..."
+                        class="w-full rounded-md border text-sm pr-8 px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900"
+                        :class="[
+                          serviceForm.category && !isValidCategory
+                            ? 'border-red-300 focus:border-red-400 focus:ring-red-500'
+                            : 'border-gray-300',
+                        ]"
+                        @focus="openCategoryDropdown()"
+                        @input="showCategoryDropdown = true"
+                      />
+                      <button
+                        v-if="specialtySearch"
+                        type="button"
+                        class="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600"
+                        @click="((specialtySearch = ''), (serviceForm.category = ''))"
+                      >
+                        ×
+                      </button>
+                      <!-- Dropdown -->
+                      <div
+                        v-if="showCategoryDropdown"
+                        class="absolute z-30 mt-1 w-full max-h-72 overflow-auto rounded-md border bg-white shadow-lg text-sm"
+                      >
+                        <div
+                          v-if="!hasCategoryMatches"
+                          class="px-3 py-2 text-xs text-gray-500 italic"
+                        >
+                          Aucune spécialité trouvée
+                        </div>
+                        <template v-for="group in filteredSpecialtyGroups" :key="group.category">
+                          <div v-if="group.specialties.length" class="py-1">
+                            <div
+                              class="px-3 pt-2 pb-1 text-[11px] font-semibold text-gray-500 uppercase tracking-wide"
+                            >
+                              {{ group.category }}
+                            </div>
+                            <button
+                              v-for="opt in group.specialties"
+                              :key="opt"
+                              type="button"
+                              class="w-full text-left px-3 py-1.5 hover:bg-indigo-50 flex items-center justify-between"
+                              :disabled="serviceForm.category === opt"
+                              @click="selectCategory(opt)"
+                            >
+                              <span
+                                :class="[
+                                  'text-xs',
+                                  serviceForm.category === opt
+                                    ? 'text-gray-400 line-through'
+                                    : 'text-gray-700',
+                                ]"
+                                >{{ opt }}</span
+                              >
+                              <span
+                                v-if="serviceForm.category === opt"
+                                class="text-[10px] text-gray-400"
+                                >Sélectionné</span
+                              >
+                            </button>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                    <p v-if="serviceForm.category && !isValidCategory" class="text-xs text-red-600">
+                      Catégorie inconnue (liste mise à jour requise ?)
+                    </p>
+                    <p class="text-[11px] text-gray-500">
+                      Recherchez par nom ou parcourez les groupes, puis cliquez pour sélectionner.
+                    </p>
+                  </div>
                 </div>
                 <span
                   v-if="derivedDomain"
@@ -251,9 +312,6 @@
                   {{ derivedDomain }}
                 </span>
               </div>
-              <p class="mt-2 text-xs text-gray-500">
-                Le domaine est déterminé automatiquement à partir de la spécialité sélectionnée.
-              </p>
             </div>
 
             <!-- Description -->
@@ -369,20 +427,20 @@
               </div>
             </div>
 
-            <!-- Cancellation Policy -->
+            <!-- Cancellation Policy (free text) -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1"
                 >Politique d'annulation *</label
               >
-              <select
+              <input
                 v-model="serviceForm.cancellationPolicy"
+                type="text"
+                maxlength="120"
+                placeholder="Ex: Annulation gratuite jusqu'à 24h avant"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 dark:text-gray-900"
                 required
-              >
-                <option v-for="policy in CANCELLATION_POLICIES" :key="policy" :value="policy">
-                  {{ policy }}
-                </option>
-              </select>
+              />
+              <p class="text-[11px] text-gray-500 mt-1">120 caractères maximum.</p>
             </div>
 
             <!-- Availability Days (new simplified design) -->
@@ -535,6 +593,19 @@
         <!-- Services list -->
         <div v-if="!isEditingService && coachServices.length > 0" class="space-y-4">
           <div
+            v-if="isFreePlan"
+            class="text-xs text-gray-600 mb-2 flex items-center gap-3 flex-wrap"
+          >
+            <span>Plan gratuit: 1 service actif maximum.</span>
+            <button
+              type="button"
+              @click="goUpgrade"
+              class="px-2.5 py-1 rounded-md bg-indigo-600 text-white font-medium text-[11px] hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              Passer Premium
+            </button>
+          </div>
+          <div
             v-for="service in coachServices"
             :key="service.id"
             class="border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors"
@@ -610,6 +681,17 @@
 
               <div class="flex space-x-2 ml-4">
                 <button
+                  @click="toggleServiceActive(service)"
+                  class="text-xs px-2 py-1 rounded-md border font-medium"
+                  :class="
+                    service.isActive
+                      ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100'
+                      : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'
+                  "
+                >
+                  {{ service.isActive ? 'Désactiver' : 'Activer' }}
+                </button>
+                <button
                   @click="editService(service)"
                   class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                 >
@@ -633,9 +715,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import type { CoachService, ServiceFormData } from '@/types/service'
-import { DURATION_OPTIONS, CANCELLATION_POLICIES } from '@/types/service'
+import { DURATION_OPTIONS } from '@/types/service'
 import { supabaseCoachServicesApi } from '@/services/supabaseCoachServicesApi'
 import { useAuthStore } from '@/stores/auth'
 import { SPECIALTY_OPTIONS, type SpecialtyGroup } from '@/constants/coachOptions'
@@ -647,6 +730,7 @@ const authStore = useAuthStore()
 
 // State
 const coachServices = ref<CoachService[]>([])
+const router = useRouter()
 const isEditingService = ref(false)
 const editingServiceId = ref<string | null>(null)
 const isLoadingServices = ref(true) // Add loading state
@@ -713,6 +797,26 @@ const isValidCategory = computed(() => {
   return allSpecialties.value.includes(serviceForm.value.category)
 })
 
+// Coach specialties (chips) – only keep those present in SPECIALTY_OPTIONS
+const coachSpecialties = computed<string[]>(() => {
+  const raw = authStore.coach?.specialties as unknown as string[] | undefined
+  const list = Array.isArray(raw) ? raw : []
+  const set = new Set<string>()
+  for (const s of list) {
+    if (typeof s === 'string' && allSpecialties.value.includes(s)) set.add(s)
+  }
+  return Array.from(set)
+})
+
+// Toggle for showing the full searchable dropdown
+const showOtherCategories = ref(false)
+
+function selectCoachSpecialty(spec: string) {
+  serviceForm.value.category = spec
+  specialtySearch.value = spec
+  closeCategoryDropdown()
+}
+
 // Map category to domain using SPECIALTY_OPTIONS
 const categoryToDomainMap: Record<string, string> = {}
 for (const group of SPECIALTY_OPTIONS) {
@@ -767,10 +871,21 @@ onBeforeUnmount(() => {
 })
 
 // Methods
+// Subscription based limits
+const subscriptionStatus = computed(() => authStore.coach?.subscriptionStatus) // 'active' | 'trial' | 'inactive'
+const isFreePlan = computed(() => subscriptionStatus.value === 'inactive')
+const activeServicesCount = computed(() => coachServices.value.filter((s) => s.isActive).length)
+// Creation allowed even when limit reached; only one ACTIVE at a time on free plan
+
 const addNewService = () => {
   isEditingService.value = true
   editingServiceId.value = null
   resetServiceForm()
+}
+
+const goUpgrade = () => {
+  // Route hypothétique vers page d'abonnement
+  router.push('/coach/abonnement')
 }
 
 const editService = (service: CoachService) => {
@@ -882,10 +997,25 @@ const saveService = async () => {
       }
       console.log('✅ Service updated successfully')
     } else {
-      // Create new service
+      // Create new service (allowed even if already have an active one)
       const newService = await supabaseCoachServicesApi.createService(serviceForm.value)
-      coachServices.value.push(newService)
+      coachServices.value.unshift(newService)
       console.log('✅ Service created successfully')
+      if (isFreePlan.value) {
+        // Deactivate previously active services (keep new one active)
+        const previouslyActive = coachServices.value.filter(
+          (s) => s.id !== newService.id && s.isActive,
+        )
+        for (const s of previouslyActive) {
+          await supabaseCoachServicesApi.setServiceActive(s.id, false)
+          s.isActive = false
+        }
+        // Ensure new service active (if DB default differs)
+        if (!newService.isActive) {
+          await supabaseCoachServicesApi.setServiceActive(newService.id, true)
+          newService.isActive = true
+        }
+      }
     }
 
     cancelServiceEdit()
@@ -908,6 +1038,41 @@ const deleteService = async (serviceId: string) => {
     } catch (error) {
       console.error('❌ Error deleting service:', error)
     }
+  }
+}
+
+// Toggle activation respecting plan limit
+const toggleServiceActive = async (service: CoachService) => {
+  try {
+    if (!service.isActive) {
+      // Activating a service
+      if (isFreePlan.value) {
+        // Need to deactivate others first
+        const otherActive = coachServices.value.filter((s) => s.isActive && s.id !== service.id)
+        if (otherActive.length >= 1) {
+          // Auto-disable the other one(s) per spec
+          for (const s of otherActive) {
+            await supabaseCoachServicesApi.setServiceActive(s.id, false)
+            s.isActive = false
+          }
+        }
+      }
+      // Ensure free plan doesn't exceed 1
+      if (isFreePlan.value && activeServicesCount.value >= 1) {
+        // Safety guard (should already be handled)
+        alert("Vous ne pouvez avoir qu'un seul service actif avec le plan gratuit.")
+        return
+      }
+      await supabaseCoachServicesApi.setServiceActive(service.id, true)
+      service.isActive = true
+    } else {
+      // Deactivating is always allowed
+      await supabaseCoachServicesApi.setServiceActive(service.id, false)
+      service.isActive = false
+    }
+  } catch (e) {
+    console.error('❌ Erreur changement statut service', e)
+    alert('Erreur lors de la mise à jour du statut du service.')
   }
 }
 
@@ -935,6 +1100,8 @@ onMounted(async () => {
   // Debug: Log current coach and specialties
   console.log('🧑‍💼 Current coach:', authStore.coach)
   console.log('🎯 Coach specialties:', authStore.coach?.specialties || [])
+  // If coach has no specialties, open 'Autres catégories' by default
+  showOtherCategories.value = coachSpecialties.value.length === 0
   updateViewport()
   window.addEventListener('resize', updateViewport)
 })

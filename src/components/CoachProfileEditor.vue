@@ -393,8 +393,6 @@ onMounted(() => {
   if (model.contact.email || props.initialCoachId) {
     hydrateFromDatabase()
   }
-  // Default hourly rate if unset (business default 50€)
-  if (model.hourlyRate === null) model.hourlyRate = 50
 })
 onBeforeUnmount(() => {
   window.removeEventListener('mousedown', handleOutsideClick)
@@ -405,6 +403,10 @@ const hasSpecialtyMatches = computed(() =>
 )
 
 // --- Avatar management (change profile picture) ---
+// Hourly rate field validation state
+const showHourlyRateError = ref(false)
+const hourlyRateInputRef = ref<HTMLInputElement | null>(null)
+
 import maleDefaultAvatar from '@/assets/avatars/default_male.svg'
 import femaleDefaultAvatar from '@/assets/avatars/default_female.svg'
 import { supabaseCoachApi } from '@/services/supabaseCoachApi'
@@ -568,10 +570,33 @@ async function save() {
   isSaving.value = true
   saveSuccess.value = false
   saveMessage.value = ''
+  // Validate required hourly rate before persisting
+  if (
+    model.hourlyRate === null ||
+    model.hourlyRate === undefined ||
+    Number.isNaN(Number(model.hourlyRate)) ||
+    Number(model.hourlyRate) <= 0
+  ) {
+    isSaving.value = false
+    saveSuccess.value = false
+    saveMessage.value = 'Veuillez indiquer un tarif horaire supérieur à 0.'
+    // Show UI error on the field and focus it
+    showHourlyRateError.value = true
+    hourlyRateInputRef.value?.focus()
+    return
+  }
   // Build payload
+  // Normalize website to allow domain-only inputs (prepend https if missing)
+  const normalizedWebsite = (() => {
+    const v = model.contact.website || ''
+    const raw = v.trim()
+    if (!raw) return ''
+    if (/^https?:\/\//i.test(raw)) return raw
+    return `https://${raw}`
+  })()
   const payload: CoachProfilePayload = {
     personal: { ...model.personal, languages: languages.value },
-    contact: model.contact,
+    contact: { ...model.contact, website: normalizedWebsite },
     activity: {
       experienceYears: model.activity.experienceYears,
       workExperiences: model.activity.workExperiences,
@@ -1006,6 +1031,37 @@ watch(
           />
         </div>
       </div>
+      <div class="flex justify-end pt-2">
+        <button
+          @click="save"
+          type="button"
+          :disabled="isSaving"
+          class="px-4 py-2 rounded-md text-xs font-medium shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-white bg-blue-600 hover:bg-blue-700"
+        >
+          <svg
+            v-if="isSaving"
+            class="animate-spin h-3.5 w-3.5 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          <span>Enregistrer</span>
+        </button>
+      </div>
     </section>
 
     <!-- Contact -->
@@ -1018,7 +1074,7 @@ watch(
           Cette section de contact détaillée est visible uniquement pour les utilisateurs
           <strong>Premium</strong>.
           <a
-            href="/subscription"
+            href="/coach/abonnement"
             class="underline font-medium hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-sm"
             >Passer Premium</a
           >
@@ -1112,7 +1168,7 @@ watch(
             </span>
             <input
               v-model="model.contact.website"
-              type="url"
+              type="text"
               placeholder="https://votre-site.com"
               class="flex-1 min-w-0 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm dark:text-gray-900"
               autocomplete="url"
@@ -1164,6 +1220,37 @@ watch(
           </div>
         </div>
       </div>
+      <div class="flex justify-end pt-2">
+        <button
+          @click="save"
+          type="button"
+          :disabled="isSaving"
+          class="px-4 py-2 rounded-md text-xs font-medium shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-white bg-blue-600 hover:bg-blue-700"
+        >
+          <svg
+            v-if="isSaving"
+            class="animate-spin h-3.5 w-3.5 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          <span>Enregistrer</span>
+        </button>
+      </div>
     </section>
 
     <!-- Bio -->
@@ -1186,6 +1273,37 @@ watch(
         <p class="text-[11px] text-gray-500 mt-1">
           Astuce: racontez une histoire qui montre votre impact.
         </p>
+      </div>
+      <div class="flex justify-end pt-2">
+        <button
+          @click="save"
+          type="button"
+          :disabled="isSaving"
+          class="px-4 py-2 rounded-md text-xs font-medium shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-white bg-blue-600 hover:bg-blue-700"
+        >
+          <svg
+            v-if="isSaving"
+            class="animate-spin h-3.5 w-3.5 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          <span>Enregistrer</span>
+        </button>
       </div>
     </section>
 
@@ -1484,6 +1602,37 @@ watch(
           <div v-else class="text-xs text-gray-500 italic">Aucun diplôme ajouté.</div>
         </div>
       </div>
+      <div class="flex justify-end pt-2">
+        <button
+          @click="save"
+          type="button"
+          :disabled="isSaving"
+          class="px-4 py-2 rounded-md text-xs font-medium shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-white bg-blue-600 hover:bg-blue-700"
+        >
+          <svg
+            v-if="isSaving"
+            class="animate-spin h-3.5 w-3.5 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          <span>Enregistrer</span>
+        </button>
+      </div>
     </section>
 
     <!-- Modalités Générales des Cours -->
@@ -1498,16 +1647,28 @@ watch(
       <!-- Hourly Rate -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tarif horaire (€ / h)</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Tarif horaire (€ / h) *</label
+          >
           <input
             type="number"
-            min="0"
+            min="1"
             step="1"
             v-model.number="model.hourlyRate"
-            class="dark:text-gray-900 no-spinner rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            :class="[
+              'dark:text-gray-900 no-spinner rounded-md px-3 py-2 text-sm focus:outline-none',
+              showHourlyRateError
+                ? 'border-red-500 focus:ring-red-500 focus:border-red-500 border'
+                : 'border border-gray-300 focus:ring-blue-500 focus:border-blue-500',
+            ]"
             placeholder="Ex: 50"
+            ref="hourlyRateInputRef"
+            @input="showHourlyRateError = false"
           />
-          <p class="text-[11px] text-gray-500 mt-1">
+          <p v-if="showHourlyRateError" class="text-[11px] text-red-600 mt-1">
+            Indiquez un montant supérieur à 0.
+          </p>
+          <p v-else class="text-[11px] text-gray-500 mt-1">
             Indiquez votre tarif de base pour une séance individuelle d'une heure.
           </p>
         </div>

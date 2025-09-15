@@ -80,6 +80,7 @@ export const SPECIALTY_OPTIONS: SpecialtyGroup[] = [
       'Relaxation',
       'Respiration',
       'Gestion du stress',
+      'Coach bien-être',
     ],
   },
   {
@@ -104,6 +105,7 @@ export const SPECIALTY_OPTIONS: SpecialtyGroup[] = [
       'Compléments alimentaires',
       'Hydratation',
       'Gestion du poids',
+      'Coach minceur',
     ],
   },
   {
@@ -134,6 +136,26 @@ export const SPECIALTY_OPTIONS: SpecialtyGroup[] = [
       'Musique Jazz',
       'Musique Classique',
       'Musique RNB',
+    ],
+  },
+  {
+    category: 'Coaching personnel & professionnel',
+    specialties: [
+      'Coach de vie',
+      'Coach en changement de vie',
+      'Coach en gestion des émotions',
+      'Coach en image',
+      'Coach en séduction',
+      'Coach en décoration',
+      "Coach d'affaires",
+      'Coach de carrière',
+      'Coach de gestion',
+      "Coach d'équipe",
+      "Coach d'organisation",
+      "Coach d'orientation",
+      'Coach pour dirigeant',
+      'Coach scolaire',
+      'Coach immobilier',
     ],
   },
   {

@@ -104,7 +104,8 @@
                 placeholder="Filtrer les spécialités..."
                 class="ml-3 flex-1 bg-transparent outline-none text-base md:text-sm font-medium placeholder-gray-400"
                 @keydown.esc.stop.prevent="closeSearch"
-                @click.stop
+                @click.stop="openDropdownFromInput"
+                @focus="openDropdownFromInput"
               />
               <!-- Close button inside when open -->
               <button
@@ -440,7 +441,7 @@
               <div class="flex justify-between items-center pt-2 border-t border-gray-100">
                 <div class="text-left">
                   <p class="text-lg font-bold text-gray-900">{{ coach?.hourlyRate }}€</p>
-                  <p class="text-xs text-gray-500">par séance</p>
+                  <p class="text-xs text-gray-500">de l'heure</p>
                 </div>
                 <button
                   @click.stop="navigateToCoachProfileWithContact(coach)"
@@ -580,6 +581,11 @@ const handleSearchWrapperClick = () => {
       // Show input by clearing selectedSpecialty? Keep specialty; allow selecting another directly
     }
   }
+}
+// Ensure dropdown shows when user clicks or focuses the input
+const openDropdownFromInput = () => {
+  if (!isSearchOpen.value) isSearchOpen.value = true
+  showDropdown.value = true
 }
 const clearSearchQuery = () => {
   searchQuery.value = ''

@@ -147,10 +147,10 @@
                 <div class="mt-1 flex flex-wrap gap-2">
                   <span
                     v-for="service in lead.chosen_services"
-                    :key="service"
+                    :key="typeof service === 'string' ? service : service.title"
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
                   >
-                    {{ service }}
+                    {{ typeof service === 'string' ? service : service.title }}
                   </span>
                 </div>
               </div>

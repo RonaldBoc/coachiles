@@ -423,7 +423,10 @@
           </div>
 
           <!-- Services Offered -->
-          <div class="bg-white rounded-2xl shadow-lg p-4 sm:p-8">
+          <div
+            v-if="isLoadingServices || coachServices.length > 0"
+            class="bg-white rounded-2xl shadow-lg p-4 sm:p-8"
+          >
             <div class="flex items-center justify-between mb-4 sm:mb-6">
               <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Services proposés</h2>
               <button
@@ -591,30 +594,7 @@
               </div>
             </div>
 
-            <!-- No Services Message -->
-            <div v-else class="text-center py-12">
-              <div
-                class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
-              >
-                <svg
-                  class="w-10 h-10 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2M7 7h10"
-                  />
-                </svg>
-              </div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Services en préparation</h3>
-              <p class="text-gray-600">
-                Ce coach est en train de configurer ses services. Revenez bientôt !
-              </p>
-            </div>
+            <!-- No services: section hidden by outer v-if -->
           </div>
 
           <!-- Modalités des cours -->
@@ -665,9 +645,7 @@
                         </svg>
                         <div>
                           <p class="font-medium text-gray-900">
-                            {{
-                              locationLabels[key as keyof typeof coach.modalities.locations] || key
-                            }}
+                            {{ (locationLabels as Record<string, string>)[String(key)] || String(key) }}
                           </p>
                           <p v-if="entry.details" class="text-sm text-gray-600 whitespace-pre-line">
                             {{ entry.details }}
@@ -1174,7 +1152,7 @@
             </div>
 
             <!-- Share Profile -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
+            <!-- <div class="bg-white rounded-2xl shadow-lg p-6">
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Partager ce profil</h3>
               <div class="flex space-x-3">
                 <button
@@ -1196,7 +1174,7 @@
                   WhatsApp
                 </button>
               </div>
-            </div>
+            </div> -->
           </div>
         </div>
       </div>
@@ -2094,25 +2072,25 @@ const submitContact = (requestData: Partial<ClientRequest>) => {
   showContactModal.value = false
 }
 
-const shareProfile = (platform: string) => {
-  const url = window.location.href
-  const text = `Découvrez le profil de ${coach.value?.firstName}, coach ${coach.value?.specialties[0]} sur Coachiles`
+// const shareProfile = (platform: string) => {
+//   const url = window.location.href
+//   const text = `Découvrez le profil de ${coach.value?.firstName}, coach ${coach.value?.specialties[0]} sur Coachiles`
 
-  switch (platform) {
-    case 'email':
-      window.location.href = `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(url)}`
-      break
-    case 'facebook':
-      window.open(
-        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-        '_blank',
-      )
-      break
-    case 'whatsapp':
-      window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank')
-      break
-  }
-}
+//   switch (platform) {
+//     case 'email':
+//       window.location.href = `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(url)}`
+//       break
+//     case 'facebook':
+//       window.open(
+//         `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+//         '_blank',
+//       )
+//       break
+//     case 'whatsapp':
+//       window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank')
+//       break
+//   }
+// }
 
 const navigateToCoach = (coachId: string) => {
   router.push(`/coach/${coachId}`)
@@ -2439,6 +2417,33 @@ interface ReviewForm {
   comment: string
 }
 const reviewForm = reactive<ReviewForm>({ clientName: '', clientEmail: '', rating: 0, comment: '' })
+// reCAPTCHA
+const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined
+const recaptchaReady = ref(false)
+let recaptchaScriptAppended = false
+
+// Minimal grecaptcha typing
+declare global {
+  interface Window {
+    grecaptcha?: {
+      execute: (siteKey: string, options: { action: string }) => Promise<string>
+      ready?: (cb: () => void) => void
+    }
+  }
+}
+
+const loadRecaptcha = () => {
+  if (!recaptchaSiteKey || recaptchaScriptAppended) return
+  const script = document.createElement('script')
+  script.src = `https://www.google.com/recaptcha/api.js?render=${recaptchaSiteKey}`
+  script.async = true
+  script.defer = true
+  script.onload = () => {
+    recaptchaReady.value = true
+  }
+  document.head.appendChild(script)
+  recaptchaScriptAppended = true
+}
 
 const loadReviews = async () => {
   if (!coach.value) return
@@ -2459,6 +2464,7 @@ const openReviewModal = () => {
   reviewForm.clientEmail = ''
   reviewForm.rating = 0
   reviewForm.comment = ''
+  loadRecaptcha()
 }
 const closeReviewModal = () => {
   showReviewModal.value = false
@@ -2471,13 +2477,43 @@ const submitReview = async () => {
   if (!reviewForm.clientName || !reviewForm.clientEmail || !reviewForm.rating) return
   creatingReview.value = true
   try {
-    await reviewApi.createReview({
-      coachId: coach.value.id,
-      clientName: sanitize(reviewForm.clientName).substring(0, 50),
-      clientEmail: sanitize(reviewForm.clientEmail).substring(0, 120),
-      rating: reviewForm.rating,
-      comment: reviewForm.comment ? sanitize(reviewForm.comment).substring(0, 1000) : undefined,
-    })
+    let token: string | undefined
+    if (recaptchaSiteKey && window.grecaptcha) {
+      try {
+        token = await window.grecaptcha.execute(recaptchaSiteKey, {
+          action: 'submit_review',
+        })
+      } catch (e) {
+        console.warn('reCAPTCHA execution failed', e)
+      }
+    }
+
+    if (recaptchaSiteKey) {
+      // Use Edge Function for server-side verification
+      const { data, error } = await supabase.functions.invoke('create-review', {
+        body: {
+          token,
+          coachId: coach.value.id,
+          clientName: sanitize(reviewForm.clientName).substring(0, 50),
+          clientEmail: sanitize(reviewForm.clientEmail).substring(0, 120),
+          rating: reviewForm.rating,
+          comment: reviewForm.comment ? sanitize(reviewForm.comment).substring(0, 1000) : undefined,
+        },
+      })
+      if (error) throw error
+      if (!data || data.status !== 'ok') {
+        throw new Error('Review creation failed')
+      }
+    } else {
+      // Fallback (no captcha configured)
+      await reviewApi.createReview({
+        coachId: coach.value.id,
+        clientName: sanitize(reviewForm.clientName).substring(0, 50),
+        clientEmail: sanitize(reviewForm.clientEmail).substring(0, 120),
+        rating: reviewForm.rating,
+        comment: reviewForm.comment ? sanitize(reviewForm.comment).substring(0, 1000) : undefined,
+      })
+    }
     reviewSubmitted.value = true
     // reload list (will still be empty until approved, but attempt fetch)
     await loadReviews()

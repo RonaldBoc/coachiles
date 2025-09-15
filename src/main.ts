@@ -6,8 +6,6 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
-console.log('🚀 App starting...')
-
 async function initializeApp() {
   const app = createApp(App)
   const pinia = createPinia()

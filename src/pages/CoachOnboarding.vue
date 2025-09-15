@@ -421,6 +421,12 @@
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-800">Spécialités</h3>
               </div>
+              <div>
+                <p class="dark:text-gray-900 italic text-xs pt-0 pb-3">
+                  Sélectionnez jusqu'à 4 spécialités qui vous correspondent le mieux. <br />
+                  Ces spécialités seront visibles sur votre profile publique.
+                </p>
+              </div>
               <div class="flex flex-wrap gap-2">
                 <span
                   v-for="s in activity.specialties"
@@ -437,6 +443,28 @@
                   </button>
                 </span>
               </div>
+              <p
+                class="text-[11px] flex items-center gap-1"
+                :class="isSpecialtyLimitReached ? 'text-green-600' : 'text-gray-500'"
+              >
+                <template v-if="isSpecialtyLimitReached">
+                  <svg
+                    class="w-3.5 h-3.5 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  <span>Sélection complète ({{ activity.specialties.length }}/4)</span>
+                </template>
+                <template v-else> {{ activity.specialties.length }}/4 sélectionnée(s) </template>
+              </p>
               <div class="space-y-2">
                 <div class="relative">
                   <input
@@ -473,8 +501,13 @@
                           v-for="opt in group.specialties"
                           :key="opt"
                           type="button"
-                          class="w-full text-left px-3 py-1.5 hover:bg-blue-50 flex items-center justify-between"
-                          :disabled="activity.specialties.includes(opt)"
+                          :class="[
+                            'w-full text-left px-3 py-1.5 hover:bg-blue-50 flex items-center justify-between',
+                            activity.specialties.includes(opt) || isSpecialtyLimitReached
+                              ? 'opacity-50 cursor-not-allowed'
+                              : '',
+                          ]"
+                          :disabled="activity.specialties.includes(opt) || isSpecialtyLimitReached"
                           @click="selectSpecialty(opt)"
                         >
                           <span
@@ -537,7 +570,7 @@
                 <div class="flex gap-2">
                   <input
                     v-model="activity.newWorkExp"
-                    placeholder="Ajouter (ex: Coach en salle...)"
+                    placeholder="Ajouter (ex: Coach en salle de 2019 à 2023...)"
                     class="flex-1 rounded-md border-gray-300 text-xs dark:text-gray-900"
                   />
                   <button
@@ -558,6 +591,14 @@
             <div class="p-4 border rounded-lg bg-gray-50 space-y-4">
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-800">Diplômes & Certifications</h3>
+              </div>
+              <div>
+                <p class="dark:text-gray-900 italic text-xs pt-0 pb-3">
+                  Sélectionnez un diplôme dans la liste, ou un saisissez diplôme personnalisé, puis
+                  importez une photo de votre diplôme. <br />
+                  Après validation, vos diplômes et certifications seront visible sur votre profile
+                  publique.
+                </p>
               </div>
               <div class="space-y-2">
                 <select
@@ -758,30 +799,64 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label class="block text-sm font-medium text-gray-700">Site web</label>
-                <input
-                  v-model="formData.website"
-                  type="url"
-                  placeholder="https://"
-                  class="mt-1 w-full rounded-md border-gray-300 dark:text-gray-900"
-                />
+                <div
+                  class="relative mt-1 flex items-center w-full border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition"
+                >
+                  <span class="pl-2 pr-1 text-gray-500 flex items-center" aria-hidden="true">
+                    <GlobeAltIcon class="w-5 h-5" />
+                  </span>
+                  <input
+                    v-model="formData.website"
+                    type="text"
+                    placeholder="https://votre-site.com"
+                    class="flex-1 min-w-0 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm dark:text-gray-900"
+                    autocomplete="url"
+                  />
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Instagram</label>
-                <input
-                  v-model="formData.instagram"
-                  type="url"
-                  placeholder="https://instagram.com/votreprofil"
-                  class="mt-1 w-full rounded-md border-gray-300 dark:text-gray-900"
-                />
+                <div
+                  class="relative mt-1 flex items-center w-full border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition"
+                >
+                  <span class="pl-2 pr-1 text-pink-600 flex items-center" aria-hidden="true">
+                    <!-- Simple Instagram glyph -->
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm10 2a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h10zm-5 3.75A5.255 5.255 0 0 0 6.75 13 5.255 5.255 0 0 0 12 18.25 5.255 5.255 0 0 0 17.25 13 5.255 5.255 0 0 0 12 7.75zm0 2A3.255 3.255 0 0 1 15.25 13 3.255 3.255 0 0 1 12 16.25 3.255 3.255 0 0 1 8.75 13 3.255 3.255 0 0 1 12 9.75zM17.5 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"
+                      />
+                    </svg>
+                  </span>
+                  <input
+                    v-model="formData.instagram"
+                    type="text"
+                    placeholder="@votrecompte"
+                    class="flex-1 min-w-0 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm dark:text-gray-900"
+                    autocomplete="off"
+                  />
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Facebook</label>
-                <input
-                  v-model="formData.facebook"
-                  type="url"
-                  placeholder="https://facebook.com/votreprofil"
-                  class="mt-1 w-full rounded-md border-gray-300 dark:text-gray-900"
-                />
+                <div
+                  class="relative mt-1 flex items-center w-full border border-gray-300 rounded-md bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition"
+                >
+                  <span class="pl-2 pr-1 text-blue-600 flex items-center" aria-hidden="true">
+                    <!-- Facebook "f" logo -->
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path
+                        d="M22 12.07C22 6.48 17.52 2 11.93 2 6.35 2 1.87 6.48 1.87 12.07c0 4.93 3.58 9.02 8.26 9.86v-6.98H7.9v-2.88h2.23v-2.2c0-2.2 1.31-3.42 3.32-3.42.96 0 1.96.17 1.96.17v2.16h-1.1c-1.08 0-1.42.67-1.42 1.36v1.93h2.42l-.39 2.88h-2.03v6.98c4.68-.84 8.26-4.93 8.26-9.86z"
+                      />
+                    </svg>
+                  </span>
+                  <input
+                    v-model="formData.facebook"
+                    type="text"
+                    placeholder="Page ou profil"
+                    class="flex-1 min-w-0 h-10 px-2 border-0 focus:ring-0 focus:outline-none bg-transparent text-sm dark:text-gray-900"
+                    autocomplete="off"
+                  />
+                </div>
               </div>
             </div>
             <div class="flex justify-between">
@@ -794,7 +869,12 @@
               </button>
               <button
                 type="submit"
-                :disabled="!formData.bio"
+                :disabled="
+                  formData.basePrice === null ||
+                  formData.basePrice === undefined ||
+                  Number.isNaN(Number(formData.basePrice)) ||
+                  Number(formData.basePrice) <= 0
+                "
                 class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               >
                 Suivant
@@ -820,14 +900,24 @@
               >
               <input
                 type="number"
-                min="0"
+                min="1"
                 step="1"
                 v-model.number="formData.basePrice"
                 required
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-900 no-spinner"
+                :class="[
+                  'mt-1 block w-full px-3 py-2 rounded-md shadow-sm focus:outline-none dark:text-gray-900 no-spinner',
+                  showBasePriceError
+                    ? 'border border-red-500 focus:ring-red-500 focus:border-red-500'
+                    : 'border border-gray-300 focus:ring-blue-500 focus:border-blue-500',
+                ]"
                 placeholder="Ex: 50"
+                ref="basePriceInputRef"
+                @input="showBasePriceError = false"
               />
-              <p class="text-[11px] text-gray-500 mt-1">
+              <p v-if="showBasePriceError" class="text-[11px] text-red-600 mt-1">
+                Indique un montant strictement supérieur à 0.
+              </p>
+              <p v-else class="text-[11px] text-gray-500 mt-1">
                 Indique ton tarif de base pour une séance individuelle d'une heure. Tu peux le
                 modifier plus tard.
               </p>
@@ -951,7 +1041,11 @@
               </button>
               <button
                 type="submit"
-                :disabled="formData.basePrice === null"
+                :disabled="
+                  formData.basePrice === null ||
+                  formData.basePrice === undefined ||
+                  Number.isNaN(Number(formData.basePrice))
+                "
                 class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               >
                 Suivant
@@ -1031,7 +1125,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { XMarkIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, ArrowUpTrayIcon, GlobeAltIcon } from '@heroicons/vue/24/outline'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/utils/supabase'
@@ -1050,6 +1144,9 @@ const loading = ref(false)
 const error = ref('')
 const currentStep = ref(0)
 const wantsToAddServices = ref(false)
+// Validation state for base price (hourly rate)
+const showBasePriceError = ref(false)
+const basePriceInputRef = ref<HTMLInputElement | null>(null)
 // Incremental save related state
 const coachId = ref<string | null>(null)
 const saving = ref(false)
@@ -1090,6 +1187,10 @@ const activity = ref({
   showSpecialtyDropdown: false,
 })
 
+// Limit the number of specialties
+const SPECIALTY_LIMIT = 4
+const isSpecialtyLimitReached = computed(() => activity.value.specialties.length >= SPECIALTY_LIMIT)
+
 const filteredSpecialtyGroups = computed<SpecialtyGroup[]>(() => {
   const term = activity.value.specialtySearch.trim().toLowerCase()
   if (!term) return SPECIALTY_OPTIONS
@@ -1111,7 +1212,9 @@ function openSpecialtyDropdown() {
   activity.value.showSpecialtyDropdown = true
 }
 function selectSpecialty(opt: string) {
-  if (!activity.value.specialties.includes(opt)) activity.value.specialties.push(opt)
+  if (activity.value.specialties.includes(opt)) return
+  if (activity.value.specialties.length >= SPECIALTY_LIMIT) return
+  activity.value.specialties.push(opt)
   activity.value.specialtySearch = ''
   activity.value.showSpecialtyDropdown = false
 }
@@ -1285,8 +1388,12 @@ function removeAvatar() {
 }
 function normalizeUrl(v: string) {
   if (!v) return ''
-  if (/^https?:\/\//i.test(v)) return v
-  return `https://${v}`
+  const raw = v.trim()
+  if (!raw) return ''
+  // If already has protocol, return as-is
+  if (/^https?:\/\//i.test(raw)) return raw
+  // Accept inputs like 'www.domain.com' or 'domain.com' and prepend https
+  return `https://${raw}`
 }
 
 // Gender-based default avatar assets
@@ -1471,6 +1578,12 @@ async function saveCurrentStep(advance: boolean) {
   saving.value = true
   try {
     if (step === 1) {
+      // Validate base price early if provided later; not strictly required on step 1 but avoid writing empty string
+      const hourly = formData.value.basePrice
+      const safeHourly =
+        hourly === null || hourly === undefined || Number.isNaN(Number(hourly))
+          ? null
+          : Number(hourly)
       // Insert or update draft
       const payload: Record<string, unknown> = {
         email: authStore.user.email,
@@ -1484,7 +1597,7 @@ async function saveCurrentStep(advance: boolean) {
         specialties: [],
         certifications: [],
         experience_years: null,
-        hourly_rate: formData.value.basePrice,
+        hourly_rate: safeHourly,
         locations: formData.value.territory ? [COUNTRIES[formData.value.territory]] : [],
         profile_personal: {
           firstName: formData.value.firstName,
@@ -1554,6 +1667,18 @@ async function saveCurrentStep(advance: boolean) {
         }
       }
     } else if (coachId.value && step === 4) {
+      // Require hourly rate before saving step 4
+      if (
+        formData.value.basePrice === null ||
+        formData.value.basePrice === undefined ||
+        Number.isNaN(Number(formData.value.basePrice)) ||
+        Number(formData.value.basePrice) <= 0
+      ) {
+        showBasePriceError.value = true
+        // Focus the input
+        basePriceInputRef.value?.focus()
+        throw new Error('Veuillez indiquer un tarif horaire supérieur à 0')
+      }
       const { error } = await supabase
         .from('coaches')
         .update({
@@ -1578,7 +1703,7 @@ async function saveCurrentStep(advance: boolean) {
             cancellationPolicy: modalities.value.cancellationPolicy,
           },
           availability: modalities.value.availabilityDays,
-          hourly_rate: formData.value.basePrice,
+          hourly_rate: Number(formData.value.basePrice),
           onboarding_done: false,
         })
         .eq('id', coachId.value)

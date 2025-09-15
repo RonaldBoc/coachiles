@@ -92,11 +92,11 @@ export class SupabaseCoachServicesApi {
       console.log('📡 Loading services for coach UUID:', coachData.id)
 
       // Use the coach's database UUID (not auth user ID)
+      // Fetch ALL services (active + inactive) so UI can enforce plan limits
       const { data, error } = await supabase
         .from('coach_services')
         .select('*')
         .eq('coach_id', coachData.id)
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -224,6 +224,26 @@ export class SupabaseCoachServicesApi {
       return this.transformDatabaseService(data)
     } catch (error) {
       console.error('❌ Error in updateService:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Set a service active / inactive (used for enforcing free plan limits)
+   */
+  async setServiceActive(serviceId: string, isActive: boolean): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('coach_services')
+        .update({ is_active: isActive })
+        .eq('id', serviceId)
+
+      if (error) {
+        console.error('❌ Error toggling service active state:', error)
+        throw error
+      }
+    } catch (error) {
+      console.error('❌ Error in setServiceActive:', error)
       throw error
     }
   }

@@ -56,6 +56,8 @@ export interface CreateReviewData {
   expertiseRating?: number
   valueRating?: number
   isAnonymous?: boolean
+  // Optional Google reCAPTCHA token for anti-bot verification (handled server-side)
+  captchaToken?: string
 }
 
 export interface UpdateReviewData {

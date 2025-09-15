@@ -38,14 +38,25 @@ export interface Lead {
   client_age?: number
   client_gender?: 'male' | 'female' | 'other' | 'prefer_not_say'
   location?: string
-  chosen_services?:
-    | readonly string[]
-    | ReadonlyArray<{
-        title: string
-        modalities?: string[]
-        locations?: string[]
-        days?: number[]
-      }>
+  /**
+   * Legacy field kept for backwards compatibility with older functions / DB schemas.
+   * New code should use chosen_services. Some components still reference preferred_coaching.
+   */
+  preferred_coaching?: string[] | readonly string[]
+  /**
+   * Normalised chosen services list. Can be an array of raw string titles or
+   * rich objects (optionally with modalities, locations, days). Readonly forms
+   * are accepted because Supabase typed responses often mark JSON arrays as readonly.
+   */
+  chosen_services?: ReadonlyArray<
+    | string
+    | {
+        readonly title: string
+        readonly modalities?: readonly string[]
+        readonly locations?: readonly string[]
+        readonly days?: readonly number[]
+      }
+  >
   goals?: string
   experience?: string
   availability?: string

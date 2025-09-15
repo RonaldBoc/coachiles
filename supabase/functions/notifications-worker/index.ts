@@ -17,17 +17,22 @@ const corsHeaders: Record<string, string> = {
 
 interface NotificationEventRow {
   id: number
-  type: 'NEW_LEAD' | 'NEW_REVIEW'
-  target_user_id: string
+  type: 'NEW_LEAD' | 'NEW_REVIEW' | 'LEAD_CLIENT_CONFIRMATION'
+  target_user_id: string | null
   entity_type: string
   entity_id: string
   payload: Record<string, unknown>
+  recipient_type: 'COACH' | 'USER' | 'EXTERNAL'
+  recipient_coach_id: string | null
+  recipient_user_id: string | null
+  recipient_email: string | null
 }
 
 // Map event type -> template secret env variable
 const templateEnvMap: Record<string, string> = {
   NEW_LEAD: 'POSTMARK_TEMPLATE_NEW_LEAD',
   NEW_REVIEW: 'POSTMARK_TEMPLATE_NEW_REVIEW',
+  LEAD_CLIENT_CONFIRMATION: 'POSTMARK_TEMPLATE_LEAD_CLIENT_CONFIRMATION',
 }
 
 const BATCH_SIZE = 25
@@ -37,14 +42,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders, status: 204 })
   }
 
-  // Optional shared-secret protection for external cron callers
+  // Optional shared-secret protection for external cron callers; bypass if internal schedule header present
   const cronSecret = Deno.env.get('NOTIF_CRON_SECRET')
-  if (cronSecret) {
+  const scheduleHeader =
+    req.headers.get('x-supabase-schedule') || req.headers.get('x-supabase-schedule-id')
+  if (cronSecret && !scheduleHeader) {
     const headerSecret =
       req.headers.get('x-cron-secret') || new URL(req.url).searchParams.get('secret')
-    if (headerSecret !== cronSecret) {
-      return new Response('Forbidden', { status: 403 })
-    }
+    if (headerSecret !== cronSecret) return new Response('Forbidden', { status: 403 })
   }
 
   // Currently we ignore request body; reserved for future manual triggers
@@ -73,7 +78,8 @@ serve(async (req) => {
     // Using fetch to the rest/sql endpoint with service key
     const selectSql = `
       WITH cte AS (
-        SELECT id, type, target_user_id, entity_type, entity_id, payload
+        SELECT id, type, target_user_id, entity_type, entity_id, payload,
+               recipient_type, recipient_coach_id, recipient_user_id, recipient_email
         FROM public.notification_events
         WHERE status='PENDING' AND next_attempt_at <= now()
         ORDER BY created_at ASC
@@ -84,7 +90,8 @@ serve(async (req) => {
       SET status = 'PROCESSING'
       FROM cte
       WHERE e.id = cte.id
-      RETURNING e.id, e.type, e.target_user_id, e.entity_type, e.entity_id, e.payload;`
+      RETURNING e.id, e.type, e.target_user_id, e.entity_type, e.entity_id, e.payload,
+                e.recipient_type, e.recipient_coach_id, e.recipient_user_id, e.recipient_email;`
 
     const events: NotificationEventRow[] = await sql(selectSql)
 
@@ -103,15 +110,15 @@ serve(async (req) => {
         continue
       }
 
-      // Get recipient email -> assume coaches.id == auth.users.id
-      const userEmail = await getUserEmail(ev.target_user_id)
-      if (!userEmail) {
-        await markSkip(ev.id, 'user_email_not_found')
-        results.push({ id: ev.id, status: 'SKIP', reason: 'user_email_not_found' })
+      // Resolve recipient email based on recipient_type
+      const resolved = await resolveRecipientEmail(ev)
+      if (!resolved) {
+        await markSkip(ev.id, 'recipient_email_not_found')
+        results.push({ id: ev.id, status: 'SKIP', reason: 'recipient_email_not_found' })
         continue
       }
 
-      const to = emailMode === 'dev' && devRecipient ? devRecipient : userEmail
+      const to = emailMode === 'dev' && devRecipient ? devRecipient : resolved
 
       const model = buildTemplateModel(ev, appBaseUrl)
 
@@ -127,7 +134,7 @@ serve(async (req) => {
           Headers:
             emailMode === 'dev' && devRecipient
               ? [
-                  { Name: 'X-Original-Recipient', Value: userEmail },
+                  { Name: 'X-Original-Recipient', Value: resolved },
                   { Name: 'X-Dry-Run', Value: 'false' },
                 ]
               : [{ Name: 'X-Dry-Run', Value: 'false' }],
@@ -200,12 +207,24 @@ serve(async (req) => {
       WHERE id=${id} AND retry_count >= 5 AND status='PENDING'`)
   }
 
-  async function getUserEmail(userId: string): Promise<string | null> {
-    // Try coaches first
-    const coachSql = `SELECT email FROM public.coaches WHERE id='${esc(userId)}' LIMIT 1`
-    const rows = await sql<{ email?: string }>(coachSql)
-    if (rows.length && typeof rows[0].email === 'string') return rows[0].email
-    // Fallback auth.users via RPC not accessible; you could create a secure function if needed
+  async function resolveRecipientEmail(ev: NotificationEventRow): Promise<string | null> {
+    if (ev.recipient_type === 'EXTERNAL') return ev.recipient_email
+    if (ev.recipient_type === 'COACH' && ev.recipient_coach_id) {
+      const coachSql = `SELECT email FROM public.coaches WHERE id='${esc(ev.recipient_coach_id)}' LIMIT 1`
+      const rows = await sql<{ email?: string }>(coachSql)
+      if (rows.length && rows[0].email) return rows[0].email
+      return null
+    }
+    if (ev.recipient_type === 'USER' && ev.recipient_user_id) {
+      // Optionally implement lookup to auth.users via a secure RPC; placeholder returns null
+      return null
+    }
+    // Legacy fallback
+    if (ev.target_user_id) {
+      const coachSql = `SELECT email FROM public.coaches WHERE id='${esc(ev.target_user_id)}' LIMIT 1`
+      const rows = await sql<{ email?: string }>(coachSql)
+      if (rows.length && rows[0].email) return rows[0].email
+    }
     return null
   }
 
@@ -227,6 +246,16 @@ serve(async (req) => {
         review_rating: payload['rating'],
         review_comment: payload['comment'],
         review_url: `${baseUrl}/reviews/${ev.entity_id}`,
+      }
+    } else if (ev.type === 'LEAD_CLIENT_CONFIRMATION') {
+      return {
+        lead_id: ev.entity_id,
+        client_name: payload['client_name'],
+        goals: payload['goals'],
+        coach_assigned: payload['coach_assigned'],
+        status: payload['status'],
+        // Optionally a link for client (public landing) – using baseUrl fallback
+        portal_url: baseUrl.replace('/coach/dashboard', '/'),
       }
     }
     return { ...common }

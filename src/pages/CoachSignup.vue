@@ -19,11 +19,12 @@
           >
             <div class="p-6 bg-gradient-to-t from-black/60 via-black/20 to-transparent w-full">
               <h2 class="text-white text-2xl font-semibold tracking-tight">
-                Faites passer votre coaching au niveau supérieur
+                Bienvenue sur la plus grande communauté de coachs aux Antilles-Guyane.
               </h2>
               <p class="mt-2 text-indigo-100 text-sm leading-snug">
-                Rejoignez une communauté de coachs passionnés, développez votre visibilité et
-                simplifiez votre activité.
+                Sports, Musique, Loisirs, aidez les clients à trouver votre activité facilement.<br /><br />
+                Étudiants, enseignants, autodidactes, passionnés, diplômés, professionnels...<br />
+                Inscrivez-vous sur CoachIles et commencez dès aujourd'hui !
               </p>
             </div>
           </div>

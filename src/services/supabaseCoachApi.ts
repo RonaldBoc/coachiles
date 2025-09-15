@@ -529,6 +529,39 @@ export const supabaseCoachApi = {
     }
   },
 
+  // Delete current avatar (removes all stored variants and clears DB field)
+  deleteAvatar: async (coachId: string): Promise<void> => {
+    try {
+      // List existing files for coach
+      const { data: existingFiles, error: listError } = await supabase.storage
+        .from('coach-avatars')
+        .list('avatars', { search: coachId })
+
+      if (listError) {
+        console.warn('⚠️ Avatar list error (non bloquant):', listError)
+      }
+
+      if (existingFiles && existingFiles.length) {
+        const toDelete = existingFiles
+          .filter((f) => f.name.startsWith(coachId))
+          .map((f) => `avatars/${f.name}`)
+        if (toDelete.length) {
+          await supabase.storage.from('coach-avatars').remove(toDelete)
+        }
+      }
+
+      // Clear DB fields
+      const { error: updateError } = await supabase
+        .from('coaches')
+        .update({ avatar_url: null, updated_at: new Date().toISOString() })
+        .eq('id', coachId)
+
+      if (updateError) throw updateError
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
   // Get similar coaches (for recommendations)
   getSimilarCoaches: async (coachId: string, limit = 3): Promise<Coach[]> => {
     try {

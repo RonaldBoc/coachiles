@@ -44,16 +44,7 @@
             </div>
           </div>
         </div>
-        <!-- Quick Actions -->
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <button @click="goToProposals" class="quick-action-btn"><span>Propositions</span></button>
-          <button @click="goToServices" class="quick-action-btn"><span>Services</span></button>
-          <button @click="goToSubscription" class="quick-action-btn">
-            <span>Abonnement</span>
-          </button>
-          <button @click="goToSettings" class="quick-action-btn hidden sm:block">
-            <span>Paramètres</span>
-          </button>
+        <div class="flex justify-end">
           <button
             @click="openPublicProfile"
             :disabled="!coach?.id"
@@ -102,6 +93,7 @@
           :value="activeServicesCount"
           icon="services"
           :loading="loadingServices"
+          :hint="!loadingServices && activeServicesCount === 0 ? 'Ajoutez vos services' : undefined"
           :onClick="goToServices"
         />
         <KpiCard
@@ -114,8 +106,9 @@
         />
         <KpiCard
           label="Note moyenne"
-          :value="coach?.rating ? coach.rating.toFixed(1) + '★' : '—'"
+          :value="ratingKpiValue"
           icon="rating"
+          :loading="reviewsLoading"
           :onClick="scrollToReviews"
         />
       </div>
@@ -412,7 +405,7 @@ const subscriptionBanner = computed(() => {
   if (status === 'inactive')
     return {
       message:
-        'Votre abonnement est <strong>inactif</strong>. Activez-le pour débloquer toute la visibilité.',
+        'Votre abonnement est <strong>inactif</strong>. Activez-le pour débloquer les leads et services illimités.',
       cta: 'Activer',
     }
   if (status === 'trial')
@@ -431,6 +424,15 @@ const subscriptionStatusDisplay = computed(() => {
     trial: { label: 'Abonnement', value: 'Essai', badge: '⏳' },
     inactive: { label: 'Abonnement', value: 'Inactif', badge: '!' },
   }[status]
+})
+
+// KPI value for rating: show rating if present, otherwise suggest collecting reviews when none exist
+const ratingKpiValue = computed(() => {
+  const r = coach.value?.rating
+  if (typeof r === 'number' && !Number.isNaN(r)) return r.toFixed(1) + '★'
+  // If no rating and no reviews, prompt coach to collect reviews
+  if (!reviewsLoading.value && myReviews.value.length === 0) return 'Collectez des avis'
+  return '—'
 })
 
 // Determine which profile sections are incomplete; used for progress/UI pills
@@ -560,7 +562,6 @@ const goToMissing = (key: string) => {
 const goToProposals = () => router.push('/coach/proposals')
 const goToServices = () => router.push('/coach/services')
 const goToSubscription = () => router.push('/coach/abonnement')
-const goToSettings = () => router.push('/coach/account')
 const openPublicProfile = () => {
   const id = coach.value?.id
   if (!id) return
@@ -699,6 +700,7 @@ const KpiCard = defineComponent({
     icon: { type: String, required: false },
     badge: { type: String, required: false },
     loading: { type: Boolean, default: false },
+    hint: { type: String, required: false },
     onClick: { type: Function as PropType<() => void>, required: false },
   },
   setup(props) {
@@ -736,6 +738,9 @@ const KpiCard = defineComponent({
             { class: 'mt-1 text-2xl font-semibold text-gray-900 min-h-[2.25rem]' },
             props.loading ? '…' : (props.value ?? '—'),
           ),
+          props.hint
+            ? h('div', { class: 'mt-1 text-[11px] text-gray-500' }, props.hint)
+            : undefined,
         ],
       )
   },

@@ -188,7 +188,11 @@
               </div>
             </div>
             <ul class="flex-1 divide-y divide-gray-100">
-              <li v-for="f in freeFeatures" :key="f.label" class="p-4 flex items-start space-x-3">
+              <li
+                v-for="f in freeFeatures"
+                :key="f.label"
+                class="p-4 flex items-start space-x-3 dark:text-gray-900"
+              >
                 <component
                   :is="f.included ? CheckIcon : XMarkIcon"
                   :class="f.included ? 'text-green-500' : 'text-gray-300'"
@@ -197,14 +201,14 @@
                 <span class="text-sm" :class="!f.included && 'text-gray-500'">{{ f.label }}</span>
               </li>
             </ul>
-            <div class="p-6 border-t border-gray-100">
+            <!-- <div class="p-6 border-t border-gray-100">
               <button
                 @click="goToAccount"
                 class="w-full inline-flex justify-center items-center rounded-md bg-gray-800 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800"
               >
                 Continuer gratuitement
               </button>
-            </div>
+            </div> -->
           </div>
           <!-- Pro Plan -->
           <div
@@ -227,7 +231,11 @@
               </div>
             </div>
             <ul class="flex-1 divide-y divide-gray-100">
-              <li v-for="f in proFeatures" :key="f" class="p-4 flex items-start space-x-3">
+              <li
+                v-for="f in proFeatures"
+                :key="f"
+                class="p-4 flex items-start space-x-3 dark:text-gray-900"
+              >
                 <CheckIcon class="h-5 w-5 mt-0.5 flex-shrink-0 text-green-500" />
                 <span class="text-sm">{{ f }}</span>
               </li>
@@ -297,13 +305,11 @@
 <script setup lang="ts">
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import { CheckIcon, XMarkIcon } from '@heroicons/vue/24/solid'
-import { useRouter, RouterLink } from 'vue-router'
 import { useModernSubscriptionStore } from '@/stores/modernSubscription'
 import { useToast } from '@/composables/useToast'
 import { computed, onMounted, ref } from 'vue'
 import ModernSubscriptionManagement from '@/components/ModernSubscriptionManagement.vue'
 
-const router = useRouter()
 const subscriptionStore = useModernSubscriptionStore()
 const { info: toastInfo, error: toastError } = useToast()
 const isSubscribed = computed(() => subscriptionStore.isSubscribed)
@@ -335,24 +341,24 @@ const freeFeatures: FeatureRow[] = [
   { label: 'Profil coach public', included: true },
   { label: 'Nombre limité de leads (découverte)', included: true },
   { label: 'Création de quelques services de base', included: true },
-  { label: 'Support standard (72h)', included: true },
-  { label: 'Statistiques avancées', included: false },
+  { label: 'Support standard', included: true },
+  // { label: 'Statistiques avancées', included: false },
   { label: 'Support prioritaire 24h', included: false },
   { label: 'Badge coach vérifié', included: false },
   { label: 'Visibilité maximale', included: false },
-  { label: 'Outils marketing', included: false },
-  { label: 'Export des données', included: false },
+  // { label: 'Outils marketing', included: false },
+  // { label: 'Export des données', included: false },
 ]
 
 const proFeatures = [
   'Leads illimités',
   'Services illimités',
-  'Statistiques avancées',
+  // 'Statistiques avancées',
   'Support prioritaire 24h',
   'Badge coach vérifié',
   'Visibilité maximale',
-  'Outils marketing',
-  'Export des données',
+  // 'Outils marketing',
+  // 'Export des données',
 ]
 
 interface ComparisonRow {
@@ -363,23 +369,19 @@ interface ComparisonRow {
 }
 
 const comparisonRows: ComparisonRow[] = [
-  { label: 'Leads', freeIncluded: true, freeText: 'Volume découverte', proText: 'Illimités' },
-  { label: 'Services', freeIncluded: true, freeText: '2', proText: 'Illimités' },
-  { label: 'Statistiques', freeIncluded: false, freeText: '—', proText: 'Avancées' },
+  { label: 'Leads', freeIncluded: true, freeText: '2', proText: 'Illimités' },
+  { label: 'Services', freeIncluded: true, freeText: '1', proText: 'Illimités' },
+  // { label: 'Statistiques', freeIncluded: false, freeText: '—', proText: 'Avancées' },
   {
     label: 'Support',
     freeIncluded: true,
-    freeText: 'Standard (72h)',
+    freeText: 'Standard',
     proText: 'Prioritaire (24h)',
   },
   { label: 'Badge vérifié', freeIncluded: false, freeText: '—', proText: 'Inclus' },
-  { label: 'Marketing', freeIncluded: false, freeText: '—', proText: 'Outils dédiés' },
-  { label: 'Export', freeIncluded: false, freeText: '—', proText: 'Export CSV / données' },
+  // { label: 'Marketing', freeIncluded: false, freeText: '—', proText: 'Outils dédiés' },
+  // { label: 'Export', freeIncluded: false, freeText: '—', proText: 'Export CSV / données' },
 ]
-
-const goToAccount = () => {
-  router.push('/coach/account')
-}
 
 const subscribe = async () => {
   const ok = await subscriptionStore.subscribeWithStripe()

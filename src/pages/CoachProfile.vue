@@ -20,6 +20,15 @@
             <span v-else class="animate-pulse">...</span>
             <input type="file" accept="image/*" class="hidden" @change="handleHeaderAvatar" />
           </label>
+          <button
+            v-if="authStore.user?.id && profileData?.photo && !avatarUploading"
+            @click.prevent="openDeleteAvatarModal"
+            type="button"
+            class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shadow opacity-0 group-hover:opacity-100 transition"
+            title="Supprimer la photo"
+          >
+            ×
+          </button>
         </div>
         <div class="flex-1">
           <h1 class="text-2xl font-bold text-gray-900">{{ profileData?.firstName || 'Coach' }}</h1>
@@ -30,6 +39,20 @@
             :class="avatarMessage.startsWith('Erreur') ? 'text-red-600' : 'text-green-600'"
           >
             {{ avatarMessage }}
+          </p>
+          <p
+            v-else-if="authStore.user?.id && !profileData?.photo"
+            class="text-xs mt-2 text-amber-600 flex items-start gap-1"
+          >
+            <svg class="w-4 h-4 mt-0.5 flex-none" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.5a.75.75 0 00-1.5 0v4.25c0 .414.336.75.75.75h2a.75.75 0 000-1.5h-1.25V6.5zM10 13a1 1 0 100 2 1 1 0 000-2z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            Ajoutez une photo de profil : les coaches avec photo reçoivent beaucoup plus de
+            demandes.
           </p>
         </div>
       </div>
@@ -66,6 +89,59 @@
       />
     </div>
   </CoachLayout>
+  <!-- Delete Avatar Modal -->
+  <transition name="fade">
+    <div
+      v-if="showDeleteAvatarModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="cancelDeleteAvatar"></div>
+      <div
+        class="relative w-full max-w-sm bg-white rounded-xl shadow-lg ring-1 ring-black/5 p-6 space-y-4 animate-scale-in"
+      >
+        <div class="flex items-start space-x-3">
+          <div
+            class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center"
+          >
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm2.28-10.03a.75.75 0 10-1.06-1.06L10 8.94 8.78 7.72a.75.75 0 10-1.06 1.06L8.94 10l-1.22 1.22a.75.75 0 101.06 1.06L10 11.06l1.22 1.22a.75.75 0 101.06-1.06L11.06 10l1.22-1.22z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h2 class="text-sm font-semibold text-gray-900 mb-1">Supprimer la photo ?</h2>
+            <p class="text-xs text-gray-600 leading-relaxed">
+              Cette action retirera votre photo de profil. Vous pourrez toujours en téléverser une
+              nouvelle plus tard.
+            </p>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            @click="cancelDeleteAvatar"
+            class="px-3 py-1.5 rounded-md text-xs font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+          >
+            Annuler
+          </button>
+          <button
+            id="confirm-delete-avatar-btn"
+            type="button"
+            @click="handleDeleteAvatar"
+            :disabled="avatarUploading"
+            class="px-3 py-1.5 rounded-md text-xs font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {{ avatarUploading ? 'Suppression…' : 'Supprimer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </transition>
 </template>
 
 <script setup lang="ts">
@@ -193,6 +269,41 @@ async function handleHeaderAvatar(e: Event) {
   ;(e.target as HTMLInputElement).value = ''
 }
 
+const showDeleteAvatarModal = ref(false)
+
+function openDeleteAvatarModal() {
+  if (!profileData.value?.id) return
+  showDeleteAvatarModal.value = true
+  // Optional: focus later
+  setTimeout(() => {
+    const btn = document.getElementById('confirm-delete-avatar-btn')
+    btn?.focus()
+  }, 50)
+}
+
+function cancelDeleteAvatar() {
+  showDeleteAvatarModal.value = false
+}
+
+async function handleDeleteAvatar() {
+  if (!profileData.value?.id) return
+  try {
+    avatarUploading.value = true
+    await supabaseCoachApi.deleteAvatar(profileData.value.id)
+    headerPhotoOverride.value = null
+    headerPhotoVersion.value++
+    if (authStore.loadCoachProfile) await authStore.loadCoachProfile()
+    avatarMessage.value = 'Photo supprimée'
+  } catch (err) {
+    avatarMessage.value = 'Erreur: ' + ((err as Error)?.message || String(err))
+  } finally {
+    showDeleteAvatarModal.value = false
+    avatarUploading.value = false
+    if (avatarMsgTimeout) window.clearTimeout(avatarMsgTimeout)
+    avatarMsgTimeout = window.setTimeout(() => (avatarMessage.value = ''), 5000)
+  }
+}
+
 // Quick navigation
 interface QuickLink {
   id: string
@@ -250,3 +361,26 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped></style>
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.animate-scale-in {
+  animation: scale-in 0.18s ease;
+}
+@keyframes scale-in {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+</style>
