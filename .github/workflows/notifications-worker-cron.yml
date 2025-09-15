@@ -1,8 +1,7 @@
-name: Notifications Worker Cron
+name: Notifications Worker Manual
 
 on:
-  schedule:
-    - cron: '*/3 * * * *' # every 3 minutes (adjust as needed)
+  # Schedule removed to stop automatic execution. Use UI to run manually.
   workflow_dispatch:
 
 jobs:
