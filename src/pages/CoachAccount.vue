@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels, Switch } from '@headlessui/vue'
-import { CogIcon, EnvelopeIcon, PhoneIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { CogIcon, EnvelopeIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import CoachLayout from '@/layouts/CoachLayout.vue'
 import AccountDeletionModal from '@/components/AccountDeletionModal.vue'
+import { getMyNotificationPrefs, updateMyNotificationPrefs } from '@/services/notificationPrefsApi'
 // Subscription management moved to dedicated Abonnement page
 
 const router = useRouter()
 
 // Account settings
-const emailNotifications = ref(true)
-const smsNotifications = ref(false)
+// Email notification preferences (DB-backed)
+const emailNewLead = ref(true)
+const emailNewReview = ref(true)
+// Other UI toggles (local only)
 const marketingEmails = ref(false)
-const twoFactorAuth = ref(false)
+// const twoFactorAuth = ref(false)
 
 // Auto-save indicator
 const showSavedIndicator = ref(false)
@@ -21,14 +24,10 @@ const showSavedIndicator = ref(false)
 // Account deletion modal
 const showDeletionModal = ref(false)
 
-// Auto-save when settings change
-watch(
-  [emailNotifications, smsNotifications, marketingEmails, twoFactorAuth],
-  () => {
-    saveSettings()
-  },
-  { deep: true },
-)
+// Auto-save when settings change (persist email + marketing prefs)
+watch([emailNewLead, emailNewReview, marketingEmails], () => {
+  saveSettings()
+})
 
 // Tabs - Only account settings and subscription
 
@@ -36,20 +35,17 @@ const tabs = [{ id: 'settings', name: 'Paramètres', icon: CogIcon }]
 
 // Settings functions
 const saveSettings = () => {
-  console.log('Auto-saving settings:', {
-    emailNotifications: emailNotifications.value,
-    smsNotifications: smsNotifications.value,
-    marketingEmails: marketingEmails.value,
-    twoFactorAuth: twoFactorAuth.value,
+  // Persist notification preferences to Supabase
+  updateMyNotificationPrefs({
+    email_new_lead: emailNewLead.value,
+    email_new_review: emailNewReview.value,
+    email_marketing: marketingEmails.value,
   })
-
-  // Show saved indicator
-  showSavedIndicator.value = true
-  setTimeout(() => {
-    showSavedIndicator.value = false
-  }, 2000)
-
-  // TODO: Call API to save settings
+    .then(() => {
+      showSavedIndicator.value = true
+      setTimeout(() => (showSavedIndicator.value = false), 1500)
+    })
+    .catch((e) => console.error('Erreur lors de la sauvegarde des préférences:', e))
 }
 
 const deleteAccount = () => {
@@ -71,6 +67,18 @@ const handleAccountDeleted = () => {
 const closeDeletionModal = () => {
   showDeletionModal.value = false
 }
+
+// Load initial notification preferences
+onMounted(async () => {
+  try {
+    const prefs = await getMyNotificationPrefs()
+    emailNewLead.value = !!prefs.email_new_lead
+    emailNewReview.value = !!prefs.email_new_review
+    marketingEmails.value = !!prefs.email_marketing
+  } catch (e) {
+    console.error('Erreur lors du chargement des préférences de notification:', e)
+  }
+})
 </script>
 
 <template>
@@ -132,31 +140,54 @@ const closeDeletionModal = () => {
                   </div>
 
                   <div class="mt-6 space-y-6">
-                    <!-- Email Notifications -->
+                    <!-- Email: nouvelles demandes -->
                     <div class="flex items-center justify-between">
                       <div class="flex items-center">
                         <EnvelopeIcon class="h-5 w-5 text-gray-400" />
                         <div class="ml-3">
-                          <h3 class="text-sm font-medium text-gray-900">Notifications par email</h3>
+                          <h3 class="text-sm font-medium text-gray-900">Nouvelles demandes</h3>
                           <p class="text-sm text-gray-500">
-                            Recevez des notifications pour les nouvelles propositions et messages
+                            Recevez un email quand vous recevez une nouvelle demande d’un client.
                           </p>
                         </div>
                       </div>
                       <Switch
-                        v-model="emailNotifications"
-                        :class="emailNotifications ? 'bg-blue-600' : 'bg-gray-200'"
+                        v-model="emailNewLead"
+                        :class="emailNewLead ? 'bg-blue-600' : 'bg-gray-200'"
                         class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
                       >
                         <span
-                          :class="emailNotifications ? 'translate-x-5' : 'translate-x-0'"
+                          :class="emailNewLead ? 'translate-x-5' : 'translate-x-0'"
+                          class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                        />
+                      </Switch>
+                    </div>
+
+                    <!-- Email: nouveaux avis -->
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center">
+                        <EnvelopeIcon class="h-5 w-5 text-gray-400" />
+                        <div class="ml-3">
+                          <h3 class="text-sm font-medium text-gray-900">Nouveaux avis</h3>
+                          <p class="text-sm text-gray-500">
+                            Recevez un email lorsqu’un client publie un avis.
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        v-model="emailNewReview"
+                        :class="emailNewReview ? 'bg-blue-600' : 'bg-gray-200'"
+                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+                      >
+                        <span
+                          :class="emailNewReview ? 'translate-x-5' : 'translate-x-0'"
                           class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
                         />
                       </Switch>
                     </div>
 
                     <!-- SMS Notifications -->
-                    <div class="flex items-center justify-between">
+                    <!-- <div class="flex items-center justify-between">
                       <div class="flex items-center">
                         <PhoneIcon class="h-5 w-5 text-gray-400" />
                         <div class="ml-3">
@@ -176,7 +207,7 @@ const closeDeletionModal = () => {
                           class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
                         />
                       </Switch>
-                    </div>
+                    </div> -->
 
                     <!-- Marketing Emails -->
                     <div class="flex items-center justify-between">
@@ -202,7 +233,7 @@ const closeDeletionModal = () => {
                     </div>
 
                     <!-- Two Factor Auth -->
-                    <div class="flex items-center justify-between">
+                    <!-- <div class="flex items-center justify-between">
                       <div class="flex items-center">
                         <CogIcon class="h-5 w-5 text-gray-400" />
                         <div class="ml-3">
@@ -224,7 +255,7 @@ const closeDeletionModal = () => {
                           class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
                         />
                       </Switch>
-                    </div>
+                    </div> -->
                   </div>
 
                   <div class="mt-8 flex justify-end">
