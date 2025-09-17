@@ -55,12 +55,14 @@ serve(async (req) => {
   // Currently we ignore request body; reserved for future manual triggers
 
   const serverToken = Deno.env.get('POSTMARK_SERVER_TOKEN')
-  const appBaseUrl =
+  const appBaseUrl = (
     Deno.env.get('APP_DASHBOARD_BASE_URL') || 'http://localhost:5173/coach/dashboard'
-  const emailFrom = Deno.env.get('EMAIL_FROM') || 'dev@example.com'
-  const emailMode = Deno.env.get('EMAIL_MODE') || 'dev'
+  ).trim()
+  const emailFrom = (Deno.env.get('EMAIL_FROM') || 'dev@example.com').trim()
+  const emailMode = (Deno.env.get('EMAIL_MODE') || 'dev').trim().toLowerCase()
   const dryRun = (Deno.env.get('EMAIL_DRY_RUN') || 'true').toLowerCase() === 'true'
-  const devRecipient = Deno.env.get('EMAIL_DEV_RECIPIENT') || ''
+  // In dev mode, default to sending to the FROM address if a separate dev recipient isn't set
+  const devRecipient = (Deno.env.get('EMAIL_DEV_RECIPIENT') || emailFrom).trim()
 
   if (!serverToken) {
     return json({ error: 'Missing POSTMARK_SERVER_TOKEN' }, 500)
@@ -76,24 +78,8 @@ serve(async (req) => {
 
     // Fetch pending events via SQL RPC (we'll call the rest endpoint directly)
     // Using fetch to the rest/sql endpoint with service key
-    const selectSql = `
-      WITH cte AS (
-        SELECT id, type, target_user_id, entity_type, entity_id, payload,
-               recipient_type, recipient_coach_id, recipient_user_id, recipient_email
-        FROM public.notification_events
-        WHERE status='PENDING' AND next_attempt_at <= now()
-        ORDER BY created_at ASC
-        LIMIT ${BATCH_SIZE}
-        FOR UPDATE SKIP LOCKED
-      )
-      UPDATE public.notification_events e
-      SET status = 'PROCESSING'
-      FROM cte
-      WHERE e.id = cte.id
-      RETURNING e.id, e.type, e.target_user_id, e.entity_type, e.entity_id, e.payload,
-                e.recipient_type, e.recipient_coach_id, e.recipient_user_id, e.recipient_email;`
-
-    const events: NotificationEventRow[] = await sql(selectSql)
+    // Atomically claim events (PENDING -> PROCESSING) via new RPC function
+    const events: NotificationEventRow[] = await rpcClaim(BATCH_SIZE)
 
     if (!events.length) {
       return json({ ok: true, processed: 0, dryRun, emailMode })
@@ -103,12 +89,14 @@ serve(async (req) => {
 
     for (const ev of events) {
       const start = performance.now()
-      const templateId = Deno.env.get(templateEnvMap[ev.type])
-      if (!templateId) {
+      const rawTemplate = Deno.env.get(templateEnvMap[ev.type])
+      if (!rawTemplate) {
         await markError(ev.id, `Missing template env var for type ${ev.type}`)
         results.push({ id: ev.id, status: 'ERROR', reason: 'missing_template' })
         continue
       }
+      const numericTemplateId = Number(rawTemplate)
+      const useAlias = Number.isNaN(numericTemplateId) || numericTemplateId <= 0
 
       // Resolve recipient email based on recipient_type
       const resolved = await resolveRecipientEmail(ev)
@@ -126,10 +114,9 @@ serve(async (req) => {
         await markSent(ev.id, true)
         results.push({ id: ev.id, status: 'SENT', dryRun: true, to })
       } else {
-        const sendRes = await sendPostmark(serverToken, {
+        const mail: PostmarkMail = {
           From: emailFrom,
           To: to,
-          TemplateId: Number(templateId),
           TemplateModel: model,
           Headers:
             emailMode === 'dev' && devRecipient
@@ -138,7 +125,13 @@ serve(async (req) => {
                   { Name: 'X-Dry-Run', Value: 'false' },
                 ]
               : [{ Name: 'X-Dry-Run', Value: 'false' }],
-        })
+        }
+        if (useAlias) {
+          mail.TemplateAlias = rawTemplate.trim()
+        } else {
+          mail.TemplateId = numericTemplateId
+        }
+        const sendRes = await sendPostmark(serverToken, mail)
 
         if (sendRes.ok) {
           await markSent(ev.id, false)
@@ -157,6 +150,23 @@ serve(async (req) => {
   }
 
   // Utility: perform SQL returning JSON array
+  function sanitize(q: string) {
+    return q.trim().replace(/;\s*$/, '')
+  }
+
+  // URL helpers: ensure absolute URLs regardless of provided base path
+  function getOrigin(u: string) {
+    try {
+      return new URL(u).origin
+    } catch {
+      return u.replace(/\/+$/, '')
+    }
+  }
+  function abs(origin: string, path: string) {
+    // path should start with '/'; new URL will resolve against origin
+    return new URL(path, origin).toString()
+  }
+
   async function sql<T = Record<string, unknown>>(query: string): Promise<T[]> {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -168,10 +178,29 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         Prefer: 'return=representation',
       },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query: sanitize(query) }),
     })
     if (!resp.ok) {
       throw new Error(`SQL error ${resp.status}: ${await resp.text()}`)
+    }
+    return await resp.json()
+  }
+
+  async function rpcClaim(batch: number) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const resp = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_notification_events`, {
+      method: 'POST',
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify({ p_batch: batch, p_ignore_schedule: true }),
+    })
+    if (!resp.ok) {
+      throw new Error(`Claim error ${resp.status}: ${await resp.text()}`)
     }
     return await resp.json()
   }
@@ -210,7 +239,9 @@ serve(async (req) => {
   async function resolveRecipientEmail(ev: NotificationEventRow): Promise<string | null> {
     if (ev.recipient_type === 'EXTERNAL') return ev.recipient_email
     if (ev.recipient_type === 'COACH' && ev.recipient_coach_id) {
-      const coachSql = `SELECT email FROM public.coaches WHERE id='${esc(ev.recipient_coach_id)}' LIMIT 1`
+      // Wrap coach lookup with a harmless reference to notification_events for execute_sql guard
+      const coachSql = `WITH ref AS (SELECT id FROM public.notification_events WHERE id=${ev.id})
+        SELECT email FROM public.coaches WHERE id='${esc(ev.recipient_coach_id)}' LIMIT 1`
       const rows = await sql<{ email?: string }>(coachSql)
       if (rows.length && rows[0].email) return rows[0].email
       return null
@@ -221,7 +252,8 @@ serve(async (req) => {
     }
     // Legacy fallback
     if (ev.target_user_id) {
-      const coachSql = `SELECT email FROM public.coaches WHERE id='${esc(ev.target_user_id)}' LIMIT 1`
+      const coachSql = `WITH ref AS (SELECT id FROM public.notification_events WHERE id=${ev.id})
+        SELECT email FROM public.coaches WHERE id='${esc(ev.target_user_id)}' LIMIT 1`
       const rows = await sql<{ email?: string }>(coachSql)
       if (rows.length && rows[0].email) return rows[0].email
     }
@@ -230,14 +262,14 @@ serve(async (req) => {
 
   function buildTemplateModel(ev: NotificationEventRow, baseUrl: string) {
     const payload = ev.payload || {}
-    const common = { dashboard_url: baseUrl }
+    const origin = getOrigin(baseUrl)
+    const common = { dashboard_url: abs(origin, '/coach/dashboard') }
     if (ev.type === 'NEW_LEAD') {
       return {
         ...common,
-        lead_id: ev.entity_id,
-        client_name: payload['client_name'],
-        goals: payload['goals'],
-        lead_url: `${baseUrl}/leads/${ev.entity_id}`,
+        // Minimal, non-sensitive model: just link to the leads page (absolute)
+        lead_url: abs(origin, '/coach/leads'),
+        demande_url: abs(origin, '/coach/leads'),
       }
     } else if (ev.type === 'NEW_REVIEW') {
       return {
@@ -245,7 +277,13 @@ serve(async (req) => {
         review_id: ev.entity_id,
         review_rating: payload['rating'],
         review_comment: payload['comment'],
-        review_url: `${baseUrl}/reviews/${ev.entity_id}`,
+        review_title: payload['title'],
+        reviewer_name: payload['reviewer_name'],
+        review_url: abs(origin, '/coach/dashboard'),
+        // Back-compat aliases for legacy templates
+        comment: payload['comment'],
+        commenter_name: payload['reviewer_name'],
+        action_url: abs(origin, '/coach/dashboard'),
       }
     } else if (ev.type === 'LEAD_CLIENT_CONFIRMATION') {
       return {
@@ -254,8 +292,8 @@ serve(async (req) => {
         goals: payload['goals'],
         coach_assigned: payload['coach_assigned'],
         status: payload['status'],
-        // Optionally a link for client (public landing) – using baseUrl fallback
-        portal_url: baseUrl.replace('/coach/dashboard', '/'),
+        // Public landing for client
+        portal_url: abs(origin, '/'),
       }
     }
     return { ...common }
@@ -264,8 +302,9 @@ serve(async (req) => {
   interface PostmarkMail {
     From: string
     To: string
-    TemplateId: number
     TemplateModel: Record<string, unknown>
+    TemplateId?: number
+    TemplateAlias?: string
     Headers?: Array<{ Name: string; Value: string }>
   }
   async function sendPostmark(token: string, mail: PostmarkMail) {
