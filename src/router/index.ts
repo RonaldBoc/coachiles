@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import HomePage from '@/pages/HomePage.vue'
 import CoachBrowser from '@/pages/CoachBrowser.vue'
 import ServiceBrowser from '@/pages/ServiceBrowser.vue'
 import CoachAccount from '@/pages/CoachAccount.vue'
@@ -35,7 +36,7 @@ import AboutPage from '@/pages/AboutPage.vue'
 import FAQPage from '@/pages/FAQPage.vue'
 
 const routes = [
-  { path: '/', redirect: '/coaches' },
+  { path: '/', component: HomePage, meta: { title: 'Accueil - Coachiles' } },
   { path: '/coaches', component: CoachBrowser, meta: { title: 'Coachs' } },
   { path: '/services', component: ServiceBrowser, meta: { title: 'Services' } },
   { path: '/coach/:id', component: CoachPublicProfile, props: true, meta: { title: 'Coach' } },
