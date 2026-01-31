@@ -982,14 +982,14 @@ watch([selectedSpecialty, sortBy, selectedCountry], ([specialty, sort]) => {
 // Lifecycle
 onMounted(async () => {
   console.log('🏗️ CoachBrowser: Component mounted, loading coaches...')
-  
+
   // Check for specialty query parameter from URL
   const specialtyFromUrl = route.query.specialty as string | undefined
   if (specialtyFromUrl) {
     selectedSpecialty.value = specialtyFromUrl
     isSearchOpen.value = true // Show the search bar with the selected specialty chip
   }
-  
+
   console.log('🔧 Current state:', {
     searchQuery: searchQuery.value,
     selectedSpecialty: selectedSpecialty.value,
