@@ -504,7 +504,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import AppFooter from '@/components/AppFooter.vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { StarIcon } from '@heroicons/vue/24/solid'
 import type { Coach } from '@/types/coach'
 import { useCoachStore } from '@/stores/coach'
@@ -513,6 +513,7 @@ import { supabase } from '@/utils/supabase'
 
 // Router
 const router = useRouter()
+const route = useRoute()
 
 // Coach Store
 const coachStore = useCoachStore()
@@ -981,6 +982,14 @@ watch([selectedSpecialty, sortBy, selectedCountry], ([specialty, sort]) => {
 // Lifecycle
 onMounted(async () => {
   console.log('🏗️ CoachBrowser: Component mounted, loading coaches...')
+  
+  // Check for specialty query parameter from URL
+  const specialtyFromUrl = route.query.specialty as string | undefined
+  if (specialtyFromUrl) {
+    selectedSpecialty.value = specialtyFromUrl
+    isSearchOpen.value = true // Show the search bar with the selected specialty chip
+  }
+  
   console.log('🔧 Current state:', {
     searchQuery: searchQuery.value,
     selectedSpecialty: selectedSpecialty.value,
