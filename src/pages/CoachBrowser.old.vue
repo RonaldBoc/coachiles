@@ -1,10 +1,10 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-white sport-pattern relative">
+  <div class="min-h-screen flex flex-col bg-gradient-to-br from-orange-50 via-white to-blue-50">
     <!-- Header -->
     <header
       ref="headerRef"
-      class="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-sm z-40 transition-all duration-300 border-b border-gray-100"
-      :class="isCondensedHeader ? 'shadow-md' : ''"
+      class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm shadow-sm z-40 transition-all duration-300"
+      :class="isCondensedHeader ? 'shadow-md' : 'shadow-sm'"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
@@ -13,19 +13,17 @@
         >
           <!-- Logo -->
           <div class="flex items-center">
-            <router-link to="/">
-              <img
-                src="/images/logos/logo_coachiles_color.png"
-                alt="Coachiles"
-                class="transition-all duration-300"
-                :class="isCondensedHeader ? 'h-8' : 'h-10 md:h-12'"
-              />
-            </router-link>
+            <h1
+              class="font-black text-transparent bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text tracking-tight transition-all duration-300"
+              :class="isCondensedHeader ? 'text-2xl' : 'text-3xl md:text-4xl'"
+            >
+              Coachiles
+            </h1>
           </div>
           <!-- Become Coach Button -->
           <router-link
             to="/auth"
-            class="bg-lime-500 text-white rounded-full font-bold hover:bg-lime-600 hover:shadow-lg hover:shadow-lime-500/25 transition-all duration-300"
+            class="bg-gradient-to-r from-orange-500 to-blue-600 text-white rounded-full font-bold hover:shadow-lg transition-all duration-300"
             :class="isCondensedHeader ? 'px-4 py-2 text-sm' : 'px-6 py-3'"
           >
             Espace Coach
@@ -41,9 +39,11 @@
     <div class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
       <!-- Main Title -->
       <div class="text-center mb-12">
-        <h1 class="text-5xl md:text-6xl font-black text-slate-900 mb-4 tracking-tight">
+        <h1 class="text-6xl md:text-7xl font-black text-gray-900 mb-4 tracking-tight">
           Trouvez le coach
-          <span class="text-lime-500">parfait</span>
+          <span class="text-transparent bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text">
+            parfait
+          </span>
         </h1>
         <p class="text-xl text-gray-600 font-medium">
           Atteignez vos objectifs avec les meilleurs coachs des Antilles
@@ -59,14 +59,14 @@
               :class="[
                 'group flex items-center border-2 rounded-full bg-white shadow-sm transition-all duration-300 overflow-hidden',
                 isSearchOpen
-                  ? 'w-full md:w-72 px-3 py-2 border-lime-500'
-                  : 'w-12 h-12 justify-center border-gray-200 hover:border-lime-500 cursor-pointer',
+                  ? 'w-full md:w-72 px-3 py-2 border-orange-300'
+                  : 'w-12 h-12 justify-center border-gray-200 hover:border-orange-300 cursor-pointer',
               ]"
               @click="handleSearchWrapperClick"
             >
               <!-- Icon -->
               <svg
-                class="h-5 w-5 text-gray-500 flex-shrink-0 transition-colors duration-300 group-hover:text-lime-500"
+                class="h-5 w-5 text-gray-500 flex-shrink-0 transition-colors duration-300 group-hover:text-orange-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -81,13 +81,13 @@
               <!-- Selected specialty chip -->
               <span
                 v-if="isSearchOpen && selectedSpecialty"
-                class="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-lime-100 text-lime-700 text-xs font-medium"
+                class="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium"
                 @click.stop
               >
                 {{ selectedSpecialty }}
                 <button
                   type="button"
-                  class="ml-1 hover:text-lime-900"
+                  class="ml-1 hover:text-orange-900"
                   aria-label="Retirer la spécialité"
                   @click.stop="removeSelectedSpecialtyChip"
                 >
@@ -102,7 +102,7 @@
                 type="text"
                 inputmode="search"
                 placeholder="Filtrer les spécialités..."
-                class="ml-3 flex-1 bg-transparent outline-none text-base md:text-sm font-medium placeholder-gray-400 text-slate-900"
+                class="ml-3 flex-1 bg-transparent outline-none text-base md:text-sm font-medium placeholder-gray-400"
                 @keydown.esc.stop.prevent="closeSearch"
                 @click.stop="openDropdownFromInput"
                 @focus="openDropdownFromInput"
@@ -122,7 +122,7 @@
             <transition name="fade">
               <div
                 v-if="isSearchOpen && showDropdown"
-                class="absolute left-0 mt-2 w-80 max-h-80 overflow-y-auto bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50"
+                class="absolute left-0 mt-2 w-80 max-h-80 overflow-y-auto bg-white rounded-2xl shadow-lg border border-gray-100 p-3 z-50"
                 @click.stop
               >
                 <div class="flex justify-between items-center mb-2">
@@ -131,7 +131,7 @@
                   >
                   <button
                     type="button"
-                    class="text-xs text-lime-600 hover:underline"
+                    class="text-xs text-orange-600 hover:underline"
                     v-if="selectedSpecialty"
                     @click="clearSelectedSpecialty"
                   >
@@ -153,15 +153,15 @@
                         :class="[
                           'px-3 py-2 rounded-xl text-sm flex items-center gap-2 cursor-pointer transition-colors',
                           selectedSpecialty === spec
-                            ? 'bg-lime-100 text-lime-700 font-semibold'
-                            : 'hover:bg-gray-50 text-gray-700',
+                            ? 'bg-orange-100 text-orange-700 font-semibold'
+                            : 'hover:bg-orange-50 text-gray-700',
                         ]"
                       >
                         <span class="flex-1">{{ spec }}</span>
                         <svg
                           v-if="selectedSpecialty === spec"
                           xmlns="http://www.w3.org/2000/svg"
-                          class="h-4 w-4 text-lime-600"
+                          class="h-4 w-4 text-orange-600"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -179,7 +179,7 @@
                     Aucune spécialité trouvée
                   </li>
                 </ul>
-                <div class="mt-3 border-t border-gray-100 pt-3">
+                <div class="mt-3 border-t pt-3">
                   <p class="text-[11px] leading-snug text-gray-400">
                     Tapez pour filtrer les spécialités ou sélectionnez-en une pour appliquer le
                     filtre.
@@ -198,8 +198,8 @@
             :class="[
               'px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold border-2 transition-all duration-200 flex items-center gap-2',
               selectedCountry === c.code
-                ? 'bg-lime-500 text-white border-transparent shadow-lg shadow-lime-500/25'
-                : 'bg-white text-gray-700 border-gray-200 hover:border-lime-500 hover:text-slate-900',
+                ? 'bg-gradient-to-r from-orange-500 to-blue-600 text-white border-transparent shadow'
+                : 'bg-white text-gray-700 border-gray-200 hover:border-orange-300 hover:text-gray-900',
             ]"
           >
             <span class="text-base md:text-lg">{{ c.emoji }}</span>
@@ -210,7 +210,7 @@
 
       <!-- Category Stickers Bar (dynamic based on coaches' actual specialties) -->
       <div class="mb-12" v-if="specialtyOptions.length">
-        <h2 class="text-base md:text-lg font-bold text-slate-900 tracking-tight mb-1">
+        <h2 class="text-base md:text-lg font-bold text-gray-800 tracking-tight mb-1">
           Catégories populaires
         </h2>
         <div
@@ -231,8 +231,8 @@
               :class="[
                 'flex-shrink-0 px-4 py-2 md:px-6 md:py-3 rounded-full font-bold text-xs md:text-sm transition-all duration-200 transform hover:scale-105',
                 selectedSpecialty === ''
-                  ? 'bg-lime-500 text-white shadow-lg shadow-lime-500/25'
-                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-lime-500',
+                  ? 'bg-gradient-to-r from-orange-500 to-blue-600 text-white shadow-lg'
+                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-orange-300',
               ]"
             >
               🎯 Tous
@@ -244,8 +244,8 @@
               :class="[
                 'flex-shrink-0 px-4 py-2 md:px-6 md:py-3 rounded-full font-bold text-xs md:text-sm transition-all duration-200 transform hover:scale-105 whitespace-nowrap',
                 selectedSpecialty === spec.name
-                  ? 'bg-lime-500 text-white shadow-lg shadow-lime-500/25'
-                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-lime-500',
+                  ? 'bg-gradient-to-r from-orange-500 to-blue-600 text-white shadow-lg'
+                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-orange-300',
               ]"
               :title="spec.count + (spec.count > 1 ? ' coachs' : ' coach')"
             >
@@ -273,10 +273,10 @@
             type="button"
             @click="clearFilters"
             :disabled="!hasActiveFilters"
-            class="px-4 py-2 rounded-full text-xs md:text-sm font-medium border-2 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            class="dark:text-gray-900 px-4 py-2 rounded-full text-xs md:text-sm font-medium border-2 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
             :class="
               hasActiveFilters
-                ? 'border-lime-500 text-lime-600 hover:bg-lime-50'
+                ? 'border-orange-300 text-orange-600 hover:bg-orange-50'
                 : 'border-gray-200 text-gray-400'
             "
             aria-label="Réinitialiser les filtres"
@@ -308,7 +308,7 @@
                     <div class="w-4 h-4 bg-gray-200 rounded shimmer"></div>
                     <div class="h-3 bg-gray-200 rounded w-8 shimmer"></div>
                   </div>
-                  <div class="mx-2 w-1 h-1 bg-gray-300 rounded-full"></div>
+                  <div class="mx-2 w-1 h-1 bg-gray-200 rounded-full"></div>
                   <div class="h-3 bg-gray-200 rounded w-16 shimmer"></div>
                 </div>
                 <!-- Description skeleton -->
@@ -339,7 +339,7 @@
           <div
             v-for="coach in filteredCoaches"
             :key="coach.id"
-            class="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-102 group border border-gray-100 hover:border-lime-300"
+            class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:scale-102 group border border-transparent hover:border-orange-200"
             @click="navigateToCoachProfile(coach)"
           >
             <!-- Photo with overlay -->
@@ -359,23 +359,32 @@
               />
               <!-- Dark gradient overlay -->
               <div
-                class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"
+                class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
               ></div>
 
               <!-- Coach name and location overlay -->
               <div class="absolute bottom-4 right-4 text-right">
                 <h3
-                  class="text-lg font-bold text-white drop-shadow-lg group-hover:text-lime-300 transition-colors duration-300"
+                  class="text-lg font-bold text-white drop-shadow-lg group-hover:text-orange-200 transition-colors duration-300"
                 >
                   {{ coach.firstName }}
                 </h3>
                 <p class="text-sm text-white/90 drop-shadow-md">{{ coach.location }}</p>
               </div>
 
+              <!-- Availability badge -->
+              <!-- <div class="absolute top-4 left-4">
+                <span
+                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                >
+                  Disponible
+                </span>
+              </div> -->
+
               <!-- Certification badge (for coaches with active subscription) -->
               <div v-if="isCoachCertified(coach.id)" class="absolute top-4 right-4">
                 <span
-                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-lime-500/90 text-white shadow-lg"
+                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
                   title="Coach certifié Coachiles"
                 >
                   <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -396,17 +405,17 @@
               <div v-if="(coachReviewCounts.get(coach.id) || 0) > 0" class="flex items-center mb-3">
                 <div class="flex items-center">
                   <StarIcon class="w-4 h-4 text-yellow-400 fill-current" />
-                  <span class="ml-1 text-sm font-semibold text-slate-900">{{ coach.rating }}</span>
+                  <span class="ml-1 text-sm font-semibold text-gray-900">{{ coach.rating }}</span>
                 </div>
                 <span class="mx-2 text-gray-300">•</span>
-                <span class="text-sm text-gray-500"
+                <span class="text-sm text-gray-600"
                   >{{ coachReviewCounts.get(coach.id) || 0 }} avis</span
                 >
               </div>
 
               <!-- Description -->
               <div class="mb-4">
-                <p class="text-sm text-gray-600 line-clamp-2 leading-relaxed">{{ coach.bio }}</p>
+                <p class="text-sm text-gray-700 line-clamp-2 leading-relaxed">{{ coach.bio }}</p>
               </div>
 
               <!-- Specialties -->
@@ -415,7 +424,7 @@
                   <span
                     v-for="specialty in coach.specialties.slice(0, 2)"
                     :key="specialty"
-                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-lime-100 text-lime-700"
+                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800"
                   >
                     {{ specialty }}
                   </span>
@@ -431,12 +440,12 @@
               <!-- Price and contact -->
               <div class="flex justify-between items-center pt-2 border-t border-gray-100">
                 <div class="text-left">
-                  <p class="text-lg font-bold text-slate-900">{{ coach?.hourlyRate }}€</p>
+                  <p class="text-lg font-bold text-gray-900">{{ coach?.hourlyRate }}€</p>
                   <p class="text-xs text-gray-500">de l'heure</p>
                 </div>
                 <button
                   @click.stop="navigateToCoachProfileWithContact(coach)"
-                  class="bg-lime-500 text-white px-4 py-2 rounded-full font-medium hover:bg-lime-600 hover:shadow-lg transition-all duration-200 text-sm"
+                  class="bg-white border-2 border-orange-400 text-orange-600 px-4 py-2 rounded-full font-medium hover:bg-orange-50 hover:border-orange-500 hover:text-orange-700 transition-all duration-200 text-sm"
                 >
                   Contacter
                 </button>
@@ -451,7 +460,7 @@
         <button
           @click="loadMoreCoaches"
           :disabled="isLoading"
-          class="bg-lime-500 text-white px-8 py-3 rounded-full font-bold hover:bg-lime-600 hover:shadow-lg hover:shadow-lime-500/25 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          class="bg-gradient-to-r from-orange-500 to-blue-600 text-white px-8 py-3 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
           <span v-if="isLoading" class="flex items-center">
             <svg
@@ -483,10 +492,7 @@
       <!-- Empty State -->
       <div v-if="filteredCoaches.length === 0 && !isLoading" class="text-center py-12">
         <p class="text-gray-500">Aucun coach trouvé avec ces critères.</p>
-        <button
-          @click="clearFilters"
-          class="mt-4 text-lime-600 hover:text-lime-700 text-sm font-medium"
-        >
+        <button @click="clearFilters" class="mt-4 text-indigo-600 hover:text-indigo-800 text-sm">
           Effacer les filtres
         </button>
       </div>
@@ -755,6 +761,20 @@ const loadGlobalSpecialties = async () => {
     console.error('❌ Unexpected error computing global specialties:', e)
   }
 }
+// Helper function to get coach pricing
+// const getCoachPrice = (coach: Coach): number => {
+//   // Base price calculation based on experience and rating
+//   const basePrice = 35 // Base price in euros
+//   const experienceMultiplier = Math.min(coach.experience * 2, 20) // Max 20€ bonus for experience
+//   const ratingBonus = (coach.rating - 4.0) * 10 // Rating bonus
+//   const specialtyBonus = coach.specialties.some((s) =>
+//     ['Nutrition', 'Préparation physique', 'Powerlifting', 'Tennis'].includes(s),
+//   )
+//     ? 10
+//     : 0 // Premium specialties
+
+//   return Math.round(basePrice + experienceMultiplier + ratingBonus + specialtyBonus)
+// }
 
 // Check subscription status for coaches
 const checkCoachSubscriptions = async (coachIds: string[]) => {
@@ -852,6 +872,10 @@ const searchCoaches = async (_query: string, specialty: string, sort: string, pa
       limit: pageSize.value,
     }
 
+    // Search query from text input intentionally ignored (specialty filtering only)
+
+    // Specialty now filtered client-side to avoid inconsistent server behavior
+
     // Add territory filter if selected (backend matches profile_personal->>territory)
     if (selectedCountry.value) {
       filters.territory = selectedCountry.value
@@ -876,6 +900,8 @@ const searchCoaches = async (_query: string, specialty: string, sort: string, pa
     } else {
       coaches.value = [...coaches.value, ...coachStore.coaches]
     }
+
+    // Debug snippet generation removed
 
     totalCoaches.value = coachStore.total
     hasMore.value = coachStore.coaches.length === pageSize.value // Has more if we got a full page
@@ -955,7 +981,7 @@ watch([selectedSpecialty, sortBy, selectedCountry], ([specialty, sort]) => {
 
 // Lifecycle
 onMounted(async () => {
-  console.log('🏗️ CoachBrowserV2: Component mounted, loading coaches...')
+  console.log('🏗️ CoachBrowser: Component mounted, loading coaches...')
 
   // Check for specialty query parameter from URL
   const specialtyFromUrl = route.query.specialty as string | undefined
@@ -1049,18 +1075,9 @@ h1 {
 
 /* Shimmer animation for skeleton loading */
 .shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-}
-
-/* Sport pattern background */
-.sport-pattern {
-  background-color: #ffffff;
-  background-image:
-    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2384cc16' fill-opacity='0.06'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%2384cc16' stroke-opacity='0.04' stroke-width='1'%3E%3Cpath d='M20 50 L50 20 L80 50 L50 80 Z'/%3E%3C/g%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%2384cc16' stroke-opacity='0.03' stroke-width='1'%3E%3Ccircle cx='40' cy='40' r='15'/%3E%3Cline x1='40' y1='25' x2='40' y2='55'/%3E%3Cline x1='25' y1='40' x2='55' y2='40'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 /* Fade transition for dropdown */

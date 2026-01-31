@@ -4,11 +4,7 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
         <!-- Brand / Mission -->
         <div>
-          <h2
-            class="font-black text-transparent bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text text-2xl tracking-tight mb-3 select-none"
-          >
-            Coachiles
-          </h2>
+          <img src="/images/logos/logo_coachiles_color.png" alt="Coachiles" class="h-10 mb-3" />
           <p class="text-sm leading-relaxed text-gray-600">
             Trouvez le coach qui vous correspond et progressez avec un accompagnement humain et
             motivant.
