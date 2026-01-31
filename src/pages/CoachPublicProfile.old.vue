@@ -1,12 +1,12 @@
 <template>
   <div
-    class="coach-public-profile no-horizontal-overflow min-h-screen bg-white sport-pattern"
+    class="coach-public-profile no-horizontal-overflow min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50"
   >
     <!-- Header -->
     <header
       ref="headerRef"
-      class="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-sm transition-all duration-300 border-b border-gray-100"
-      :class="isCondensedHeader ? 'shadow-md' : ''"
+      class="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-300"
+      :class="isCondensedHeader ? 'shadow-md' : 'shadow-sm'"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-300">
         <div
@@ -35,18 +35,18 @@
                 />
               </svg>
             </button>
-            <img
+            <h1
               @click="router.push('/')"
-              src="/images/logos/logo_coachiles_color.png"
-              alt="Coachiles"
-              class="cursor-pointer transition-all duration-300"
-              :class="isCondensedHeader ? 'h-7' : 'h-9'"
+              class="font-black text-transparent bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text tracking-tight transition-all duration-300 cursor-pointer select-none"
+              :class="isCondensedHeader ? 'text-xl' : 'text-3xl'"
               role="button"
               tabindex="0"
               @keydown.enter="router.push('/')"
               @keydown.space.prevent="router.push('/')"
               aria-label="Aller à l'accueil"
-            />
+            >
+              Coachiles
+            </h1>
           </div>
           <!-- Header Action (dynamic shrink) -->
           <div class="flex items-center">
@@ -55,14 +55,14 @@
               <button
                 v-if="!isCondensedHeader"
                 @click="router.push('/coach/profile')"
-                class="bg-white text-lime-600 px-6 py-3 rounded-full font-semibold border-2 border-lime-500 hover:bg-lime-50 hover:shadow-md transition-all duration-300"
+                class="bg-white text-orange-600 px-6 py-3 rounded-full font-semibold border-2 border-orange-400 hover:bg-orange-50 hover:shadow-md transition-all duration-300"
               >
                 Mon espace coach
               </button>
               <button
                 v-else
                 @click="router.push('/coach/profile')"
-                class="relative inline-flex items-center justify-center rounded-full bg-lime-500 text-white shadow-md hover:shadow-lg hover:bg-lime-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500"
+                class="relative inline-flex items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-blue-600 text-white shadow-md hover:shadow-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                 aria-label="Espace coach"
                 :class="isCondensedHeader ? 'w-10 h-10' : 'w-12 h-12'"
               >
@@ -73,7 +73,7 @@
             <template v-else-if="authStore.isAuthenticated && !authStore.isCoach">
               <button
                 @click="router.push('/coach/onboarding')"
-                class="bg-lime-500 text-white rounded-full font-bold hover:bg-lime-600 hover:shadow-lg transition-all duration-300"
+                class="bg-gradient-to-r from-orange-500 to-blue-600 text-white rounded-full font-bold hover:shadow-lg transition-all duration-300"
                 :class="isCondensedHeader ? 'px-4 py-2 text-sm' : 'px-6 py-3'"
               >
                 Devenir Coach
@@ -83,7 +83,7 @@
             <template v-else>
               <button
                 @click="router.push('/signup')"
-                class="bg-lime-500 text-white rounded-full font-bold hover:bg-lime-600 hover:shadow-lg transition-all duration-300"
+                class="bg-gradient-to-r from-orange-500 to-blue-600 text-white rounded-full font-bold hover:shadow-lg transition-all duration-300"
                 :class="isCondensedHeader ? 'px-4 py-2 text-sm' : 'px-6 py-3'"
               >
                 Devenir Coach
@@ -102,15 +102,13 @@
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-8">
           <!-- Coach Header Info (Mobile) -->
-          <div class="lg:hidden bg-gradient-to-br from-lime-50 to-white rounded-2xl shadow-lg p-6 border-t-4 border-lime-500">
+          <div class="lg:hidden bg-white rounded-2xl shadow-lg p-6">
             <div class="flex items-start space-x-4 mb-6">
               <div class="relative">
-                <!-- Glow effect behind photo -->
-                <div class="absolute inset-0 bg-lime-400/30 blur-lg rounded-full scale-110"></div>
                 <img
                   :src="coach?.photo || '/default-avatar.png'"
                   :alt="`${coach?.firstName}`"
-                  class="relative w-20 h-20 rounded-full object-cover cursor-pointer transition-transform duration-200 hover:scale-[1.03] ring-4 ring-lime-200"
+                  class="w-20 h-20 rounded-full object-cover cursor-pointer transition-transform duration-200 hover:scale-[1.03]"
                   @click="openImagePreview"
                   :srcset="profilePhotoSrcSet"
                   sizes="80px"
@@ -118,9 +116,9 @@
                   decoding="async"
                 />
                 <!-- Certification badge (mobile) -->
-                <div v-if="isAdminCertified" class="absolute -bottom-1 -right-1">
+                <div v-if="isAdminCertified" class="absolute -top-2 -right-2">
                   <span
-                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-lime-500 text-white shadow-lg"
+                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
                     title="Coach certifié Coachiles"
                   >
                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -155,26 +153,26 @@
                     class="w-5 h-5 text-yellow-400 fill-current group-hover:scale-110 transition-transform"
                   />
                   <span
-                    class="ml-1 text-lg font-semibold text-gray-900 group-hover:text-lime-600 transition-colors"
+                    class="ml-1 text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors"
                     >{{ coach?.rating }}</span
                   >
                   <span class="mx-2 text-gray-300">•</span>
-                  <span class="text-gray-600 group-hover:text-lime-600 transition-colors"
+                  <span class="text-gray-600 group-hover:text-orange-600 transition-colors"
                     >{{ reviews.length }} avis</span
                   >
                 </div>
-                <p class="text-lime-600 font-medium">{{ coach?.location }}</p>
+                <p class="text-orange-600 font-medium">{{ coach?.location }}</p>
               </div>
             </div>
 
             <!-- Quick Stats (Mobile) -->
             <div class="grid grid-cols-2 gap-4 mb-6">
-              <div class="text-center p-3 bg-lime-50 rounded-lg">
-                <p class="text-2xl font-bold text-lime-600">{{ coach?.hourlyRate }}€</p>
+              <div class="text-center p-3 bg-orange-50 rounded-lg">
+                <p class="text-2xl font-bold text-orange-600">{{ coach?.hourlyRate }}€</p>
                 <p class="text-sm text-gray-600">par séance</p>
               </div>
-              <div class="text-center p-3 bg-slate-50 rounded-lg">
-                <p class="text-2xl font-bold text-slate-700">{{ coach?.experience }}</p>
+              <div class="text-center p-3 bg-blue-50 rounded-lg">
+                <p class="text-2xl font-bold text-blue-600">{{ coach?.experience }}</p>
                 <p class="text-sm text-gray-600">ans d'expérience</p>
               </div>
             </div>
@@ -183,13 +181,13 @@
             <div class="space-y-3">
               <!-- <button
                 @click="bookFreeTrial"
-                class="w-full bg-lime-500 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                class="w-full bg-gradient-to-r from-orange-500 to-blue-600 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
               >
                 Réserver le 1er cours gratuit
               </button> -->
               <button
                 @click="contactCoach"
-                class="w-full bg-lime-500 text-white py-3 px-6 rounded-full font-semibold hover:bg-lime-600 hover:shadow-lg transition-all duration-200"
+                class="w-full bg-white border-2 border-orange-400 text-orange-600 py-3 px-6 rounded-full font-semibold hover:bg-orange-50 transition-all duration-200"
               >
                 Contacter {{ coach?.firstName }}
               </button>
@@ -202,7 +200,7 @@
             >
               <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-1">
                 <svg
-                  class="w-4 h-4 text-lime-500"
+                  class="w-4 h-4 text-orange-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -233,7 +231,7 @@
                   </svg>
                   <a
                     :href="`mailto:${contactInfo.email}`"
-                    class="text-lime-600 hover:underline"
+                    class="text-orange-600 hover:underline"
                     >{{ contactInfo.email }}</a
                   >
                 </li>
@@ -255,7 +253,7 @@
                     :href="normalizeWebsite(contactInfo.website)"
                     target="_blank"
                     rel="noopener"
-                    class="text-lime-600 hover:underline max-w-[14ch] truncate"
+                    class="text-orange-600 hover:underline max-w-[14ch] truncate"
                     >{{ displayDomain(contactInfo.website) }}</a
                   >
                 </li>
@@ -269,12 +267,12 @@
                     :href="instagramUrl"
                     target="_blank"
                     rel="noopener"
-                    class="text-lime-600 hover:underline max-w-[14ch] truncate"
+                    class="text-orange-600 hover:underline max-w-[14ch] truncate"
                     >{{ instagramHandleDisplay }}</a
                   >
                 </li>
                 <li v-if="contactInfo?.facebook" class="flex items-center gap-2 truncate">
-                  <svg class="w-4 h-4 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
                     <path
                       d="M22 12.07C22 6.48 17.52 2 11.93 2 6.35 2 1.87 6.48 1.87 12.07c0 4.99 3.66 9.13 8.44 9.93v-7.03H7.9v-2.9h2.41V9.41c0-2.38 1.42-3.7 3.6-3.7 1.04 0 2.13.19 2.13.19v2.34h-1.2c-1.18 0-1.55.73-1.55 1.48v1.78h2.64l-.42 2.9h-2.22V22c4.78-.8 8.44-4.94 8.44-9.93z"
                     />
@@ -283,7 +281,7 @@
                     :href="facebookUrl"
                     target="_blank"
                     rel="noopener"
-                    class="text-lime-600 hover:underline max-w-[14ch] truncate"
+                    class="text-orange-600 hover:underline max-w-[14ch] truncate"
                     >{{ facebookHandleDisplay }}</a
                   >
                 </li>
@@ -292,9 +290,8 @@
           </div>
 
           <!-- About / Profile Section -->
-          <div class="bg-gradient-to-br from-lime-50/50 to-white rounded-2xl shadow-lg p-8 border-l-4 border-lime-500">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-              <span class="w-2 h-8 bg-lime-500 rounded-full"></span>
+          <div class="bg-white rounded-2xl shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">
               À propos du coach {{ coach?.firstName }}
               <template v-if="hasPremiumSubscription && coach?.lastName">
                 {{ coach?.lastName }}</template
@@ -403,7 +400,7 @@
                 <span
                   v-for="specialty in coach?.specialties"
                   :key="specialty"
-                  class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-lime-500 text-white shadow-md hover:bg-lime-600 hover:shadow-lg transition-all cursor-default"
+                  class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 border border-orange-200"
                 >
                   {{ specialty }}
                 </span>
@@ -415,7 +412,7 @@
                   <span
                     v-for="lang in coach.languages"
                     :key="lang"
-                    class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-slate-600 text-white shadow-md"
+                    class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200"
                   >
                     {{ lang }}
                   </span>
@@ -428,14 +425,14 @@
           <!-- Services Offered -->
           <div
             v-if="isLoadingServices || coachServices.length > 0"
-            class="bg-gradient-to-br from-slate-50 to-white rounded-2xl shadow-lg p-4 sm:p-8 border-l-4 border-slate-500"
+            class="bg-white rounded-2xl shadow-lg p-4 sm:p-8"
           >
             <div class="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-3"><span class="w-2 h-8 bg-slate-500 rounded-full"></span>Services proposés</h2>
+              <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Services proposés</h2>
               <button
                 @click="coach && loadCoachServices(coach.id)"
                 :disabled="isLoadingServices"
-                class="flex items-center space-x-2 text-gray-500 hover:text-lime-600 transition-colors disabled:opacity-50"
+                class="flex items-center space-x-2 text-gray-500 hover:text-orange-600 transition-colors disabled:opacity-50"
                 title="Actualiser les services"
               ></button>
             </div>
@@ -492,16 +489,16 @@
               <div
                 v-for="service in coachServices"
                 :key="service.id"
-                class="border border-gray-200 rounded-xl p-4 md:p-6 hover:border-lime-400 hover:shadow-md transition-colors md:transition-all duration-200 cursor-pointer md:transform md:hover:scale-[1.02]"
+                class="border border-gray-200 rounded-xl p-4 md:p-6 hover:border-orange-300 hover:shadow-md transition-colors md:transition-all duration-200 cursor-pointer md:transform md:hover:scale-[1.02]"
                 @click="openServiceModal(service)"
               >
                 <div class="flex items-start md:items-center mb-2 md:mb-4">
                   <div
-                    class="w-10 h-10 md:w-12 md:h-12 bg-lime-100 rounded-lg flex items-center justify-center mr-3 md:mr-4"
+                    class="w-10 h-10 md:w-12 md:h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-3 md:mr-4"
                   >
                     <svg
                       v-if="service.canBeSolo && !service.canBeGroup"
-                      class="w-6 h-6 text-lime-600"
+                      class="w-6 h-6 text-orange-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -515,7 +512,7 @@
                     </svg>
                     <svg
                       v-else-if="service.canBeGroup && !service.canBeSolo"
-                      class="w-6 h-6 text-slate-600"
+                      class="w-6 h-6 text-blue-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -551,13 +548,13 @@
                     <div class="mt-1 space-y-0.5">
                       <p
                         v-if="service.canBeSolo && service.soloPrice"
-                        class="text-xs md:text-sm text-lime-600 font-medium"
+                        class="text-xs md:text-sm text-orange-600 font-medium"
                       >
                         Individuel: {{ service.soloPrice }}€/séance
                       </p>
                       <p
                         v-if="service.canBeGroup && service.groupPrice"
-                        class="text-xs md:text-sm text-slate-600 font-medium"
+                        class="text-xs md:text-sm text-blue-600 font-medium"
                       >
                         Groupe: {{ service.groupPrice }}€/séance
                       </p>
@@ -696,19 +693,19 @@
                         <div class="flex-1 text-right leading-snug">
                           <template v-if="modalitiesAvailabilityShortcut === 'all'">
                             <span
-                              class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-lime-100 text-lime-700"
+                              class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
                               >Tous les jours</span
                             >
                           </template>
                           <template v-else-if="modalitiesAvailabilityShortcut === 'weekend'">
                             <span
-                              class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-lime-100 text-lime-700"
+                              class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
                               >Week-end</span
                             >
                           </template>
                           <template v-else-if="modalitiesAvailabilityShortcut === 'weekdays'">
                             <span
-                              class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-lime-100 text-lime-700"
+                              class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
                               >En semaine</span
                             >
                           </template>
@@ -717,7 +714,7 @@
                               <span
                                 v-for="d in modalitiesAvailabilityShortList"
                                 :key="d"
-                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-lime-100 text-lime-700"
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-orange-100 text-orange-700"
                               >
                                 {{ d }}
                               </span>
@@ -751,12 +748,11 @@
           </div>
 
           <!-- Reviews Section -->
-          <div ref="reviewsSection" class="bg-gradient-to-br from-yellow-50/50 to-white rounded-2xl shadow-lg p-8 border-l-4 border-yellow-400" v-if="coach">
+          <div ref="reviewsSection" class="bg-white rounded-2xl shadow-lg p-8" v-if="coach">
             <!-- Header -->
             <div class="flex flex-col md:flex-row md:items-start md:justify-between md:gap-8 mb-6">
               <div class="flex-1">
-                <h2 class="text-2xl font-bold text-gray-900 flex items-center leading-tight gap-3">
-                  <span class="w-2 h-8 bg-yellow-400 rounded-full"></span>
+                <h2 class="text-2xl font-bold text-gray-900 flex items-center leading-tight">
                   <StarIcon class="w-6 h-6 text-yellow-400 mr-2 shrink-0" />
                   <span>
                     Avis récents du coach
@@ -783,7 +779,7 @@
               <div class="mt-4 md:mt-0 md:text-right">
                 <button
                   @click="openReviewModal"
-                  class="inline-flex items-center bg-lime-500 text-white px-5 py-2 rounded-full font-semibold text-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-lime-500"
+                  class="inline-flex items-center bg-gradient-to-r from-orange-500 to-blue-600 text-white px-5 py-2 rounded-full font-semibold text-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-orange-500"
                   :disabled="creatingReview"
                 >
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -845,7 +841,7 @@
               <div v-if="!showAllReviews && approvedReviews.length > 1" class="mt-4 text-center">
                 <button
                   @click="showAllReviews = true"
-                  class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-white border border-lime-300 text-lime-600 hover:bg-lime-50 transition"
+                  class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-white border border-orange-300 text-orange-600 hover:bg-orange-50 transition"
                 >
                   Voir les {{ approvedReviews.length - 1 }} avis supplémentaires
                 </button>
@@ -866,7 +862,7 @@
 
           <!-- Post-Modalités Call To Action -->
           <div
-            class="bg-lime-500 rounded-2xl shadow-lg p-6 sm:p-10 text-white"
+            class="bg-gradient-to-br from-orange-500 via-orange-600 to-blue-600 rounded-2xl shadow-lg p-6 sm:p-10 text-white"
           >
             <h2 class="text-2xl sm:text-3xl font-extrabold mb-4">Prêt à passer à l'action ?</h2>
             <p class="text-base sm:text-lg leading-relaxed mb-6 max-w-3xl">
@@ -877,7 +873,7 @@
             <div class="flex flex-col sm:flex-row gap-3">
               <button
                 @click="contactCoach"
-                class="inline-flex items-center justify-center px-8 py-4 rounded-full bg-white text-lime-600 font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
+                class="inline-flex items-center justify-center px-8 py-4 rounded-full bg-white text-orange-600 font-bold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
               >
                 Contacter {{ coach?.firstName }} maintenant
               </button>
@@ -900,7 +896,7 @@
               <div
                 v-for="similarCoach in similarCoaches"
                 :key="similarCoach.id"
-                class="border border-gray-200 rounded-xl p-4 hover:border-lime-400 transition-colors cursor-pointer"
+                class="border border-gray-200 rounded-xl p-4 hover:border-orange-300 transition-colors cursor-pointer"
                 @click="navigateToCoach(similarCoach.id)"
               >
                 <div class="flex items-center space-x-4 mb-4">
@@ -951,14 +947,13 @@
         <div class="hidden lg:block">
           <div class="sticky top-24">
             <!-- Coach Info Card -->
-            <div class="bg-gradient-to-br from-lime-50 to-white rounded-2xl shadow-lg p-6 mb-6 border-t-4 border-lime-500">
+            <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
               <div class="text-center mb-6">
                 <div class="relative w-fit mx-auto">
-                  <div class="absolute inset-0 bg-lime-400/20 rounded-full blur-xl transform scale-110"></div>
                   <img
                     :src="coach?.photo || '/default-avatar.png'"
                     :alt="`${coach?.firstName}`"
-                    class="relative w-32 h-32 rounded-full object-cover mb-4 cursor-pointer transition-transform duration-200 hover:scale-[1.03] ring-4 ring-lime-100"
+                    class="w-32 h-32 rounded-full object-cover mb-4 cursor-pointer transition-transform duration-200 hover:scale-[1.03]"
                     @click="openImagePreview"
                     :srcset="profilePhotoSrcSet"
                     sizes="128px"
@@ -966,9 +961,9 @@
                     decoding="async"
                   />
                   <!-- Certification badge (desktop) -->
-                  <div v-if="isAdminCertified" class="absolute -bottom-1 -right-1">
+                  <div v-if="isAdminCertified" class="absolute -top-2 -right-2">
                     <span
-                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-lime-500 text-white shadow-lg"
+                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
                       title="Coach certifié Coachiles"
                     >
                       <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -987,7 +982,7 @@
                 </h1>
                 <div
                   v-if="reviews.length > 0"
-                  class="flex items-center justify-center mb-2 cursor-pointer select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-500 rounded-md"
+                  class="flex items-center justify-center mb-2 cursor-pointer select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-md"
                   role="button"
                   tabindex="0"
                   aria-label="Voir les avis du coach"
@@ -999,25 +994,25 @@
                     class="w-5 h-5 text-yellow-400 fill-current transition-transform group-hover:scale-110"
                   />
                   <span
-                    class="ml-1 text-lg font-semibold text-gray-900 transition-colors group-hover:text-lime-600"
+                    class="ml-1 text-lg font-semibold text-gray-900 transition-colors group-hover:text-orange-600"
                     >{{ coach?.rating }}</span
                   >
                   <span class="mx-2 text-gray-300">•</span>
-                  <span class="text-gray-600 transition-colors group-hover:text-lime-600"
+                  <span class="text-gray-600 transition-colors group-hover:text-orange-600"
                     >{{ reviews.length }} avis</span
                   >
                 </div>
-                <p class="text-lime-600 font-medium">{{ coach?.location }}</p>
+                <p class="text-orange-600 font-medium">{{ coach?.location }}</p>
               </div>
 
               <!-- Key Stats -->
               <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="text-center p-3 bg-lime-50 rounded-xl border border-lime-200">
-                  <p class="text-2xl font-bold text-lime-600">{{ coach?.hourlyRate }}€</p>
+                <div class="text-center p-3 bg-orange-50 rounded-lg">
+                  <p class="text-2xl font-bold text-orange-600">{{ coach?.hourlyRate }}€</p>
                   <p class="text-sm text-gray-600">par séance</p>
                 </div>
-                <div class="text-center p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <p class="text-2xl font-bold text-slate-600">{{ coach?.experience }}</p>
+                <div class="text-center p-3 bg-blue-50 rounded-lg">
+                  <p class="text-2xl font-bold text-blue-600">{{ coach?.experience }}</p>
                   <p class="text-sm text-gray-600">ans d'expérience</p>
                 </div>
                 <!-- <div class="text-center p-3 bg-green-50 rounded-lg">
@@ -1037,7 +1032,7 @@
                   <span
                     v-for="specialty in coach?.specialties?.slice(0, 4)"
                     :key="specialty"
-                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-lime-100 text-lime-700"
+                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800"
                   >
                     {{ specialty }}
                   </span>
@@ -1048,13 +1043,13 @@
               <div class="space-y-3">
                 <!-- <button
                   @click="bookFreeTrial"
-                  class="w-full bg-lime-500 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                  class="w-full bg-gradient-to-r from-orange-500 to-blue-600 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
                 >
                   Réserver le 1er cours gratuit
                 </button> -->
                 <button
                   @click="contactCoach"
-                  class="w-full bg-lime-500 text-white py-3 px-6 rounded-full font-bold hover:bg-lime-600 hover:shadow-xl hover:shadow-lime-500/30 transform hover:scale-105 transition-all duration-200"
+                  class="w-full bg-gradient-to-r from-orange-500 to-blue-600 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
                 >
                   Contacter {{ coach?.firstName }}
                 </button>
@@ -1067,7 +1062,7 @@
               >
                 <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-1">
                   <svg
-                    class="w-4 h-4 text-lime-500"
+                    class="w-4 h-4 text-orange-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1098,7 +1093,7 @@
                     </svg>
                     <a
                       :href="`mailto:${contactInfo.email}`"
-                      class="text-lime-600 hover:underline"
+                      class="text-orange-600 hover:underline"
                       >{{ contactInfo.email }}</a
                     >
                   </li>
@@ -1120,7 +1115,7 @@
                       :href="normalizeWebsite(contactInfo.website)"
                       target="_blank"
                       rel="noopener"
-                      class="text-lime-600 hover:underline max-w-[14ch] truncate"
+                      class="text-orange-600 hover:underline max-w-[14ch] truncate"
                       >{{ displayDomain(contactInfo.website) }}</a
                     >
                   </li>
@@ -1134,12 +1129,12 @@
                       :href="instagramUrl"
                       target="_blank"
                       rel="noopener"
-                      class="text-lime-600 hover:underline max-w-[14ch] truncate"
+                      class="text-orange-600 hover:underline max-w-[14ch] truncate"
                       >{{ instagramHandleDisplay }}</a
                     >
                   </li>
                   <li v-if="contactInfo?.facebook" class="flex items-center gap-2 truncate">
-                    <svg class="w-4 h-4 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
                       <path
                         d="M22 12.07C22 6.48 17.52 2 11.93 2 6.35 2 1.87 6.48 1.87 12.07c0 4.99 3.66 9.13 8.44 9.93v-7.03H7.9v-2.9h2.41V9.41c0-2.38 1.42-3.7 3.6-3.7 1.04 0 2.13.19 2.13.19v2.34h-1.2c-1.18 0-1.55.73-1.55 1.48v1.78h2.64l-.42 2.9h-2.22V22c4.78-.8 8.44-4.94 8.44-9.93z"
                       />
@@ -1148,7 +1143,7 @@
                       :href="facebookUrl"
                       target="_blank"
                       rel="noopener"
-                      class="text-lime-600 hover:underline max-w-[14ch] truncate"
+                      class="text-orange-600 hover:underline max-w-[14ch] truncate"
                       >{{ facebookHandleDisplay }}</a
                     >
                   </li>
@@ -1206,7 +1201,7 @@
         </p>
         <div class="space-y-4">
           <button
-            class="w-full bg-lime-500 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transition-all duration-200"
+            class="w-full bg-gradient-to-r from-orange-500 to-blue-600 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transition-all duration-200"
           >
             Choisir un créneau
           </button>
@@ -1231,11 +1226,11 @@
         <div class="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
-              <div class="w-12 h-12 bg-lime-100 rounded-lg flex items-center justify-center">
+              <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
                 <!-- Service icon based on type -->
                 <svg
                   v-if="selectedService.canBeSolo && !selectedService.canBeGroup"
-                  class="w-6 h-6 text-lime-600"
+                  class="w-6 h-6 text-orange-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1249,7 +1244,7 @@
                 </svg>
                 <svg
                   v-else-if="selectedService.canBeGroup && !selectedService.canBeSolo"
-                  class="w-6 h-6 text-slate-600"
+                  class="w-6 h-6 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1307,7 +1302,7 @@
         <!-- Modal Content -->
         <div class="p-6 space-y-6">
           <!-- Pricing Section -->
-          <div class="bg-gradient-to-r from-lime-50 to-slate-50 rounded-xl p-6">
+          <div class="bg-gradient-to-r from-orange-50 to-blue-50 rounded-xl p-6">
             <h4 class="text-lg font-semibold text-gray-900 mb-4">Tarifs</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div
@@ -1317,12 +1312,12 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-sm text-gray-600">Cours particulier</p>
-                    <p class="text-2xl font-bold text-lime-600">
+                    <p class="text-2xl font-bold text-orange-600">
                       {{ selectedService.soloPrice }}€
                     </p>
                   </div>
                   <svg
-                    class="w-8 h-8 text-lime-600"
+                    class="w-8 h-8 text-orange-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1346,12 +1341,12 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-sm text-gray-600">Cours en groupe</p>
-                    <p class="text-2xl font-bold text-slate-600">
+                    <p class="text-2xl font-bold text-blue-600">
                       {{ selectedService.groupPrice }}€
                     </p>
                   </div>
                   <svg
-                    class="w-8 h-8 text-slate-600"
+                    class="w-8 h-8 text-blue-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1406,19 +1401,19 @@
                   <div class="text-right">
                     <template v-if="availabilityShortcut === 'all'">
                       <span
-                        class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-lime-100 text-lime-700"
+                        class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
                         >Tous les jours</span
                       >
                     </template>
                     <template v-else-if="availabilityShortcut === 'weekend'">
                       <span
-                        class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-lime-100 text-lime-700"
+                        class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
                         >Week-end</span
                       >
                     </template>
                     <template v-else-if="availabilityShortcut === 'weekdays'">
                       <span
-                        class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-lime-100 text-lime-700"
+                        class="inline-block text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700"
                         >En semaine</span
                       >
                     </template>
@@ -1427,7 +1422,7 @@
                         <span
                           v-for="slot in normalizedAvailability"
                           :key="slot.day"
-                          class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-lime-100 text-lime-700"
+                          class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-orange-100 text-orange-700"
                         >
                           {{ slot.short }}
                         </span>
@@ -1571,7 +1566,7 @@
           <div class="flex space-x-4">
             <button
               @click="contactCoachFromService"
-              class="flex-1 bg-lime-500 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              class="flex-1 bg-gradient-to-r from-orange-500 to-blue-600 text-white py-3 px-6 rounded-full font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200"
             >
               Contacter {{ coach?.firstName }}
             </button>
@@ -1628,7 +1623,7 @@
                         type="text"
                         required
                         maxlength="50"
-                        class="dark:text-gray-900 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-lime-500"
+                        class="dark:text-gray-900 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                     <div>
@@ -1641,7 +1636,7 @@
                         type="email"
                         required
                         maxlength="120"
-                        class="dark:text-gray-900 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-lime-500"
+                        class="dark:text-gray-900 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                     <div>
@@ -1674,7 +1669,7 @@
                         v-model.trim="reviewForm.comment"
                         rows="4"
                         maxlength="1000"
-                        class="dark:text-gray-900 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-lime-500"
+                        class="dark:text-gray-900 w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                         placeholder="Partagez votre expérience (facultatif)"
                       ></textarea>
                     </div>
@@ -1692,7 +1687,7 @@
                       <button
                         type="submit"
                         :disabled="creatingReview || !reviewForm.rating"
-                        class="px-5 py-2 rounded-md bg-lime-500 text-white font-semibold disabled:opacity-50 flex items-center"
+                        class="px-5 py-2 rounded-md bg-gradient-to-r from-orange-500 to-blue-600 text-white font-semibold disabled:opacity-50 flex items-center"
                       >
                         <span v-if="!creatingReview">Envoyer</span>
                         <span v-else class="flex items-center">
@@ -1734,7 +1729,7 @@
                   </p>
                   <button
                     @click="closeReviewModal"
-                    class="mt-6 px-5 py-2 rounded-full bg-lime-500 text-white font-semibold"
+                    class="mt-6 px-5 py-2 rounded-full bg-gradient-to-r from-orange-500 to-blue-600 text-white font-semibold"
                   >
                     Fermer
                   </button>
@@ -2637,14 +2632,5 @@ const highResPhoto = computed(() => {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
-}
-
-/* Sport pattern background */
-.sport-pattern {
-  background-color: #ffffff;
-  background-image:
-    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2384cc16' fill-opacity='0.06'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%2384cc16' stroke-opacity='0.04' stroke-width='1'%3E%3Cpath d='M20 50 L50 20 L80 50 L50 80 Z'/%3E%3C/g%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%2384cc16' stroke-opacity='0.03' stroke-width='1'%3E%3Ccircle cx='40' cy='40' r='15'/%3E%3Cline x1='40' y1='25' x2='40' y2='55'/%3E%3Cline x1='25' y1='40' x2='55' y2='40'/%3E%3C/g%3E%3C/svg%3E");
 }
 </style>
