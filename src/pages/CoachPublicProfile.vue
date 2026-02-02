@@ -1788,6 +1788,7 @@ import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } fro
 import { CheckIcon } from '@heroicons/vue/24/outline'
 import type { Review } from '@/types/review'
 import AppFooter from '@/components/AppFooter.vue'
+import { useSeo, useCoachSchema, useBreadcrumbSchema } from '@/composables/useSeo'
 
 // Router
 const route = useRoute()
@@ -1807,6 +1808,63 @@ const showServiceModal = ref(false)
 const selectedService = ref<CoachService | null>(null)
 const isLoading = ref(false)
 const isLoadingServices = ref(false)
+
+// Dynamic SEO based on coach data
+const seoTitle = computed(() => {
+  if (!coach.value) return 'Profil Coach | Coachiles'
+  const name = coach.value.firstName
+  const specialty = coach.value.specialties?.[0] || 'Coach'
+  return `${name} - ${specialty} | Coachiles`
+})
+
+const seoDescription = computed(() => {
+  if (!coach.value) return 'Découvrez ce coach sur Coachiles'
+  const name = coach.value.firstName
+  const specialty = coach.value.specialties?.[0] || 'Coach professionnel'
+  const location = coach.value.location || ''
+  const bio = coach.value.bio?.slice(0, 120) || ''
+  return `${name}, ${specialty}${location ? ` à ${location}` : ''}. ${bio}${bio.length >= 120 ? '...' : ''} Réservez votre séance sur Coachiles.`
+})
+
+const seoKeywords = computed(() => {
+  const keywords = ['coach', 'coaching']
+  if (coach.value?.location) keywords.push(`coach ${coach.value.location.toLowerCase()}`)
+  if (coach.value?.specialties) {
+    coach.value.specialties.forEach(s => keywords.push(s.toLowerCase()))
+  }
+  return keywords
+})
+
+// Apply SEO
+useSeo({
+  title: seoTitle,
+  description: seoDescription,
+  url: computed(() => coach.value ? `/coach/${coach.value.id}` : '/coaches'),
+  image: computed(() => coach.value?.photo),
+  keywords: seoKeywords,
+})
+
+// Schema.org for coach - applied when coach data is available
+watch(coach, (newCoach) => {
+  if (newCoach) {
+    useCoachSchema({
+      name: newCoach.firstName + (newCoach.lastName ? ` ${newCoach.lastName.charAt(0)}.` : ''),
+      description: newCoach.bio || `Coach ${newCoach.specialties?.[0] || 'professionnel'}`,
+      image: newCoach.photo,
+      url: `/coach/${newCoach.id}`,
+      specialties: newCoach.specialties || [],
+      location: newCoach.location,
+      rating: newCoach.rating,
+      reviewCount: newCoach.totalClients,
+    })
+
+    useBreadcrumbSchema([
+      { name: 'Accueil', url: '/' },
+      { name: 'Coachs', url: '/coaches' },
+      { name: newCoach.firstName, url: `/coach/${newCoach.id}` },
+    ])
+  }
+}, { immediate: true })
 // Image preview modal
 const showImagePreview = ref(false)
 const openImagePreview = () => {

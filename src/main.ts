@@ -2,6 +2,7 @@ import './assets/main.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { createHead } from '@unhead/vue'
 
 import App from './App.vue'
 import router from './router'
@@ -9,9 +10,11 @@ import router from './router'
 async function initializeApp() {
   const app = createApp(App)
   const pinia = createPinia()
+  const head = createHead()
 
   app.use(pinia)
   app.use(router)
+  app.use(head)
 
   // Initialize auth store early and wait for it to complete
   const { useAuthStore } = await import('./stores/auth')

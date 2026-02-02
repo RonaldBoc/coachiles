@@ -504,6 +504,39 @@ import type { Coach } from '@/types/coach'
 import { useCoachStore } from '@/stores/coach'
 import { SPECIALTY_OPTIONS } from '@/constants/coachOptions'
 import { supabase } from '@/utils/supabase'
+import { useSeo, useServiceCategorySchema, useBreadcrumbSchema } from '@/composables/useSeo'
+
+// SEO Configuration
+useSeo({
+  title: 'Trouver un coach | Annuaire des coachs certifiés',
+  description:
+    'Parcourez notre annuaire de coachs certifiés : coach sportif, coach de vie, nutritionniste, préparateur mental. Filtrez par spécialité et trouvez le coach idéal.',
+  url: '/coaches',
+  keywords: [
+    'annuaire coach',
+    'trouver un coach',
+    'coach certifié',
+    'coach sportif',
+    'coach fitness',
+    'coach musculation',
+    'coach perte de poids',
+    'coach nutrition',
+    'coach bien-être',
+    'réserver coach',
+  ],
+})
+
+// Schema.org pour la page de recherche
+useServiceCategorySchema({
+  name: 'Annuaire des coachs - Coachiles',
+  description: 'Trouvez et réservez votre coach parmi notre sélection de professionnels certifiés',
+  url: '/coaches',
+})
+
+useBreadcrumbSchema([
+  { name: 'Accueil', url: '/' },
+  { name: 'Trouver un coach', url: '/coaches' },
+])
 
 // Router
 const router = useRouter()

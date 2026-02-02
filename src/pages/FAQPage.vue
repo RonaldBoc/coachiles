@@ -149,5 +149,69 @@
 </template>
 
 <script setup lang="ts">
-// Static FAQ page
+import { useSeo, useFaqSchema, useBreadcrumbSchema } from '@/composables/useSeo'
+
+// SEO Configuration
+useSeo({
+  title: 'FAQ | Questions fréquentes sur le coaching',
+  description:
+    'Trouvez les réponses à vos questions : comment trouver un coach, comment devenir coach, les avis, la confidentialité et plus encore.',
+  url: '/faq',
+  keywords: [
+    'FAQ coaching',
+    'questions coaching',
+    'trouver un coach',
+    'devenir coach',
+    'avis coach',
+  ],
+})
+
+// Schema.org FAQ pour un meilleur référencement
+useFaqSchema([
+  {
+    question: 'Comment trouver le bon coach ?',
+    answer:
+      'Utilisez la recherche par spécialité ou ville, puis consultez les profils : note, expérience, services proposés et avis publiés après modération. Vous pouvez aussi contacter plusieurs coachs pour affiner votre choix.',
+  },
+  {
+    question: 'Les avis sont-ils vérifiés ?',
+    answer:
+      "Oui. Chaque avis est examiné manuellement avant publication. Les réponses des coachs peuvent être masquées par l'équipe si elles ne respectent pas nos standards.",
+  },
+  {
+    question: 'Comment contacter un coach ?',
+    answer:
+      'Depuis la fiche publique du coach, cliquez sur "Contacter". Un formulaire simple vous permet de transmettre vos objectifs et disponibilités.',
+  },
+  {
+    question: 'Comment devenir coach sur Coachiles ?',
+    answer:
+      "Créez un compte puis complétez votre profil via l'espace coach (photo, bio, spécialités, services...). Certaines fonctionnalités avancées nécessitent un abonnement actif.",
+  },
+  {
+    question: 'Comment les notes sont-elles calculées ?',
+    answer:
+      "La note moyenne d'un coach est recalculée uniquement à l'approbation d'un avis. Seuls les avis publiés comptent dans la moyenne.",
+  },
+  {
+    question: 'Puis-je répondre aux avis ?',
+    answer:
+      'Oui, une seule réponse par avis est possible. Elle peut être modérée ou masquée si nécessaire.',
+  },
+  {
+    question: 'Que faites-vous de mes données ?',
+    answer:
+      "Nous collectons uniquement les informations nécessaires au bon fonctionnement de la plateforme. Vous pouvez demander la suppression ou la réactivation d'un compte via les fonctionnalités prévues à cet effet.",
+  },
+  {
+    question: 'Comment supprimer mon compte ?',
+    answer:
+      'Une procédure de suppression avec délai de sécurité est disponible dans votre espace. Vous pouvez annuler la suppression pendant la période tampon prévue.',
+  },
+])
+
+useBreadcrumbSchema([
+  { name: 'Accueil', url: '/' },
+  { name: 'FAQ', url: '/faq' },
+])
 </script>

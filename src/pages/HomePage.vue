@@ -835,6 +835,33 @@
 import { ref, onMounted, computed, h } from 'vue'
 import { supabaseCoachApi } from '@/services/supabaseCoachApi'
 import type { Coach } from '@/types/coach'
+import { useSeo, useOrganizationSchema, useWebsiteSchema } from '@/composables/useSeo'
+
+// SEO Configuration
+useSeo({
+  title: 'Coachiles | Trouvez votre coach sportif, de vie ou professionnel',
+  description:
+    'Trouvez le coach idéal parmi nos coachs certifiés : coach sportif, coach de vie, coach professionnel, nutrition, yoga, musculation. Comparez et réservez facilement.',
+  url: '/',
+  keywords: [
+    'coach sportif',
+    'coach de vie',
+    'coach professionnel',
+    'coaching personnel',
+    'trouver un coach',
+    'coach fitness',
+    'coach musculation',
+    'coach nutrition',
+    'coach yoga',
+    'coach running',
+    'préparation mentale',
+    'coaching France',
+  ],
+})
+
+// Schema.org pour le SEO
+useOrganizationSchema()
+useWebsiteSchema()
 
 // Mobile menu state
 const mobileMenuOpen = ref(false)
