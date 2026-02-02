@@ -4,7 +4,9 @@ test.describe('Authentication', () => {
   test('should display login/signup on homepage', async ({ page }) => {
     await page.goto('/')
     // Look for auth buttons
-    const authElements = page.locator('a[href*="/signup"], a[href*="/auth"], button:has-text("Sign")')
+    const authElements = page.locator(
+      'a[href*="/signup"], a[href*="/auth"], button:has-text("Sign")',
+    )
     await expect(authElements.first()).toBeVisible()
   })
 
@@ -27,12 +29,17 @@ test.describe('Authentication', () => {
   })
 
   test('should display coach signup form if navigated to coach signup', async ({ page }) => {
-    const coachSignupExists = await page.goto('/signup').then(() => true).catch(() => false)
+    const coachSignupExists = await page
+      .goto('/signup')
+      .then(() => true)
+      .catch(() => false)
     if (coachSignupExists) {
       const form = page.locator('form').first()
       if (await form.isVisible()) {
         // Form should have input fields
-        const inputs = page.locator('input[type="email"], input[type="text"], input[type="password"]')
+        const inputs = page.locator(
+          'input[type="email"], input[type="text"], input[type="password"]',
+        )
         await expect(inputs.first()).toBeVisible()
       }
     }

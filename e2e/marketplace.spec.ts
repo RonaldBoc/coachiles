@@ -34,7 +34,9 @@ test.describe('Coach Marketplace', () => {
   test('should filter coaches by services', async ({ page }) => {
     await page.goto('/coaches')
     // Look for filter options
-    const filterButton = page.locator('[data-testid="filter-button"], button:has-text("Filter")').first()
+    const filterButton = page
+      .locator('[data-testid="filter-button"], button:has-text("Filter")')
+      .first()
     if (await filterButton.isVisible()) {
       await filterButton.click()
       // Wait for filter modal/dropdown
