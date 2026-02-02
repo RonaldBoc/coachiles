@@ -90,17 +90,13 @@
         <p class="text-xs text-gray-500">© {{ year }} Coachiles. Tous droits réservés.</p>
         <div class="flex items-center gap-4 text-xs text-gray-500">
           <RouterLink
-            to="/a-propos#mentions-legales"
+            to="/cgu"
             class="hover:text-orange-600 transition-colors"
-            >Mentions légales</RouterLink
+            >CGU</RouterLink
           >
           <span class="hidden sm:inline text-gray-300">•</span>
-          <RouterLink to="/a-propos#confidentialite" class="hover:text-orange-600 transition-colors"
-            >Confidentialité</RouterLink
-          >
-          <span class="hidden sm:inline text-gray-300">•</span>
-          <RouterLink to="/a-propos#cookies" class="hover:text-orange-600 transition-colors"
-            >Cookies</RouterLink
+          <RouterLink to="/privacy" class="hover:text-orange-600 transition-colors"
+            >Politique de confidentialité</RouterLink
           >
         </div>
       </div>

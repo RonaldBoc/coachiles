@@ -34,6 +34,8 @@ import CoachDisabled from '@/pages/CoachDisabled.vue'
 import ContactPage from '@/pages/ContactPage.vue'
 import AboutPage from '@/pages/AboutPage.vue'
 import FAQPage from '@/pages/FAQPage.vue'
+import PrivacyPolicy from '@/pages/PrivacyPolicy.vue'
+import TermsOfService from '@/pages/TermsOfService.vue'
 
 const routes = [
   { path: '/', component: HomePage, meta: { title: 'Accueil - Coachiles' } },
@@ -163,6 +165,8 @@ const routes = [
   { path: '/contact', component: ContactPage, meta: { title: 'Contact' } },
   { path: '/a-propos', component: AboutPage, meta: { title: 'À propos' } },
   { path: '/faq', component: FAQPage, meta: { title: 'FAQ' } },
+  { path: '/privacy', component: PrivacyPolicy, meta: { title: 'Politique de confidentialité' } },
+  { path: '/cgu', component: TermsOfService, meta: { title: 'Conditions générales d\'utilisation' } },
   // Legacy routes for backward compatibility
   { path: '/CoachProfile', redirect: '/coach/profile' },
   { path: '/CoachAccount', redirect: '/coach/account' },

@@ -824,11 +824,6 @@
             <router-link to="/privacy" class="text-gray-400 hover:text-white transition-colors"
               >Politique de confidentialité</router-link
             >
-            <router-link
-              to="/mentions-legales"
-              class="text-gray-400 hover:text-white transition-colors"
-              >Mentions légales</router-link
-            >
           </div>
         </div>
       </div>
