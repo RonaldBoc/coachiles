@@ -89,11 +89,7 @@
       >
         <p class="text-xs text-gray-500">© {{ year }} Coachiles. Tous droits réservés.</p>
         <div class="flex items-center gap-4 text-xs text-gray-500">
-          <RouterLink
-            to="/cgu"
-            class="hover:text-orange-600 transition-colors"
-            >CGU</RouterLink
-          >
+          <RouterLink to="/cgu" class="hover:text-orange-600 transition-colors">CGU</RouterLink>
           <span class="hidden sm:inline text-gray-300">•</span>
           <RouterLink to="/privacy" class="hover:text-orange-600 transition-colors"
             >Politique de confidentialité</RouterLink

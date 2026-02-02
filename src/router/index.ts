@@ -166,7 +166,11 @@ const routes = [
   { path: '/a-propos', component: AboutPage, meta: { title: 'À propos' } },
   { path: '/faq', component: FAQPage, meta: { title: 'FAQ' } },
   { path: '/privacy', component: PrivacyPolicy, meta: { title: 'Politique de confidentialité' } },
-  { path: '/cgu', component: TermsOfService, meta: { title: 'Conditions générales d\'utilisation' } },
+  {
+    path: '/cgu',
+    component: TermsOfService,
+    meta: { title: "Conditions générales d'utilisation" },
+  },
   // Legacy routes for backward compatibility
   { path: '/CoachProfile', redirect: '/coach/profile' },
   { path: '/CoachAccount', redirect: '/coach/account' },
