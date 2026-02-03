@@ -504,32 +504,37 @@ import type { Coach } from '@/types/coach'
 import { useCoachStore } from '@/stores/coach'
 import { SPECIALTY_OPTIONS } from '@/constants/coachOptions'
 import { supabase } from '@/utils/supabase'
-import { useSeo, useServiceCategorySchema, useBreadcrumbSchema } from '@/composables/useSeo'
+import { useSeo, useServiceCategorySchema, useBreadcrumbSchema, ANTILLES_KEYWORDS } from '@/composables/useSeo'
 
-// SEO Configuration
+// SEO Configuration - Optimisé pour les Antilles
 useSeo({
-  title: 'Trouver un coach | Annuaire des coachs certifiés',
+  title: 'Trouver un coach en Martinique, Guadeloupe, Guyane | Annuaire Coachiles',
   description:
-    'Parcourez notre annuaire de coachs certifiés : coach sportif, coach de vie, nutritionniste, préparateur mental. Filtrez par spécialité et trouvez le coach idéal.',
+    'Annuaire des coachs sportifs certifiés en Martinique, Guadeloupe et Guyane. Coach fitness, musculation, yoga, nutrition. Trouvez le coach idéal près de chez vous aux Antilles.',
   url: '/coaches',
   keywords: [
-    'annuaire coach',
-    'trouver un coach',
-    'coach certifié',
-    'coach sportif',
-    'coach fitness',
-    'coach musculation',
-    'coach perte de poids',
-    'coach nutrition',
-    'coach bien-être',
-    'réserver coach',
+    'annuaire coach Martinique',
+    'annuaire coach Guadeloupe',
+    'annuaire coach Guyane',
+    'coach sportif Fort-de-France',
+    'coach sportif Pointe-à-Pitre',
+    'coach sportif Cayenne',
+    'trouver un coach Antilles',
+    'coach certifié DOM-TOM',
+    'coach fitness Martinique',
+    'coach musculation Guadeloupe',
+    'coach nutrition Guyane',
+    'coach perte de poids Antilles',
+    'coach bien-être Caraïbes',
+    'réserver coach Martinique',
+    ...ANTILLES_KEYWORDS,
   ],
 })
 
 // Schema.org pour la page de recherche
 useServiceCategorySchema({
-  name: 'Annuaire des coachs - Coachiles',
-  description: 'Trouvez et réservez votre coach parmi notre sélection de professionnels certifiés',
+  name: 'Annuaire des coachs en Martinique, Guadeloupe et Guyane',
+  description: 'Trouvez et réservez votre coach sportif aux Antilles. Professionnels certifiés en Martinique, Guadeloupe et Guyane.',
   url: '/coaches',
 })
 

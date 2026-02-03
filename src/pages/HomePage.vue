@@ -835,27 +835,36 @@
 import { ref, onMounted, computed, h } from 'vue'
 import { supabaseCoachApi } from '@/services/supabaseCoachApi'
 import type { Coach } from '@/types/coach'
-import { useSeo, useOrganizationSchema, useWebsiteSchema } from '@/composables/useSeo'
+import { useSeo, useOrganizationSchema, useWebsiteSchema, ANTILLES_KEYWORDS } from '@/composables/useSeo'
 
-// SEO Configuration
+// SEO Configuration - Optimisé pour Martinique, Guadeloupe, Guyane
 useSeo({
-  title: 'Coachiles | Trouvez votre coach sportif, de vie ou professionnel',
+  title: 'Coachiles | Coach sportif en Martinique, Guadeloupe & Guyane',
   description:
-    'Trouvez le coach idéal parmi nos coachs certifiés : coach sportif, coach de vie, coach professionnel, nutrition, yoga, musculation. Comparez et réservez facilement.',
+    'Trouvez votre coach sportif en Martinique, Guadeloupe et Guyane. Coachs certifiés : fitness, musculation, yoga, nutrition, préparation mentale. Réservez facilement aux Antilles.',
   url: '/',
   keywords: [
-    'coach sportif',
-    'coach de vie',
-    'coach professionnel',
-    'coaching personnel',
+    // Mots-clés principaux
+    'coach sportif Martinique',
+    'coach sportif Guadeloupe',
+    'coach sportif Guyane',
+    'coach Antilles',
+    'personal trainer Martinique',
+    'coach fitness Guadeloupe',
+    // Villes principales
+    'coach Fort-de-France',
+    'coach Pointe-à-Pitre',
+    'coach Cayenne',
+    // Spécialités
+    'coach musculation Antilles',
+    'coach nutrition Martinique',
+    'coach yoga Guadeloupe',
+    'préparation mentale Guyane',
+    'coach bien-être Caraïbes',
+    // Génériques
     'trouver un coach',
-    'coach fitness',
-    'coach musculation',
-    'coach nutrition',
-    'coach yoga',
-    'coach running',
-    'préparation mentale',
-    'coaching France',
+    'coaching personnel',
+    ...ANTILLES_KEYWORDS,
   ],
 })
 

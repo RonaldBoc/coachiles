@@ -29,6 +29,48 @@ const BASE_URL = 'https://coachiles.com'
 const DEFAULT_IMAGE = `${BASE_URL}/images/og-image.jpg`
 const SITE_NAME = 'Coachiles'
 
+// Territoires ciblés pour le SEO local
+export const TERRITORIES = {
+  martinique: {
+    name: 'Martinique',
+    slug: 'martinique',
+    cities: ['Fort-de-France', 'Le Lamentin', 'Schoelcher', 'Sainte-Marie', 'Le Robert'],
+  },
+  guadeloupe: {
+    name: 'Guadeloupe',
+    slug: 'guadeloupe',
+    cities: ['Pointe-à-Pitre', 'Les Abymes', 'Baie-Mahault', 'Le Gosier', 'Sainte-Anne'],
+  },
+  guyane: {
+    name: 'Guyane',
+    slug: 'guyane',
+    cities: ['Cayenne', 'Saint-Laurent-du-Maroni', 'Kourou', 'Matoury', 'Rémire-Montjoly'],
+  },
+} as const
+
+// Mots-clés SEO pour les Antilles
+export const ANTILLES_KEYWORDS = [
+  // Martinique
+  'coach sportif Martinique',
+  'coach Fort-de-France',
+  'personal trainer Martinique',
+  'coach fitness Martinique',
+  // Guadeloupe
+  'coach sportif Guadeloupe',
+  'coach Pointe-à-Pitre',
+  'personal trainer Guadeloupe',
+  'coach fitness Guadeloupe',
+  // Guyane
+  'coach sportif Guyane',
+  'coach Cayenne',
+  'personal trainer Guyane',
+  'coach fitness Guyane',
+  // Général Antilles
+  'coach Antilles',
+  'coaching sportif DOM-TOM',
+  'coach personnel Caraïbes',
+]
+
 /**
  * Composable pour gérer le SEO de manière dynamique
  */
@@ -110,7 +152,24 @@ export function useOrganizationSchema() {
       name: 'Coachiles',
       url: BASE_URL,
       logo: `${BASE_URL}/images/logos/logo_coachiles_color.png`,
-      description: 'Plateforme de mise en relation avec des coachs professionnels certifiés',
+      description: 'Plateforme de coaching sportif et bien-être en Martinique, Guadeloupe et Guyane. Trouvez votre coach personnel certifié aux Antilles.',
+      areaServed: [
+        {
+          '@type': 'Place',
+          name: 'Martinique',
+          address: { '@type': 'PostalAddress', addressCountry: 'FR', addressRegion: 'Martinique' },
+        },
+        {
+          '@type': 'Place',
+          name: 'Guadeloupe',
+          address: { '@type': 'PostalAddress', addressCountry: 'FR', addressRegion: 'Guadeloupe' },
+        },
+        {
+          '@type': 'Place',
+          name: 'Guyane',
+          address: { '@type': 'PostalAddress', addressCountry: 'FR', addressRegion: 'Guyane' },
+        },
+      ],
       sameAs: [
         // Ajoutez vos réseaux sociaux ici
         // 'https://www.facebook.com/coachiles',

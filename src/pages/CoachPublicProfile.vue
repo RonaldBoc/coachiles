@@ -1814,7 +1814,9 @@ const seoTitle = computed(() => {
   if (!coach.value) return 'Profil Coach | Coachiles'
   const name = coach.value.firstName
   const specialty = coach.value.specialties?.[0] || 'Coach'
-  return `${name} - ${specialty} | Coachiles`
+  const location = coach.value.location || ''
+  // Ajouter le territoire pour le SEO local
+  return `${name} - ${specialty}${location ? ` à ${location}` : ''} | Coachiles`
 })
 
 const seoDescription = computed(() => {
@@ -1822,15 +1824,36 @@ const seoDescription = computed(() => {
   const name = coach.value.firstName
   const specialty = coach.value.specialties?.[0] || 'Coach professionnel'
   const location = coach.value.location || ''
-  const bio = coach.value.bio?.slice(0, 120) || ''
-  return `${name}, ${specialty}${location ? ` à ${location}` : ''}. ${bio}${bio.length >= 120 ? '...' : ''} Réservez votre séance sur Coachiles.`
+  const bio = coach.value.bio?.slice(0, 100) || ''
+  // Description optimisée pour les Antilles
+  const locationText = location ? ` en ${location}` : ' aux Antilles'
+  return `${name}, ${specialty}${locationText}. ${bio}${bio.length >= 100 ? '...' : ''} Réservez votre séance de coaching sur Coachiles.`
 })
 
 const seoKeywords = computed(() => {
-  const keywords = ['coach', 'coaching']
-  if (coach.value?.location) keywords.push(`coach ${coach.value.location.toLowerCase()}`)
+  const keywords = ['coach', 'coaching', 'coach Antilles']
+  if (coach.value?.location) {
+    const loc = coach.value.location.toLowerCase()
+    keywords.push(`coach ${loc}`)
+    keywords.push(`coach sportif ${loc}`)
+    // Ajouter les mots-clés territoriaux
+    if (loc.includes('martinique') || loc.includes('fort-de-france') || loc.includes('lamentin')) {
+      keywords.push('coach Martinique', 'coach sportif Martinique', 'personal trainer Martinique')
+    }
+    if (loc.includes('guadeloupe') || loc.includes('pointe-à-pitre') || loc.includes('abymes')) {
+      keywords.push('coach Guadeloupe', 'coach sportif Guadeloupe', 'personal trainer Guadeloupe')
+    }
+    if (loc.includes('guyane') || loc.includes('cayenne') || loc.includes('kourou')) {
+      keywords.push('coach Guyane', 'coach sportif Guyane', 'personal trainer Guyane')
+    }
+  }
   if (coach.value?.specialties) {
-    coach.value.specialties.forEach(s => keywords.push(s.toLowerCase()))
+    coach.value.specialties.forEach(s => {
+      keywords.push(s.toLowerCase())
+      if (coach.value?.location) {
+        keywords.push(`${s.toLowerCase()} ${coach.value.location}`)
+      }
+    })
   }
   return keywords
 })
