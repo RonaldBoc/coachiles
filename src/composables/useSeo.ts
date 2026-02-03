@@ -1,4 +1,4 @@
-import { useHead, useSeoMeta } from '@unhead/vue'
+import { useHead } from '@vueuse/head'
 import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 
 interface SeoConfig {
@@ -49,28 +49,30 @@ export function useSeo(config: SeoConfig) {
     return image.startsWith('http') ? image : `${BASE_URL}${image}`
   })
 
-  // Meta tags SEO
-  useSeoMeta({
-    title: fullTitle,
-    description: () => toValue(config.description),
-    ogTitle: fullTitle,
-    ogDescription: () => toValue(config.description),
-    ogImage: imageUrl,
-    ogUrl: fullUrl,
-    ogType: config.type || 'website',
-    ogSiteName: SITE_NAME,
-    twitterCard: 'summary_large_image',
-    twitterTitle: fullTitle,
-    twitterDescription: () => toValue(config.description),
-    twitterImage: imageUrl,
-    robots: 'index, follow',
-    author: () => toValue(config.author) || SITE_NAME,
-    keywords: () => toValue(config.keywords)?.join(', '),
-  })
-
-  // Canonical URL
+  // Meta tags SEO using @vueuse/head
   useHead({
-    link: [{ rel: 'canonical', href: fullUrl }],
+    title: fullTitle,
+    meta: [
+      { name: 'description', content: () => toValue(config.description) },
+      { name: 'keywords', content: () => toValue(config.keywords)?.join(', ') },
+      { name: 'author', content: () => toValue(config.author) || SITE_NAME },
+      { name: 'robots', content: 'index, follow' },
+      // Open Graph
+      { property: 'og:title', content: fullTitle },
+      { property: 'og:description', content: () => toValue(config.description) },
+      { property: 'og:image', content: imageUrl },
+      { property: 'og:url', content: fullUrl },
+      { property: 'og:type', content: config.type || 'website' },
+      { property: 'og:site_name', content: SITE_NAME },
+      // Twitter
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: fullTitle },
+      { name: 'twitter:description', content: () => toValue(config.description) },
+      { name: 'twitter:image', content: imageUrl },
+    ],
+    link: [
+      { rel: 'canonical', href: fullUrl },
+    ],
   })
 }
 
