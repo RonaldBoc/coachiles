@@ -310,7 +310,7 @@ const hasActiveFilters = computed(() => {
 })
 
 const sortedData = computed(() => {
-  let result = [...props.data]
+  const result = [...props.data]
 
   if (sortColumn.value && sortDirection.value) {
     result.sort((a, b) => {
