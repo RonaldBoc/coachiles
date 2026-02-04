@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
 import { supabaseLeadApi } from '@/services/supabaseLeadApi'
 import type { Lead } from '@/types/Lead'
+import { actionTracker } from '@/utils/actionTracker'
 
 export const useLeadStore = defineStore('leads', () => {
   // State
@@ -71,6 +72,13 @@ export const useLeadStore = defineStore('leads', () => {
         page: currentPage.value,
       })
 
+      // Track leads viewing action
+      await actionTracker.trackLeadListView({
+        count: response.data.length,
+        filters: params,
+        page: response.page
+      })
+
       return response
     } catch (err) {
       console.error('❌ Error fetching leads:', err)
@@ -95,6 +103,9 @@ export const useLeadStore = defineStore('leads', () => {
       if (leadIndex !== -1) {
         leads.value[leadIndex] = updatedLead
       }
+
+      // Track lead status change action
+      await actionTracker.trackLeadStatusChange(leadId, status)
 
       console.log('✅ Lead status updated:', { leadId, status })
     } catch (err) {
@@ -124,6 +135,9 @@ export const useLeadStore = defineStore('leads', () => {
           status: 'assigned', // Change to valid status
         }
       }
+
+      // Track lead assignment action
+      await actionTracker.trackLeadAssignment(leadId, coachId)
 
       console.log('✅ Lead assigned to coach:', { leadId, coachId })
     } catch (err) {

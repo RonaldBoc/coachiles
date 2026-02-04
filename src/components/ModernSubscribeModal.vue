@@ -90,8 +90,10 @@
 
 <script setup lang="ts">
 import { CheckIcon, CreditCardIcon } from '@heroicons/vue/24/outline'
+import { watch } from 'vue'
+import { actionTracker } from '@/utils/actionTracker'
 
-defineProps<{
+const props = defineProps<{
   show: boolean
   loading?: boolean
 }>()
@@ -100,4 +102,11 @@ defineEmits<{
   close: []
   subscribe: []
 }>()
+
+// Track subscription modal view when shown
+watch(() => props.show, (newValue) => {
+  if (newValue) {
+    actionTracker.trackSubscriptionView()
+  }
+})
 </script>

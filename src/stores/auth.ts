@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
 import { supabase } from '@/utils/supabase'
 import { initializeSessionManager } from '@/utils/sessionManager'
+import { actionTracker } from '@/utils/actionTracker'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Coach } from '@/types/coach'
 import { useLeadStore } from '@/stores/leads'
@@ -26,6 +27,9 @@ export const useAuthStore = defineStore('auth', () => {
   // Session manager
   let sessionManager: ReturnType<typeof initializeSessionManager> | null = null
 
+  // Track last logged session to prevent duplicates
+  let lastLoggedSession: string | null = null
+
   // Session expired handler
   const handleSessionExpired = async () => {
     console.log('🔒 Session expired, signing out...')
@@ -33,6 +37,118 @@ export const useAuthStore = defineStore('auth', () => {
     session.value = null
     coach.value = null
     setError('Your session has expired. Please sign in again.')
+  }
+
+  // Helper function to get client information for session tracking
+  const getClientInfo = async () => {
+    const userAgent = navigator.userAgent
+
+    // Try to get public IP address
+    let ipAddress = null
+    let locationInfo = {}
+
+    try {
+      // Get public IP address from ipify service
+      const ipResponse = await fetch('https://api.ipify.org?format=json')
+      const ipData = await ipResponse.json()
+      ipAddress = ipData.ip
+
+      // Get location info based on IP
+      if (ipAddress) {
+        try {
+          const locationResponse = await fetch(`https://ipapi.co/${ipAddress}/json/`)
+          const locationData = await locationResponse.json()
+
+          locationInfo = {
+            country: locationData.country_name,
+            country_code: locationData.country_code,
+            region: locationData.region,
+            city: locationData.city,
+            postal: locationData.postal,
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
+            timezone: locationData.timezone,
+          }
+        } catch (locationError) {
+          console.warn('⚠️ Could not get location from IP:', locationError)
+        }
+      }
+    } catch (ipError) {
+      console.warn('⚠️ Could not get public IP address:', ipError)
+    }
+
+    // Enhanced device info (no GPS permission needed)
+    const deviceInfo = {
+      platform: navigator.platform,
+      language: navigator.language,
+      languages: navigator.languages,
+      screen: `${screen.width}x${screen.height}`,
+      color_depth: screen.colorDepth,
+      pixel_ratio: window.devicePixelRatio,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      user_agent: userAgent,
+      cookie_enabled: navigator.cookieEnabled,
+      online: navigator.onLine,
+    }
+
+    return {
+      userAgent,
+      ipAddress,
+      deviceInfo,
+      locationInfo,
+    }
+  }
+
+  // Log coach session when they sign in
+  const logCoachSession = async (coachId: string, coachEmail: string) => {
+    try {
+      // Create unique session key to prevent duplicates
+      const sessionKey = `${coachId}-${Date.now()}`
+
+      // Check if we already logged a session recently (within last 10 seconds)
+      const now = Date.now()
+      if (lastLoggedSession) {
+        const lastSessionTime = parseInt(lastLoggedSession.split('-').pop() || '0')
+        if (now - lastSessionTime < 10000) {
+          console.log('🔄 Session already logged recently, skipping duplicate')
+          return { success: true, sessionId: null }
+        }
+      }
+
+      console.log('📝 Logging coach session:', { coachId, coachEmail })
+
+      // Get enhanced client info with IP and location
+      const { userAgent, ipAddress, deviceInfo, locationInfo } = await getClientInfo()
+
+      console.log('🌍 Client info gathered:', {
+        ip: ipAddress,
+        location: locationInfo,
+        device: deviceInfo,
+      })
+
+      const { data, error } = await supabase.rpc('log_coach_session', {
+        coach_id_param: coachId,
+        coach_email_param: coachEmail,
+        ip_param: ipAddress,
+        user_agent_param: userAgent,
+        device_info_param: { ...deviceInfo, location_info: locationInfo },
+      })
+
+      if (error) {
+        console.error('❌ Failed to log coach session:', error)
+      } else {
+        console.log('✅ Coach session logged with IP and location:', data)
+        lastLoggedSession = sessionKey // Remember this session
+        
+        // Set session ID in action tracker
+        actionTracker.setSessionId(data)
+      }
+
+      return { success: !error, sessionId: data }
+    } catch (err) {
+      console.error('❌ Exception logging coach session:', err)
+      return { success: false, sessionId: null }
+    }
   }
 
   // Getters
@@ -126,7 +242,7 @@ export const useAuthStore = defineStore('auth', () => {
           if (newSession) {
             // For sign-in events, we need to load coach profile immediately for router guards
             // This is safe because it's not during a tab visibility change
-            loadCoachProfile().catch((profileError) => {
+            loadCoachProfile(true).catch((profileError) => {
               console.warn('⚠️ Failed to load coach profile after sign in:', profileError)
             })
 
@@ -201,7 +317,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Load coach profile from database
-  const loadCoachProfile = async () => {
+  const loadCoachProfile = async (shouldLogSession = false) => {
     if (!user.value?.email) {
       return
     }
@@ -251,6 +367,11 @@ export const useAuthStore = defineStore('auth', () => {
           disabledAt: data.disabled_at ? new Date(data.disabled_at) : null,
         }
         console.log('✅ Coach profile loaded:', coach.value?.firstName, coach.value?.lastName)
+
+        // Log session if this is a new sign-in
+        if (shouldLogSession && coach.value) {
+          await logCoachSession(coach.value.id, coach.value.email)
+        }
       } else {
         // No coach profile yet (first login / onboarding)
         console.log('ℹ️ No coach profile found for user:', user.value.email)
@@ -399,7 +520,7 @@ export const useAuthStore = defineStore('auth', () => {
       session.value = data.session
 
       // Load coach profile to determine if onboarding is complete
-      await loadCoachProfile()
+      await loadCoachProfile(true) // Enable session logging for direct sign-in
 
       // Auth state change will be handled by the listener
       return { user: data.user, session: data.session }
@@ -517,6 +638,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       session.value = null
       coach.value = null
+      lastLoggedSession = null // Reset session tracker
       // Clear dependent stores (leads etc.)
       try {
         const ls = useLeadStore()
@@ -627,6 +749,14 @@ export const useAuthStore = defineStore('auth', () => {
         newPhoto = `${updates.photo}?v=${Date.now()}`
       }
       coach.value = { ...coach.value, ...updates, ...(newPhoto ? { photo: newPhoto } : {}) }
+
+      // Track profile update action
+      await actionTracker.trackProfileSave(supabaseUpdates)
+      
+      // Track photo upload separately if photo was changed
+      if (updates.photo) {
+        await actionTracker.trackPhotoUpload(updates.photo)
+      }
 
       return data
     } catch (err) {

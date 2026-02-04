@@ -835,7 +835,12 @@
 import { ref, onMounted, computed, h } from 'vue'
 import { supabaseCoachApi } from '@/services/supabaseCoachApi'
 import type { Coach } from '@/types/coach'
-import { useSeo, useOrganizationSchema, useWebsiteSchema, ANTILLES_KEYWORDS } from '@/composables/useSeo'
+import {
+  useSeo,
+  useOrganizationSchema,
+  useWebsiteSchema,
+  ANTILLES_KEYWORDS,
+} from '@/composables/useSeo'
 
 // SEO Configuration - Optimisé pour Martinique, Guadeloupe, Guyane
 useSeo({

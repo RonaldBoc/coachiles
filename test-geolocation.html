@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test de Géolocalisation IP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .info {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test de Récupération IP et Géolocalisation</h1>
+    <button onclick="testIPAndLocation()">Tester IP et Localisation</button>
+    <div id="results"></div>
+
+    <script>
+        async function testIPAndLocation() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>🔄 Testing IP and location detection...</p>';
+
+            try {
+                // Get public IP address
+                console.log('Getting IP address...');
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                const ipAddress = ipData.ip;
+
+                resultsDiv.innerHTML += `
+                    <div class="info success">
+                        <h3>✅ IP Address Detected</h3>
+                        <p><strong>IP:</strong> ${ipAddress}</p>
+                    </div>
+                `;
+
+                // Get location from IP
+                console.log('Getting location from IP...');
+                const locationResponse = await fetch(`https://ipapi.co/${ipAddress}/json/`);
+                const locationData = await locationResponse.json();
+
+                resultsDiv.innerHTML += `
+                    <div class="info success">
+                        <h3>🌍 Location from IP</h3>
+                        <pre>${JSON.stringify(locationData, null, 2)}</pre>
+                    </div>
+                `;
+
+                // Get GPS location if available
+                if (navigator.geolocation) {
+                    try {
+                        const position = await new Promise((resolve, reject) => {
+                            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                                timeout: 10000,
+                                enableHighAccuracy: true
+                            });
+                        });
+
+                        resultsDiv.innerHTML += `
+                            <div class="info success">
+                                <h3>📍 GPS Location</h3>
+                                <p><strong>Latitude:</strong> ${position.coords.latitude}</p>
+                                <p><strong>Longitude:</strong> ${position.coords.longitude}</p>
+                                <p><strong>Accuracy:</strong> ${position.coords.accuracy}m</p>
+                            </div>
+                        `;
+                    } catch (gpsError) {
+                        resultsDiv.innerHTML += `
+                            <div class="info error">
+                                <h3>❌ GPS Location Failed</h3>
+                                <p>${gpsError.message}</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultsDiv.innerHTML += `
+                        <div class="info error">
+                            <h3>❌ GPS Not Available</h3>
+                            <p>Geolocation API is not supported by this browser.</p>
+                        </div>
+                    `;
+                }
+
+                // Device info
+                const deviceInfo = {
+                    platform: navigator.platform,
+                    language: navigator.language,
+                    languages: navigator.languages,
+                    screen: `${screen.width}x${screen.height}`,
+                    color_depth: screen.colorDepth,
+                    pixel_ratio: window.devicePixelRatio,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    user_agent: navigator.userAgent,
+                    cookie_enabled: navigator.cookieEnabled,
+                    online: navigator.onLine
+                };
+
+                resultsDiv.innerHTML += `
+                    <div class="info success">
+                        <h3>💻 Device Information</h3>
+                        <pre>${JSON.stringify(deviceInfo, null, 2)}</pre>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultsDiv.innerHTML += `
+                    <div class="info error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+
+</html>

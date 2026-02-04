@@ -504,7 +504,12 @@ import type { Coach } from '@/types/coach'
 import { useCoachStore } from '@/stores/coach'
 import { SPECIALTY_OPTIONS } from '@/constants/coachOptions'
 import { supabase } from '@/utils/supabase'
-import { useSeo, useServiceCategorySchema, useBreadcrumbSchema, ANTILLES_KEYWORDS } from '@/composables/useSeo'
+import {
+  useSeo,
+  useServiceCategorySchema,
+  useBreadcrumbSchema,
+  ANTILLES_KEYWORDS,
+} from '@/composables/useSeo'
 
 // SEO Configuration - Optimisé pour les Antilles
 useSeo({
@@ -534,7 +539,8 @@ useSeo({
 // Schema.org pour la page de recherche
 useServiceCategorySchema({
   name: 'Annuaire des coachs en Martinique, Guadeloupe et Guyane',
-  description: 'Trouvez et réservez votre coach sportif aux Antilles. Professionnels certifiés en Martinique, Guadeloupe et Guyane.',
+  description:
+    'Trouvez et réservez votre coach sportif aux Antilles. Professionnels certifiés en Martinique, Guadeloupe et Guyane.',
   url: '/coaches',
 })
 

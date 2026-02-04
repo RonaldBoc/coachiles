@@ -156,6 +156,18 @@ const routes = [
     meta: { title: 'Superadmin' },
   },
   {
+    path: '/admin/coaches',
+    component: () => import('@/pages/admin/AdminCoaches.vue'),
+    beforeEnter: [requireAuthOnly, requireSuperadmin],
+    meta: { title: 'Admin - Coaches', adminSection: 'coaches' },
+  },
+  {
+    path: '/admin/coaches/:id',
+    component: () => import('@/pages/admin/AdminCoachDetail.vue'),
+    beforeEnter: [requireAuthOnly, requireSuperadmin],
+    meta: { title: 'Admin - Coach Detail', adminSection: 'coaches' },
+  },
+  {
     path: '/demo/account-deletion',
     component: AccountDeletionDemo,
     meta: { title: 'Suppression de compte (Demo)' },

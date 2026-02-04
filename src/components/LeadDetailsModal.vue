@@ -233,7 +233,9 @@
 
 <script setup lang="ts">
 import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { onMounted } from 'vue'
 import type { Lead } from '@/types/Lead'
+import { actionTracker } from '@/utils/actionTracker'
 
 interface Props {
   lead: Lead
@@ -248,6 +250,15 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// Track lead view when modal opens
+onMounted(() => {
+  actionTracker.trackLeadView(props.lead.id, {
+    leadStatus: props.lead.status,
+    leadType: props.lead.type,
+    canAccessDetails: props.canAccessDetails
+  })
+})
 
 // Helper functions
 const formatDate = (date: string): string => {

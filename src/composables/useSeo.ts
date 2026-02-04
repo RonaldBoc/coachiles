@@ -112,9 +112,7 @@ export function useSeo(config: SeoConfig) {
       { name: 'twitter:description', content: () => toValue(config.description) },
       { name: 'twitter:image', content: imageUrl },
     ],
-    link: [
-      { rel: 'canonical', href: fullUrl },
-    ],
+    link: [{ rel: 'canonical', href: fullUrl }],
   })
 }
 
@@ -152,7 +150,8 @@ export function useOrganizationSchema() {
       name: 'Coachiles',
       url: BASE_URL,
       logo: `${BASE_URL}/images/logos/logo_coachiles_color.png`,
-      description: 'Plateforme de coaching sportif et bien-être en Martinique, Guadeloupe et Guyane. Trouvez votre coach personnel certifié aux Antilles.',
+      description:
+        'Plateforme de coaching sportif et bien-être en Martinique, Guadeloupe et Guyane. Trouvez votre coach personnel certifié aux Antilles.',
       areaServed: [
         {
           '@type': 'Place',

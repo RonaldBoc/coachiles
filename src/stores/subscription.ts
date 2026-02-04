@@ -5,6 +5,7 @@ import type {
   PaymentMethod,
   BillingHistoryItem,
 } from '@/types/subscription'
+import { actionTracker } from '@/utils/actionTracker'
 
 export const useSubscriptionStore = defineStore('subscription', {
   state: () => ({
@@ -230,6 +231,9 @@ export const useSubscriptionStore = defineStore('subscription', {
         this.addBillingRecord(planId, plan.name, plan.price, plan.currency)
       }
 
+      // Track subscription action
+      actionTracker.trackSubscriptionCreated(planId, plan.price)
+
       return true
     },
 
@@ -239,6 +243,9 @@ export const useSubscriptionStore = defineStore('subscription', {
       this.userSubscription.cancelledAt = new Date()
       this.userSubscription.cancellationReason = reason
 
+      // Track subscription cancellation
+      actionTracker.trackSubscriptionCancelled(this.userSubscription.planId!, reason)
+
       // Revert to free plan
       this.userSubscription.planId = 'free'
     },
@@ -246,6 +253,8 @@ export const useSubscriptionStore = defineStore('subscription', {
     upgradeToPlan(planId: string) {
       const plan = this.plans.find((p) => p.id === planId)
       if (!plan) return false
+
+      const previousPlan = this.userSubscription.planId
 
       this.userSubscription.planId = planId
       this.userSubscription.hasSubscription = true
@@ -255,6 +264,9 @@ export const useSubscriptionStore = defineStore('subscription', {
       if (plan.price > 0) {
         this.addBillingRecord(planId, plan.name, plan.price, plan.currency)
       }
+
+      // Track subscription upgrade
+      actionTracker.trackSubscriptionUpgrade(previousPlan, planId, plan.price)
 
       return true
     },

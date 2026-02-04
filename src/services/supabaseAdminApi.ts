@@ -10,6 +10,8 @@ export type AdminCoach = {
   is_active?: boolean | null
   disabled_reason?: string | null
   subscription_type?: string | null
+  last_sign_in_at?: string | null // Add auth info
+  user_id?: string | null // Link to auth.users
 }
 export type AdminLead = {
   id: string
@@ -143,6 +145,39 @@ export const AdminApi = {
       return { error: e instanceof Error ? e.message : 'Failed to update max leads' }
     }
   },
+  // Get coach authentication info (last sign in, etc.)
+  async getCoachAuthInfo(
+    coachId: string,
+  ): Promise<{ last_sign_in_at: string | null; user_id: string | null } | null> {
+    try {
+      // First get the coach to find their email
+      const { data: coach, error: coachError } = await supabase
+        .from('coaches')
+        .select('email')
+        .eq('id', coachId)
+        .single()
+
+      if (coachError || !coach) return null
+
+      // Then use admin function to get user info from auth.users
+      const { data: authData } = await supabase.rpc('get_user_auth_info', {
+        user_email: coach.email,
+      })
+
+      if (authData && authData.length > 0) {
+        return {
+          last_sign_in_at: authData[0].last_sign_in_at,
+          user_id: authData[0].id,
+        }
+      }
+
+      return null
+    } catch (err) {
+      console.warn('Failed to get auth info for coach:', coachId, err)
+      return null
+    }
+  },
+
   async listCoaches(): Promise<{ data: AdminCoach[]; error?: string }> {
     try {
       const { data: userRes } = await supabase.auth.getUser()
