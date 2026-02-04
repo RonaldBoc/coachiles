@@ -106,7 +106,7 @@ const route = useRoute()
 
 const sidebarOpen = ref(true)
 const globalSearch = ref('')
-const currentSection = ref(route.meta?.adminSection || 'dashboard')
+const currentSection = ref<string>((route.meta?.adminSection as string) || 'dashboard')
 
 const userEmail = computed(() => authStore.user?.email || 'admin')
 const userInitials = computed(() => {

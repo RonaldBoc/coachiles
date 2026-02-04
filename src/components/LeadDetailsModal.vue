@@ -255,8 +255,8 @@ const emit = defineEmits<Emits>()
 onMounted(() => {
   actionTracker.trackLeadView(props.lead.id, {
     leadStatus: props.lead.status,
-    leadType: props.lead.type,
-    canAccessDetails: props.canAccessDetails
+    leadType: props.lead.preferred_coaching?.[0] || 'general',
+    canAccessDetails: props.canAccessDetails,
   })
 })
 

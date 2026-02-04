@@ -32,7 +32,7 @@
       </div>
 
       <!-- Coach Details -->
-      <div v-else class="space-y-6">
+      <div v-else-if="coach" class="space-y-6">
         <!-- Header with coach info and actions -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
           <div class="px-6 py-4">
@@ -1058,8 +1058,8 @@ const loadCoachLeads = async () => {
 }
 
 // Format coach status
-const getStatusText = (status) => {
-  const statusMap = {
+const getStatusText = (status: string) => {
+  const statusMap: { [key: string]: { text: string; class: string } } = {
     active: { text: 'Actif', class: 'text-green-600 bg-green-100' },
     inactive: { text: 'Inactif', class: 'text-red-600 bg-red-100' },
     pending: { text: 'En attente', class: 'text-yellow-600 bg-yellow-100' },
@@ -1068,8 +1068,8 @@ const getStatusText = (status) => {
 }
 
 // Format lead status
-const formatLeadStatus = (status) => {
-  const statusMap = {
+const formatLeadStatus = (status: string) => {
+  const statusMap: { [key: string]: string } = {
     new: 'Nouveau',
     contacted: 'Contacté',
     converted: 'Converti',
@@ -1079,8 +1079,8 @@ const formatLeadStatus = (status) => {
 }
 
 // Format lead status color
-const getLeadStatusColor = (status) => {
-  const colorMap = {
+const getLeadStatusColor = (status: string) => {
+  const colorMap: { [key: string]: string } = {
     new: 'text-blue-600 bg-blue-100',
     contacted: 'text-yellow-600 bg-yellow-100',
     converted: 'text-green-600 bg-green-100',
@@ -1090,8 +1090,8 @@ const getLeadStatusColor = (status) => {
 }
 
 // Format action type
-const formatActionType = (type) => {
-  const typeMap = {
+const formatActionType = (type: string) => {
+  const typeMap: { [key: string]: string } = {
     lead_update: 'Mise à jour lead',
     profile_update: 'Mise à jour profil',
     availability_update: 'Mise à jour disponibilités',
@@ -1101,8 +1101,8 @@ const formatActionType = (type) => {
 }
 
 // Get action icon
-const getActionIcon = (type) => {
-  const iconMap = {
+const getActionIcon = (type: string) => {
+  const iconMap: { [key: string]: string } = {
     lead_update: '👤',
     profile_update: '✏️',
     availability_update: '📅',
@@ -1112,7 +1112,7 @@ const getActionIcon = (type) => {
 }
 
 // Handle card clicks
-const handleCardClick = (cardType) => {
+const handleCardClick = (cardType: string) => {
   switch (cardType) {
     case 'leads':
       showLeadsModal.value = true

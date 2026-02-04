@@ -373,11 +373,11 @@ const toggleSort = (column: string) => {
     sortDirection.value = 'asc'
   }
 
-  emit('sort', sortColumn.value, sortDirection.value)
+  emit('sort', sortColumn.value || '', sortDirection.value)
 }
 
 const getSortIconClass = (column: string) => {
-  if (sortColumn.value !== column) return 'text-gray-400'
+  if (sortColumn.value !== column || !sortColumn.value) return 'text-gray-400'
   if (sortDirection.value === 'asc') return 'text-indigo-600 transform rotate-180'
   if (sortDirection.value === 'desc') return 'text-indigo-600'
   return 'text-gray-400'

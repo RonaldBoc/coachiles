@@ -1,260 +1,263 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test Action Tracking</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #333;
-      min-height: 100vh;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Action Tracking</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
 
-    .container {
-      background: white;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
 
-    h1 {
-      color: #667eea;
-      margin-bottom: 20px;
-      text-align: center;
-    }
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
 
-    .test-section {
-      background: #f8fafc;
-      padding: 20px;
-      margin: 20px 0;
-      border-radius: 8px;
-      border-left: 4px solid #667eea;
-    }
+        .test-section {
+            background: #f8fafc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
 
-    button {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 10px;
-      transition: all 0.3s ease;
-    }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
 
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
 
-    .result {
-      background: #e1f5fe;
-      border: 1px solid #0288d1;
-      padding: 15px;
-      margin: 15px 0;
-      border-radius: 5px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
+        .result {
+            background: #e1f5fe;
+            border: 1px solid #0288d1;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
 
-    .error {
-      background: #ffebee;
-      border-color: #e53e3e;
-      color: #e53e3e;
-    }
+        .error {
+            background: #ffebee;
+            border-color: #e53e3e;
+            color: #e53e3e;
+        }
 
-    .success {
-      background: #f1f8e9;
-      border-color: #4caf50;
-      color: #2e7d32;
-    }
-  </style>
+        .success {
+            background: #f1f8e9;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+    </style>
 </head>
+
 <body>
-  <div class="container">
-    <h1>🎯 Test Action Tracking</h1>
-    
-    <div class="test-section">
-      <h3>Configuration du tracking</h3>
-      <p>Ce test simule le système de tracking des actions des coaches.</p>
-      
-      <button onclick="testProfileAction()">📝 Simuler sauvegarde profil</button>
-      <button onclick="testPhotoAction()">📸 Simuler upload photo</button>
-      <button onclick="testLeadAction()">👥 Simuler vue lead</button>
-      <button onclick="testSubscriptionAction()">💳 Simuler abonnement</button>
-      <button onclick="testNavigationAction()">🧭 Simuler navigation</button>
+    <div class="container">
+        <h1>🎯 Test Action Tracking</h1>
+
+        <div class="test-section">
+            <h3>Configuration du tracking</h3>
+            <p>Ce test simule le système de tracking des actions des coaches.</p>
+
+            <button onclick="testProfileAction()">📝 Simuler sauvegarde profil</button>
+            <button onclick="testPhotoAction()">📸 Simuler upload photo</button>
+            <button onclick="testLeadAction()">👥 Simuler vue lead</button>
+            <button onclick="testSubscriptionAction()">💳 Simuler abonnement</button>
+            <button onclick="testNavigationAction()">🧭 Simuler navigation</button>
+        </div>
+
+        <div id="results" class="test-section">
+            <h3>Résultats des tests</h3>
+            <div id="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Informations de session</h3>
+            <div id="sessionInfo"></div>
+        </div>
     </div>
 
-    <div id="results" class="test-section">
-      <h3>Résultats des tests</h3>
-      <div id="output"></div>
-    </div>
+    <script type="module">
+        // Simulation des modules Vue/Supabase pour test
+        window.testActions = {
+            profile: {
+                save: (data) => console.log('Profile saved:', data),
+                photoUpload: (url) => console.log('Photo uploaded:', url)
+            },
+            leads: {
+                view: (id, details) => console.log('Lead viewed:', id, details),
+                statusChange: (id, status) => console.log('Status changed:', id, status)
+            },
+            subscription: {
+                upgrade: (plan, price) => console.log('Subscription upgrade:', plan, price),
+                view: () => console.log('Subscription page viewed')
+            },
+            navigation: {
+                pageView: (page) => console.log('Page view:', page)
+            }
+        }
 
-    <div class="test-section">
-      <h3>Informations de session</h3>
-      <div id="sessionInfo"></div>
-    </div>
-  </div>
+        function addResult(message, type = 'info') {
+            const output = document.getElementById('output')
+            const div = document.createElement('div')
+            div.className = `result ${type}`
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`
+            output.appendChild(div)
+            output.scrollTop = output.scrollHeight
+        }
 
-  <script type="module">
-    // Simulation des modules Vue/Supabase pour test
-    window.testActions = {
-      profile: {
-        save: (data) => console.log('Profile saved:', data),
-        photoUpload: (url) => console.log('Photo uploaded:', url)
-      },
-      leads: {
-        view: (id, details) => console.log('Lead viewed:', id, details),
-        statusChange: (id, status) => console.log('Status changed:', id, status)
-      },
-      subscription: {
-        upgrade: (plan, price) => console.log('Subscription upgrade:', plan, price),
-        view: () => console.log('Subscription page viewed')
-      },
-      navigation: {
-        pageView: (page) => console.log('Page view:', page)
-      }
-    }
+        window.testProfileAction = () => {
+            addResult('🔄 Test sauvegarde de profil...', 'info')
 
-    function addResult(message, type = 'info') {
-      const output = document.getElementById('output')
-      const div = document.createElement('div')
-      div.className = `result ${type}`
-      div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`
-      output.appendChild(div)
-      output.scrollTop = output.scrollHeight
-    }
+            const changes = {
+                name: 'Jean Dupont',
+                specialties: ['Fitness', 'Nutrition'],
+                bio: 'Coach expérimenté'
+            }
 
-    window.testProfileAction = () => {
-      addResult('🔄 Test sauvegarde de profil...', 'info')
-      
-      const changes = {
-        name: 'Jean Dupont',
-        specialties: ['Fitness', 'Nutrition'],
-        bio: 'Coach expérimenté'
-      }
-      
-      // Simuler l'action
-      window.testActions.profile.save(changes)
-      
-      // Simuler le tracking
-      const trackingData = {
-        actionType: 'profile_save',
-        actionCategory: 'profile',
-        actionDescription: 'Coach updated their profile',
-        metadata: { changes },
-        timestamp: new Date().toISOString(),
-        sessionId: `session_${Date.now()}`,
-        ipAddress: '127.0.0.1',
-        userAgent: navigator.userAgent
-      }
-      
-      addResult(`✅ Profil sauvegardé avec tracking: ${JSON.stringify(trackingData, null, 2)}`, 'success')
-    }
+            // Simuler l'action
+            window.testActions.profile.save(changes)
 
-    window.testPhotoAction = () => {
-      addResult('🔄 Test upload de photo...', 'info')
-      
-      const photoUrl = 'https://example.com/profile-photo.jpg'
-      window.testActions.profile.photoUpload(photoUrl)
-      
-      const trackingData = {
-        actionType: 'photo_upload',
-        actionCategory: 'profile',
-        actionDescription: 'Coach uploaded a new profile photo',
-        metadata: { photoUrl },
-        timestamp: new Date().toISOString()
-      }
-      
-      addResult(`✅ Photo uploadée avec tracking: ${JSON.stringify(trackingData, null, 2)}`, 'success')
-    }
+            // Simuler le tracking
+            const trackingData = {
+                actionType: 'profile_save',
+                actionCategory: 'profile',
+                actionDescription: 'Coach updated their profile',
+                metadata: { changes },
+                timestamp: new Date().toISOString(),
+                sessionId: `session_${Date.now()}`,
+                ipAddress: '127.0.0.1',
+                userAgent: navigator.userAgent
+            }
 
-    window.testLeadAction = () => {
-      addResult('🔄 Test vue de lead...', 'info')
-      
-      const leadId = 'lead_123'
-      const leadDetails = {
-        status: 'new',
-        type: 'fitness',
-        canAccessDetails: true
-      }
-      
-      window.testActions.leads.view(leadId, leadDetails)
-      
-      const trackingData = {
-        actionType: 'lead_view',
-        actionCategory: 'leads',
-        actionDescription: 'Coach viewed a lead',
-        targetId: leadId,
-        targetType: 'lead',
-        metadata: leadDetails,
-        timestamp: new Date().toISOString()
-      }
-      
-      addResult(`✅ Lead consulté avec tracking: ${JSON.stringify(trackingData, null, 2)}`, 'success')
-    }
+            addResult(`✅ Profil sauvegardé avec tracking: ${JSON.stringify(trackingData, null, 2)}`, 'success')
+        }
 
-    window.testSubscriptionAction = () => {
-      addResult('🔄 Test action abonnement...', 'info')
-      
-      const planId = 'pro'
-      const price = 29.99
-      
-      window.testActions.subscription.upgrade(planId, price)
-      
-      const trackingData = {
-        actionType: 'subscription_upgrade',
-        actionCategory: 'subscription',
-        actionDescription: `Coach upgraded to ${planId} plan`,
-        metadata: { planId, price },
-        timestamp: new Date().toISOString()
-      }
-      
-      addResult(`✅ Abonnement mis à jour avec tracking: ${JSON.stringify(trackingData, null, 2)}`, 'success')
-    }
+        window.testPhotoAction = () => {
+            addResult('🔄 Test upload de photo...', 'info')
 
-    window.testNavigationAction = () => {
-      addResult('🔄 Test navigation...', 'info')
-      
-      const pageName = 'leads-dashboard'
-      window.testActions.navigation.pageView(pageName)
-      
-      const trackingData = {
-        actionType: 'page_view',
-        actionCategory: 'navigation',
-        actionDescription: 'Coach viewed leads dashboard',
-        metadata: { 
-          pageName,
-          pageUrl: window.location.href,
-          referrer: document.referrer 
-        },
-        timestamp: new Date().toISOString()
-      }
-      
-      addResult(`✅ Navigation trackée: ${JSON.stringify(trackingData, null, 2)}`, 'success')
-    }
+            const photoUrl = 'https://example.com/profile-photo.jpg'
+            window.testActions.profile.photoUpload(photoUrl)
 
-    // Affichage des infos de session
-    function displaySessionInfo() {
-      const sessionInfo = document.getElementById('sessionInfo')
-      const info = {
-        userAgent: navigator.userAgent,
-        currentUrl: window.location.href,
-        timestamp: new Date().toISOString(),
-        language: navigator.language,
-        platform: navigator.platform
-      }
-      
-      sessionInfo.innerHTML = `<pre>${JSON.stringify(info, null, 2)}</pre>`
-    }
+            const trackingData = {
+                actionType: 'photo_upload',
+                actionCategory: 'profile',
+                actionDescription: 'Coach uploaded a new profile photo',
+                metadata: { photoUrl },
+                timestamp: new Date().toISOString()
+            }
 
-    displaySessionInfo()
-    addResult('🚀 Système de test du tracking initialisé', 'info')
-  </script>
+            addResult(`✅ Photo uploadée avec tracking: ${JSON.stringify(trackingData, null, 2)}`, 'success')
+        }
+
+        window.testLeadAction = () => {
+            addResult('🔄 Test vue de lead...', 'info')
+
+            const leadId = 'lead_123'
+            const leadDetails = {
+                status: 'new',
+                type: 'fitness',
+                canAccessDetails: true
+            }
+
+            window.testActions.leads.view(leadId, leadDetails)
+
+            const trackingData = {
+                actionType: 'lead_view',
+                actionCategory: 'leads',
+                actionDescription: 'Coach viewed a lead',
+                targetId: leadId,
+                targetType: 'lead',
+                metadata: leadDetails,
+                timestamp: new Date().toISOString()
+            }
+
+            addResult(`✅ Lead consulté avec tracking: ${JSON.stringify(trackingData, null, 2)}`, 'success')
+        }
+
+        window.testSubscriptionAction = () => {
+            addResult('🔄 Test action abonnement...', 'info')
+
+            const planId = 'pro'
+            const price = 29.99
+
+            window.testActions.subscription.upgrade(planId, price)
+
+            const trackingData = {
+                actionType: 'subscription_upgrade',
+                actionCategory: 'subscription',
+                actionDescription: `Coach upgraded to ${planId} plan`,
+                metadata: { planId, price },
+                timestamp: new Date().toISOString()
+            }
+
+            addResult(`✅ Abonnement mis à jour avec tracking: ${JSON.stringify(trackingData, null, 2)}`, 'success')
+        }
+
+        window.testNavigationAction = () => {
+            addResult('🔄 Test navigation...', 'info')
+
+            const pageName = 'leads-dashboard'
+            window.testActions.navigation.pageView(pageName)
+
+            const trackingData = {
+                actionType: 'page_view',
+                actionCategory: 'navigation',
+                actionDescription: 'Coach viewed leads dashboard',
+                metadata: {
+                    pageName,
+                    pageUrl: window.location.href,
+                    referrer: document.referrer
+                },
+                timestamp: new Date().toISOString()
+            }
+
+            addResult(`✅ Navigation trackée: ${JSON.stringify(trackingData, null, 2)}`, 'success')
+        }
+
+        // Affichage des infos de session
+        function displaySessionInfo() {
+            const sessionInfo = document.getElementById('sessionInfo')
+            const info = {
+                userAgent: navigator.userAgent,
+                currentUrl: window.location.href,
+                timestamp: new Date().toISOString(),
+                language: navigator.language,
+                platform: navigator.platform
+            }
+
+            sessionInfo.innerHTML = `<pre>${JSON.stringify(info, null, 2)}</pre>`
+        }
+
+        displaySessionInfo()
+        addResult('🚀 Système de test du tracking initialisé', 'info')
+    </script>
 </body>
+
 </html>

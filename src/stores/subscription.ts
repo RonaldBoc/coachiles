@@ -244,7 +244,7 @@ export const useSubscriptionStore = defineStore('subscription', {
       this.userSubscription.cancellationReason = reason
 
       // Track subscription cancellation
-      actionTracker.trackSubscriptionCancelled(this.userSubscription.planId!, reason)
+      actionTracker.trackSubscriptionCancelled(this.userSubscription.planId || 'unknown', reason)
 
       // Revert to free plan
       this.userSubscription.planId = 'free'
@@ -266,7 +266,7 @@ export const useSubscriptionStore = defineStore('subscription', {
       }
 
       // Track subscription upgrade
-      actionTracker.trackSubscriptionUpgrade(previousPlan, planId, plan.price)
+      actionTracker.trackSubscriptionUpgrade(previousPlan || 'unknown', planId, plan.price)
 
       return true
     },

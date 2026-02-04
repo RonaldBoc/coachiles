@@ -139,7 +139,7 @@ export const useAuthStore = defineStore('auth', () => {
       } else {
         console.log('✅ Coach session logged with IP and location:', data)
         lastLoggedSession = sessionKey // Remember this session
-        
+
         // Set session ID in action tracker
         actionTracker.setSessionId(data)
       }
@@ -752,7 +752,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Track profile update action
       await actionTracker.trackProfileSave(supabaseUpdates)
-      
+
       // Track photo upload separately if photo was changed
       if (updates.photo) {
         await actionTracker.trackPhotoUpload(updates.photo)

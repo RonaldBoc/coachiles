@@ -18,7 +18,7 @@ export interface ActionTrackingData {
 export class CoachActionTracker {
   private static instance: CoachActionTracker
   private currentSessionId: string | null = null
-  
+
   static getInstance(): CoachActionTracker {
     if (!this.instance) {
       this.instance = new CoachActionTracker()
@@ -35,7 +35,7 @@ export class CoachActionTracker {
     try {
       const authStore = useAuthStore()
       const coach = authStore.coach
-      
+
       if (!coach) {
         console.warn('⚠️ Cannot track action: no authenticated coach')
         return
@@ -44,7 +44,7 @@ export class CoachActionTracker {
       // Get current page info
       const pageUrl = window.location.pathname + window.location.search
       const userAgent = navigator.userAgent
-      
+
       // Get IP address (from previous implementation)
       let ipAddress = null
       try {
@@ -59,7 +59,7 @@ export class CoachActionTracker {
         type: data.actionType,
         category: data.actionCategory,
         target: data.targetId,
-        coach: coach.email
+        coach: coach.email,
       })
 
       const { error } = await supabase.rpc('track_coach_action', {
@@ -77,7 +77,7 @@ export class CoachActionTracker {
         ip_address_param: ipAddress,
         duration_ms_param: data.durationMs || null,
         success_param: data.success !== false,
-        error_message_param: data.errorMessage || null
+        error_message_param: data.errorMessage || null,
       })
 
       if (error) {
@@ -91,14 +91,14 @@ export class CoachActionTracker {
   }
 
   // Convenience methods for common actions
-  
+
   // Profile actions
   async trackProfileSave(changes?: Record<string, any>) {
     await this.trackAction({
       actionType: 'profile_save',
       actionCategory: 'profile',
       actionDescription: 'Coach updated their profile',
-      metadata: { changes }
+      metadata: { changes },
     })
   }
 
@@ -107,7 +107,7 @@ export class CoachActionTracker {
       actionType: 'photo_upload',
       actionCategory: 'profile',
       actionDescription: 'Coach uploaded a new profile photo',
-      metadata: { photoUrl }
+      metadata: { photoUrl },
     })
   }
 
@@ -119,7 +119,7 @@ export class CoachActionTracker {
       actionDescription: 'Coach viewed a lead',
       targetId: leadId,
       targetType: 'lead',
-      metadata: leadDetails
+      metadata: leadDetails,
     })
   }
 
@@ -130,7 +130,7 @@ export class CoachActionTracker {
       actionDescription: `Coach changed lead status to ${newStatus}`,
       targetId: leadId,
       targetType: 'lead',
-      metadata: { newStatus }
+      metadata: { newStatus },
     })
   }
 
@@ -139,7 +139,7 @@ export class CoachActionTracker {
       actionType: 'lead_list_view',
       actionCategory: 'leads',
       actionDescription: 'Coach viewed leads list',
-      metadata: viewData
+      metadata: viewData,
     })
   }
 
@@ -150,7 +150,7 @@ export class CoachActionTracker {
       actionDescription: 'Lead was assigned to coach',
       targetId: leadId,
       targetType: 'lead',
-      metadata: { assignedToCoachId: coachId }
+      metadata: { assignedToCoachId: coachId },
     })
   }
 
@@ -161,7 +161,7 @@ export class CoachActionTracker {
       actionDescription: 'Coach added a note to a lead',
       targetId: leadId,
       targetType: 'lead',
-      metadata: { noteLength }
+      metadata: { noteLength },
     })
   }
 
@@ -172,7 +172,7 @@ export class CoachActionTracker {
       actionCategory: 'subscription',
       actionDescription: `Coach subscribed to ${planId} plan`,
       targetType: 'subscription',
-      metadata: { planId, amount }
+      metadata: { planId, amount },
     })
   }
 
@@ -182,7 +182,7 @@ export class CoachActionTracker {
       actionCategory: 'subscription',
       actionDescription: `Coach upgraded from ${fromPlan} to ${toPlan} plan`,
       targetType: 'subscription',
-      metadata: { fromPlan, toPlan, amount }
+      metadata: { fromPlan, toPlan, amount },
     })
   }
 
@@ -192,7 +192,7 @@ export class CoachActionTracker {
       actionCategory: 'subscription',
       actionDescription: `Coach cancelled ${planId} subscription`,
       targetType: 'subscription',
-      metadata: { planId, reason }
+      metadata: { planId, reason },
     })
   }
   async trackSubscriptionView() {
@@ -210,7 +210,7 @@ export class CoachActionTracker {
       actionCategory: 'services',
       actionDescription: 'Coach created a new service',
       targetType: 'service',
-      metadata: { serviceName, serviceType }
+      metadata: { serviceName, serviceType },
     })
   }
 
@@ -221,7 +221,7 @@ export class CoachActionTracker {
       actionDescription: 'Coach updated a service',
       targetId: serviceId,
       targetType: 'service',
-      metadata: { changes }
+      metadata: { changes },
     })
   }
 
@@ -231,7 +231,7 @@ export class CoachActionTracker {
       actionType: 'page_view',
       actionCategory: 'navigation',
       actionDescription: `Coach visited ${pageName}`,
-      metadata: { pageName, pageCategory }
+      metadata: { pageName, pageCategory },
     })
   }
 
@@ -243,7 +243,7 @@ export class CoachActionTracker {
       actionDescription: `Error occurred: ${errorType}`,
       success: false,
       errorMessage,
-      metadata: context
+      metadata: context,
     })
   }
 }

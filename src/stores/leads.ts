@@ -76,7 +76,7 @@ export const useLeadStore = defineStore('leads', () => {
       await actionTracker.trackLeadListView({
         count: response.data.length,
         filters: params,
-        page: response.page
+        page: response.page,
       })
 
       return response

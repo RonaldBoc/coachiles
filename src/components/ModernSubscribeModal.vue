@@ -104,9 +104,12 @@ defineEmits<{
 }>()
 
 // Track subscription modal view when shown
-watch(() => props.show, (newValue) => {
-  if (newValue) {
-    actionTracker.trackSubscriptionView()
-  }
-})
+watch(
+  () => props.show,
+  (newValue) => {
+    if (newValue) {
+      actionTracker.trackSubscriptionView()
+    }
+  },
+)
 </script>
