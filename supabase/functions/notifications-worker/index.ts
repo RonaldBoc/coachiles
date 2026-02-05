@@ -47,12 +47,13 @@ serve(async (req) => {
   const cronSecret = Deno.env.get('NOTIF_CRON_SECRET')
   const scheduleHeader =
     req.headers.get('x-supabase-schedule') || req.headers.get('x-supabase-schedule-id')
-  
+
   // Check if request is from service_role (Dashboard test, internal calls)
   const authHeader = req.headers.get('authorization') || ''
-  const isServiceRole = authHeader.includes('service_role') || 
+  const isServiceRole =
+    authHeader.includes('service_role') ||
     (authHeader.startsWith('Bearer ') && authHeader.length > 100) // service_role JWTs are long
-  
+
   if (cronSecret && !scheduleHeader && !isServiceRole) {
     const headerSecret =
       req.headers.get('x-cron-secret') || new URL(req.url).searchParams.get('secret')
